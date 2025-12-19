@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://d3fe875rff465"]
+
+[ext_resource type="Script" uid="uid://ci58pwbx0ryl5" path="res://GodotBase/Distribution/VersionLabel/version_label.gd" id="1_5ntv8"]
+
+[node name="VersionLabel" type="Label"]
+text = "v1.2.3_something"
+script = ExtResource("1_5ntv8")

@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://87ek3ue6jx1d"]
+
+[ext_resource type="Script" uid="uid://885ymp2fue1p" path="res://GodotBase/Scenes/GhostGenerator/ghost_generator.gd" id="1_dvdwc"]
+
+[node name="GhostGenerator" type="Node2D"]
+script = ExtResource("1_dvdwc")
+
+[node name="GhostTimer" type="Timer" parent="."]

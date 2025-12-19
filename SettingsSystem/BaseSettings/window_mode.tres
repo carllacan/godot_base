@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SettingInfo" load_steps=2 format=3 uid="uid://0x48072vsosx"]
+
+[ext_resource type="Script" uid="uid://y1yl5gpm1oo1" path="res://GodotBase/SettingsSystem/setting_info.gd" id="1_4nfm2"]
+
+[resource]
+script = ExtResource("1_4nfm2")
+name = "window_mode"
+dname = "Window mode"
+description = "Whether to start the game in window or fullscreen mode"
+type = 28
+options = Dictionary[String, String]({
+"fullscreen": "Fullscreen",
+"windowed": "Windowed"
+})
+metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://ofemo66hpkbq"]
+
+[ext_resource type="Script" uid="uid://c5cieq4e46c3f" path="res://GodotBase/Scenes/RegularPolygon/regular_polygon.gd" id="1_iidn8"]
+
+[node name="RegularPolygon" type="Polygon2D"]
+polygon = PackedVector2Array(25, 0, 7.7254243, 23.776413, -20.225426, 14.69463, -20.225424, -14.694634, 7.725428, -23.776413)
+script = ExtResource("1_iidn8")
+radius = 25.0

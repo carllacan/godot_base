@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://c4a7s083fcth7"]
+
+[ext_resource type="Script" uid="uid://s4aexkcs4q43" path="res://GodotBase/Components/TypewriterEffect/typewriter_effect.gd" id="1_g3sj5"]
+[ext_resource type="AudioStream" uid="uid://xwvgq6rjsf04" path="res://GodotBase/Components/TypewriterEffect/click_002.ogg" id="2_g3sj5"]
+
+[node name="TypewriterEffect" type="Node"]
+script = ExtResource("1_g3sj5")
+
+[node name="DefaultClickPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+stream = ExtResource("2_g3sj5")
+volume_db = -12.0
+max_polyphony = 15
+bus = &"Sfx"

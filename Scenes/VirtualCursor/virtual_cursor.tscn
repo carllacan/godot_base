@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://b70tcnbdhw88v"]
+
+[ext_resource type="Script" uid="uid://jgg168x2tiee" path="res://GodotBase/Scenes/VirtualCursor/virtual_cursor.gd" id="1_sylra"]
+
+[node name="VirtualCursor" type="Node2D"]
+script = ExtResource("1_sylra")

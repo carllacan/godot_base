@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SettingInfo" load_steps=2 format=3 uid="uid://b7326in8fbyln"]
+
+[ext_resource type="Script" uid="uid://y1yl5gpm1oo1" path="res://GodotBase/SettingsSystem/setting_info.gd" id="1_yhs35"]
+
+[resource]
+script = ExtResource("1_yhs35")
+name = "analytics_asked"
+dname = "Analytics asked"
+description = "INTERNAL SETTING, not for players. Marks whether the player has already been asked for analytics consent."
+metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

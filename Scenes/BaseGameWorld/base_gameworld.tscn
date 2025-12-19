@@ -1,0 +1,41 @@
+[gd_scene load_steps=6 format=3 uid="uid://cxmwacwawq1qj"]
+
+[ext_resource type="Script" uid="uid://dkwc0poiqvh3b" path="res://GodotBase/Scenes/BaseGameWorld/base_gameworld.gd" id="1_scwc4"]
+[ext_resource type="Shader" uid="uid://bm6m7ilohgohq" path="res://GodotBase/Scenes/BaseGameWorld/grid.gdshader" id="2_jmjth"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4re87"]
+shader = ExtResource("2_jmjth")
+shader_parameter/offset = Vector2(0, 0)
+shader_parameter/cell_size = Vector2(20, 20)
+shader_parameter/grid_tickness = 3.0
+shader_parameter/background_color = Color(1, 1, 1, 1)
+shader_parameter/grid_color = Color(0, 0, 0, 1)
+
+[sub_resource type="Gradient" id="Gradient_fplbe"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_6apsl"]
+gradient = SubResource("Gradient_fplbe")
+width = 128
+height = 128
+
+[node name="World2d" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_scwc4")
+
+[node name="Background" type="CanvasLayer" parent="."]
+layer = 0
+
+[node name="Grid" type="TextureRect" parent="Background"]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_4re87")
+offset_right = 128.0
+offset_bottom = 128.0
+texture = SubResource("GradientTexture2D_6apsl")
+
+[node name="ElementsLayer" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+follow_viewport_enabled = true
+
+[node name="Camera" type="Camera2D" parent="ElementsLayer"]
+unique_name_in_owner = true

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SettingInfo" load_steps=2 format=3 uid="uid://cr5nnbwo55hoi"]
+
+[ext_resource type="Script" uid="uid://y1yl5gpm1oo1" path="res://GodotBase/SettingsSystem/setting_info.gd" id="1_g5rhq"]
+
+[resource]
+script = ExtResource("1_g5rhq")
+name = "language"
+dname = "Language"
+description = "Which language to use"
+type = 28
+options = Dictionary[String, String]({
+"default": "Default",
+"en": "English",
+"es_ES": "Spanish"
+})
+metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

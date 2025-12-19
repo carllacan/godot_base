@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://cibi1gghlqt4h"]
+
+[ext_resource type="PackedScene" uid="uid://dllaklutysa0" path="res://GodotBase/Scenes/InteractiveNode/interactive_node.tscn" id="1_mwlb5"]
+[ext_resource type="Script" uid="uid://bxqqa5vfil6m1" path="res://GodotBase/Scenes/BaseGameWorld/BaseWorldElement/base_world_element.gd" id="2_k7xrr"]
+
+[node name="BaseWorldElement" instance=ExtResource("1_mwlb5")]
+script = ExtResource("2_k7xrr")
+is_draggable = true

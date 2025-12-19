@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="SettingInfo" load_steps=2 format=3 uid="uid://itqa1foipjy3"]
+
+[ext_resource type="Script" uid="uid://y1yl5gpm1oo1" path="res://GodotBase/SettingsSystem/setting_info.gd" id="1_sa8al"]
+
+[resource]
+script = ExtResource("1_sa8al")
+name = "sfx_enabled"
+dname = "SFX"
+metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://o1ejptuuyesj"]
+
+[ext_resource type="Script" uid="uid://pixeibl1pe0f" path="res://GodotBase/Scenes/DraggableLayer/draggable_layer.gd" id="1_kqcio"]
+
+[node name="DraggableLayer" type="CanvasLayer"]
+follow_viewport_enabled = true
+script = ExtResource("1_kqcio")
