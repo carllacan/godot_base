@@ -9,7 +9,7 @@ class_name GodotBase
 # Version of the GodotBase system
 const VERSION:String = "1.0.0"
 
-const CUSTOM_SETTINGS_PATH:String = "res://godot_base_settings.tres"
+const CUSTOM_SETTINGS_PATH:String = "res://Parameters/godot_base_settings.tres"
 
 static var settings:GodotBase : get = get_settings
 
