@@ -1,16 +1,6 @@
-[gd_scene load_steps=13 format=3 uid="uid://baquoy1jtqued"]
+[gd_scene load_steps=3 format=3 uid="uid://baquoy1jtqued"]
 
 [ext_resource type="Script" uid="uid://cxlcasfkfeq2l" path="res://GodotBase/Scenes/WindowsLayer/base_window.gd" id="1_48o85"]
-[ext_resource type="FontFile" uid="uid://bu1pkfhn6icak" path="res://Themes/Fonts/pr/PrintChar21.ttf" id="2_f1nf4"]
-[ext_resource type="StyleBox" uid="uid://btdy3pkiqxts6" path="res://Themes/HUD/Button/highlighted_style.tres" id="3_c46ap"]
-[ext_resource type="StyleBox" uid="uid://upysrkhhw2io" path="res://Themes/HUD/AlternativeButton/highlighted_style.tres" id="3_kl33p"]
-[ext_resource type="StyleBox" uid="uid://ckwxcklhyigfr" path="res://Themes/HUD/Button/disabled_style.tres" id="4_18ogt"]
-[ext_resource type="StyleBox" uid="uid://y676nmyhi8f" path="res://Themes/HUD/AlternativeButton/disabled_style.tres" id="4_ni6h7"]
-[ext_resource type="StyleBox" uid="uid://3225dnhnqpn5" path="res://Themes/HUD/Button/pressed_style.tres" id="5_bchnb"]
-[ext_resource type="StyleBox" uid="uid://sj44jq8i7wql" path="res://Themes/HUD/AlternativeButton/pressed_style.tres" id="5_ifxm5"]
-[ext_resource type="StyleBox" uid="uid://c20a46fh5xaik" path="res://Themes/HUD/AlternativeButton/normal_style.tres" id="6_y1iqv"]
-[ext_resource type="StyleBox" uid="uid://dhj3ef5370yl1" path="res://Themes/HUD/Button/normal_style.tres" id="7_d6l65"]
-[ext_resource type="AudioStream" uid="uid://nk3x8pt6k81g" path="res://Sounds/UI/click-151673.mp3" id="8_18kfc"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t2jd4"]
 bg_color = Color(0.05, 0.05, 0.1, 0.882353)
@@ -78,13 +68,7 @@ focus_mode = 0
 theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
 theme_override_constants/outline_size = 3
 theme_override_constants/line_spacing = 3
-theme_override_fonts/font = ExtResource("2_f1nf4")
 theme_override_font_sizes/font_size = 30
-theme_override_styles/normal = ExtResource("6_y1iqv")
-theme_override_styles/pressed = ExtResource("5_ifxm5")
-theme_override_styles/hover = ExtResource("3_kl33p")
-theme_override_styles/disabled = ExtResource("4_ni6h7")
-theme_override_styles/focus = ExtResource("3_kl33p")
 text = "NO"
 
 [node name="ConfirmButton" type="Button" parent="MarginContainer/VBoxContainer/DefaultButtons"]
@@ -96,21 +80,13 @@ focus_mode = 0
 theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
 theme_override_constants/outline_size = 3
 theme_override_constants/line_spacing = 3
-theme_override_fonts/font = ExtResource("2_f1nf4")
 theme_override_font_sizes/font_size = 30
-theme_override_styles/normal = ExtResource("7_d6l65")
-theme_override_styles/pressed = ExtResource("5_bchnb")
-theme_override_styles/hover = ExtResource("3_c46ap")
-theme_override_styles/disabled = ExtResource("4_18ogt")
-theme_override_styles/focus = ExtResource("3_c46ap")
 text = "YES"
 
 [node name="ButtonClickPlayer" type="AudioStreamPlayer" parent="."]
 unique_name_in_owner = true
-stream = ExtResource("8_18kfc")
 pitch_scale = 0.6
 max_polyphony = 5
-bus = &"Sfx"
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/DefaultButtons/CancelButton" to="ButtonClickPlayer" method="play"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/DefaultButtons/ConfirmButton" to="ButtonClickPlayer" method="play"]
