@@ -10,7 +10,7 @@ enum ForceActions
 
 @export_category("Launch settings")
 @export var use_testing_savefile:bool = false
-@export var testing_savefile:GameState
+@export var testing_savefile:BaseGameRun
 @export var skip_main_menu:bool = false
 @export var force_new_game:bool = false
 

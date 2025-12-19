@@ -10,6 +10,7 @@ const MAX_CIRCLES:int = 10
 @export var size:Vector2 = Vector2.ONE*250 : set = set_size
 @export var circles:Array[CircleInfo]
 @export var update_frame_interval:int = 1
+## Whether to update the sprite on every physics frame
 @export var auto_update:bool = false
 @export var update_only_angles:bool = false
 # Will disable antialising, independent of graphics quality settings
@@ -24,6 +25,8 @@ var frames_since_last_update:int = 0
 
 
 func _ready()-> void:
+	if not Engine.is_editor_hint():
+		Settings.setting_changed.connect(_on_setting_changed)
 	for circle in circles:
 		_on_circle_added(circle)
 	update_antialising()
@@ -130,15 +133,31 @@ func update_circles_info(force:bool = false)-> void:
 		must_update_this_frame = true
 	
 	
-func update_antialising()-> void:
-	s = material as ShaderMaterial
+func must_apply_antialising()-> bool:
 	if force_no_antialising:
-		s.set_shader_parameter("enable_antialising", false)
+		return false
+		
+	if Engine.is_editor_hint():
+		return true
+		
+	var graph_qua = Settings.get_setting_value_by_name("graphics_quality")
+	var aa_setting_enabled = graph_qua > 1
+	return aa_setting_enabled
+	
+		
+func update_antialising()-> void:
+	if not is_node_ready(): return
+	#s = material as ShaderMaterial
+	var must = must_apply_antialising()
+	s.set_shader_parameter("enable_antialising", must)
+	
+	#if force_no_antialising:
+		#s.set_shader_parameter("enable_antialising", false)
 	#elif not Engine.is_editor_hint():
 		#var aa_setting = Settings.get_setting_value_by_name("graphics_quality") > 1
 		#s.set_shader_parameter("enable_antialising", aa_setting)
-	else:
-		s.set_shader_parameter("enable_antialising", true)
+	#else:
+		#s.set_shader_parameter("enable_antialising", true)
 	
 	
 func really_update_circles_info()-> void:
@@ -174,6 +193,8 @@ func really_update_circles_info()-> void:
 		
 	var angular_fade_colors = s.get_shader_parameter("angular_fade_colors")
 	var angular_fade_factors = s.get_shader_parameter("angular_fade_factors")
+	var angular_fade_starts = s.get_shader_parameter("angular_fade_starts")
+	var angular_fade_ends = s.get_shader_parameter("angular_fade_ends")
 	
 	var waves_enabled = s.get_shader_parameter("waves_enabled")
 	var waves_colors = s.get_shader_parameter("waves_colors")
@@ -183,6 +204,8 @@ func really_update_circles_info()-> void:
 	
 	var mix_colors = s.get_shader_parameter("mix_colors")
 	var mix_color_factors = s.get_shader_parameter("mix_color_factors")
+	
+	var radial_antialising_factors = s.get_shader_parameter("radial_antialising_factors")
 			
 	# Disable all circles by default
 	for i in range(MAX_CIRCLES):
@@ -216,6 +239,8 @@ func really_update_circles_info()-> void:
 		
 		angular_fade_colors[i] = circle.angular_fade_color
 		angular_fade_factors[i] = circle.angular_fade_factor
+		angular_fade_starts[i] = circle.angular_fade_start
+		angular_fade_ends[i] = circle.angular_fade_end
 		
 		waves_enabled[i] = 1 if circle.waves_enabled else 0
 		waves_colors[i] = circle.waves_color
@@ -225,6 +250,12 @@ func really_update_circles_info()-> void:
 		
 		mix_colors[i] = circle.mix_color
 		mix_color_factors[i] = circle.mix_color_factor
+		
+		# Probably a better way to do it?
+		if circle.disable_antialising:
+			radial_antialising_factors[i] = -1
+		else:
+			radial_antialising_factors[i] = 0
 		
 	if 2*max_radius > size.x or 2*max_radius > size.y:
 		size = Vector2.ONE*max_radius*2
@@ -244,6 +275,8 @@ func really_update_circles_info()-> void:
 	
 	s.set_shader_parameter("angular_fade_colors", angular_fade_colors)
 	s.set_shader_parameter("angular_fade_factors", angular_fade_factors)
+	s.set_shader_parameter("angular_fade_starts", angular_fade_starts)
+	s.set_shader_parameter("angular_fade_ends", angular_fade_ends)
 	
 	s.set_shader_parameter("waves_enabled", waves_enabled)
 	s.set_shader_parameter("waves_colors", waves_colors)
@@ -255,6 +288,8 @@ func really_update_circles_info()-> void:
 	s.set_shader_parameter("mix_color_factors", mix_color_factors)
 	
 	s.set_shader_parameter("max_amount_of_circles", len(circles))
+	
+	s.set_shader_parameter("radial_antialising_factors", radial_antialising_factors)
 
 
 func really_update_angles()-> void:
