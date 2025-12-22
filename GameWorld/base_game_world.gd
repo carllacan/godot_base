@@ -20,6 +20,10 @@ func set_run(new_value:GameState)-> void:
 	
 	if changed:
 		_on_run_changed(new_value, old_value)
+	
+	
+func _ready()-> void:
+	pass
 		
 		
 @warning_ignore("unused_parameter")
