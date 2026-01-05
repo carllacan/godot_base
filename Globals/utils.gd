@@ -2,7 +2,7 @@ extends Node
 class_name Utils
 
 
-	
+## Returns a copy of an array with no duplicate elements
 static func unique(array:Array)-> Array:
 	var unique_values:Array = []
 	
@@ -77,7 +77,9 @@ static func bunch(amount:int, max_bunches:int)-> Array[int]:
 				
 	return bunches
 	
-## Chooses an element randomly, giving different weights to each option
+## Like RandomNumberGenerator.rand_weighted, but allows using a dictionary that 
+## maps options to weights, allows infinite weights, and automatically creates
+## an RNG
 ## * catalog: Dictionary mapping each of the options to its weight
 ## * catalog_is_sorted
 static func rand_weighted(
@@ -100,7 +102,7 @@ static func rand_weighted(
 	if not infinite_weighted.is_empty():
 		return infinite_weighted.pick_random()
 
-	# Ensure consisten index-based access to the catalog		
+	# Ensure consistent index-based access to the catalog		
 	var keys:Array[Variant] = []
 	var values:Array[float] = []
 	if catalog_is_sorted:
