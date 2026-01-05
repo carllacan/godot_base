@@ -1,4 +1,5 @@
 extends CanvasLayer
+class_name DraggableLayer
 
 
 @export var zoom_enabled:bool = true

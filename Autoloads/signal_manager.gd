@@ -8,8 +8,13 @@ var frame_delays:Dictionary[Signal, int] = {}
 #var deadtimes::Dictionary[Signal, float] = {}
 
 
+func _ready()-> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
+	
 # Will make sure it is emited this frame, but only once
 func emit_this_frame(sig:Signal)-> void:
+	if not is_inside_tree(): push_error("SignalManager not in tree!")
 	frame_delays[sig] = 0
 	
 	

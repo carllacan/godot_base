@@ -1,5 +1,7 @@
 extends Control
-class_name BaseGameWorld
+class_name BaseDraggableGameWorld
+
+## old class that attempted to create a world AND make it draggable
 
 const ZOOM_WHEEL_SENSIBILITY:float = 0.1
 const MIN_ZOOM_FACTOR:float = 0.5

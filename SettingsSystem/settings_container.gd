@@ -25,7 +25,10 @@ func get_setting_by_name(setting_name:String)-> SettingInfo:
 func get_setting_value_by_name(setting_name:String)-> Variant:
 	#if not values.keys().any(func(s): return s.name == setting_name):
 	if not values.keys().any(func(s): return s.name == setting_name):
-		push_warning("No value defined for setting '%s'. Establish at least a default value")
+		var m = "No value defined for setting '%s'. Establish at least a default value" % [
+		setting_name
+		]
+		push_warning(m)
 		return null
 		
 	var target_setting:SettingInfo = get_setting_by_name(setting_name)
@@ -33,7 +36,10 @@ func get_setting_value_by_name(setting_name:String)-> Variant:
 	if target_setting in values:
 		return values[target_setting]
 	else:
-		push_warning("No value defined for setting '%s'. Establish at least a default value")
+		var m = "No value defined for setting '%s'. Establish at least a default value" % [
+		setting_name
+		]
+		push_warning(m)
 		return null
 
 

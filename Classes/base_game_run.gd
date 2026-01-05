@@ -1,5 +1,5 @@
 extends Resource
-class_name BaseGameRun
+class_name BaseGameState
 
 
 const DEFAULT_FILENAME = "save.tres"
@@ -51,8 +51,8 @@ static func get_run_filepath(filename:String)-> String:
 	
 	
 # Loads a GameRun saved as a resource
-static func load(filepath:String)-> GameRun:
-	var r:GameRun = ResourceLoader.load(filepath)
+static func load(filepath:String)-> BaseGameState:
+	var r:BaseGameState = ResourceLoader.load(filepath)
 	
 	if r != null:
 		print("Game loaded from '%s'" % filepath)
