@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://dllaklutysa0"]
 
 [ext_resource type="Script" uid="uid://bo4urt6aq0ind" path="res://GodotBase/Scenes/InteractiveNode/interactive_node.gd" id="1_i4ook"]
-[ext_resource type="Texture2D" uid="uid://b3rcvsl1stans" path="res://GodotBase/Icons/icon.svg" id="2_8mf6s"]
+[ext_resource type="Texture2D" uid="uid://n8mgft8goyw2" path="res://icon.svg" id="2_8mf6s"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_j6se0"]
 size = Vector2(128, 128)
