@@ -12,6 +12,8 @@ class_name TypewriterEffect
 @export_group("Triggers")
 @export var trigger_on_ready:bool = false
 @export var trigger_on_shown:bool = false
+@export var reset_on_ready:bool = false
+@export var reset_on_shown:bool = false
 ## Plays the effect inside the editor
 @export_tool_button("Play") var play_button = play
 
@@ -19,6 +21,8 @@ class_name TypewriterEffect
 func _ready()-> void:
 	var target = get_parent()
 	
+	if reset_on_ready:
+		reset()
 	if trigger_on_ready:
 		target.ready.connect(_on_parent_ready)
 	if trigger_on_shown:
@@ -26,11 +30,15 @@ func _ready()-> void:
 	
 	
 func _on_parent_ready()-> void:
+	if reset_on_ready:
+		reset()
 	if trigger_on_ready:
 		play()
 		
 		
 func _on_parent_visibility_changed()-> void:
+	if reset_on_shown:
+		reset()
 	if trigger_on_shown:
 		play()
 		
@@ -40,6 +48,15 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if get_parent() is not RichTextLabel:
 		warnings.append("Parent should be a RichTextLabel")
 	return warnings
+	
+	
+func reset()-> void:
+	if not is_node_ready(): return
+	
+	var target = get_parent()
+	assert(target is RichTextLabel)
+	
+	target.visible_characters = 0
 	
 
 func play(time_s:float = NAN)-> void:
@@ -54,13 +71,16 @@ func play(time_s:float = NAN)-> void:
 	var click_player
 	if write_sound == null:
 		click_player = %DefaultClickPlayer
+	else:
+		click_player = write_sound
 		
-	target.visible_characters = 0
+	reset()
 	var num_chars = target.get_total_character_count()
 	var char_time = total_time/float(num_chars)
 	char_time = max(min_character_time, char_time)
 	for c in range(num_chars):
-		click_player.play()
+		if click_player != null:
+			click_player.play()
 		target.visible_characters += 1
 		await get_tree().create_timer(char_time).timeout
 		
