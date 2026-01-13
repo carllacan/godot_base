@@ -12,6 +12,7 @@ enum ForceActions
 @export var use_testing_savefile:bool = false
 @export var testing_savefile:BaseGameState
 @export var skip_main_menu:bool = false
+@export var skip_splash_screen:bool = false
 @export var force_new_game:bool = false
 
 @export_category("Integration testing")

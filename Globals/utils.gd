@@ -2,7 +2,7 @@ extends Node
 class_name Utils
 
 
-	
+## Returns a copy of an array with no duplicate elements
 static func unique(array:Array)-> Array:
 	var unique_values:Array = []
 	
@@ -77,7 +77,9 @@ static func bunch(amount:int, max_bunches:int)-> Array[int]:
 				
 	return bunches
 	
-## Chooses an element randomly, giving different weights to each option
+## Like RandomNumberGenerator.rand_weighted, but allows using a dictionary that 
+## maps options to weights, allows infinite weights, and automatically creates
+## an RNG
 ## * catalog: Dictionary mapping each of the options to its weight
 ## * catalog_is_sorted
 static func rand_weighted(
@@ -100,7 +102,7 @@ static func rand_weighted(
 	if not infinite_weighted.is_empty():
 		return infinite_weighted.pick_random()
 
-	# Ensure consisten index-based access to the catalog		
+	# Ensure consistent index-based access to the catalog		
 	var keys:Array[Variant] = []
 	var values:Array[float] = []
 	if catalog_is_sorted:
@@ -131,9 +133,7 @@ static func get_magnitude_order(amount:float)-> int:
 	#print("%s is of magnitude order %s" % [amount, magnitude-1])
 	return magnitude-1
 
-	
-	
-	
+
 static func get_rect_segment_intersection(rect: Rect2, inside: Vector2, outside: Vector2) -> Vector2:
 	var edges = [
 		# Top
@@ -158,3 +158,43 @@ static func get_rect_segment_intersection(rect: Rect2, inside: Vector2, outside:
 			return hit
 	
 	return Vector2.ZERO
+	
+	
+## Implements a piece-wise linear function 
+## thresholds: assumed to be sorted
+## slopes: there must be one more than thresholds, to account for the initial slope
+static func piecewise_linear(
+		x:float,
+		thresholds:Array[float],
+		slopes:Array[float]
+		) -> float:
+	assert(not thresholds.is_empty())
+	assert(slopes.size() == thresholds.size() + 1)
+
+	if x <= 0:
+		return 0
+		
+	var result:float = 0.0
+	var prev_x:float = 0.0
+
+		
+	for i in range(thresholds.size()):
+		var th:float = thresholds[i]
+
+		if x <= prev_x:
+			return result
+
+		var segment_end:float = min(x, th)
+		var dx:float = segment_end - prev_x
+		result += dx * slopes[i]
+
+		if x <= th:
+			return result
+
+		prev_x = th
+
+	# Remaining segment after last threshold
+	if x > prev_x:
+		result += (x - prev_x) * slopes[slopes.size() - 1]
+
+	return result
