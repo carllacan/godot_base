@@ -32,7 +32,7 @@ func update()-> void:
 	fill_from = Vector2.ONE*0.5
 	fill_to = Vector2.ONE
 	
-	width = int(radius)
-	height = int(radius)
+	width = int(radius*2)
+	height = int(radius*2)
 	
 	emit_changed()
