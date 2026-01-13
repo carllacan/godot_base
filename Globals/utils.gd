@@ -134,15 +134,27 @@ static func get_magnitude_order(amount:float)-> int:
 	
 	
 	
+static func get_rect_segment_intersection(rect: Rect2, inside: Vector2, outside: Vector2) -> Vector2:
+	var edges = [
+		# Top
+		[rect.position, rect.position + Vector2(rect.size.x, 0)],
+		# Bottom
+		[rect.position + Vector2(0, rect.size.y), rect.position + rect.size],
+		# Left
+		[rect.position, rect.position + Vector2(0, rect.size.y)],
+		# Right
+		[rect.position + Vector2(rect.size.x, 0), rect.position + rect.size]
+	]
 	
+	for edge in edges:
+		var hit = Geometry2D.segment_intersects_segment(
+			inside,
+			outside,
+			edge[0],
+			edge[1]
+		)
+		
+		if hit != null:
+			return hit
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	return Vector2.ZERO
