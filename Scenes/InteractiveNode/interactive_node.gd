@@ -32,6 +32,7 @@ var style_animation_progress:float = 0 : set = set_style_animation_progress
 @export var is_clickable:bool = false
 @export var is_disabled:bool = false : set = set_is_disabled
 @export var default_focus:bool = false 
+@export var action_mode:BaseButton.ActionMode = BaseButton.ActionMode.ACTION_MODE_BUTTON_RELEASE
 
 @export_subgroup("Hover effects")
 @export var hover_animation_length_s:float = 0.1
@@ -237,6 +238,25 @@ func _on_gui_input_catcher_focus_exited() -> void:
 	#update_is_mouse_inside()
 	
 	
+func _input(event: InputEvent) -> void:
+	if is_disabled: return
+	if not visible: return
+	
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.is_pressed():			
+				if is_mouse_inside():
+					if action_mode == BaseButton.ActionMode.ACTION_MODE_BUTTON_PRESS:					
+						is_pressed = true
+						press_button()
+			if event.is_released():		
+				if is_mouse_inside(): 	
+					if action_mode == BaseButton.ActionMode.ACTION_MODE_BUTTON_RELEASE:
+						press_button()
+				is_pressed = false
+				released.emit()
+				
+	
 func _gui_input_catcher_gui_input(event: InputEvent) -> void:
 #func _gui_input_catcher_gui_input(event: InputEvent) -> void:
 	#print(name + " gui event " + str(Engine.get_frames_drawn()))
@@ -249,7 +269,7 @@ func _gui_input_catcher_gui_input(event: InputEvent) -> void:
 				#if is_mouse_inside():
 					#is_pressed = true
 			if event.is_released():		
-				if is_mouse_inside():
+				if is_mouse_inside(): 	
 					press_button()
 				is_pressed = false
 				released.emit()
