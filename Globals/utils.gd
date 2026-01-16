@@ -179,3 +179,7 @@ static func piecewise_linear(
 	
 	
 	
+static func write_local_file(path:String, bytes:PackedByteArray) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_buffer(bytes)
+	f.close()
