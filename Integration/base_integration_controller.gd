@@ -97,6 +97,9 @@ class DefaultSyncCriterion:
 func sync_file(local_path:String, 
 	criterion:Callable = DefaultSyncCriterion.criterion.bind("timestamp_unix")
 	) -> void:
+				
+	if not Settings.get_setting_value_by_name("steam_cloud_enabled"):
+		return
 		
 	var remote_path = local_to_remote_filepath(local_path)
 
