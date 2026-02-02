@@ -31,7 +31,7 @@ func actually_save()-> void:
 	
 	to_be_called.call()
 	
-	save_if_possible()
+	save_if_possible() # in case another one is queued
 	is_saving = false
 	saving_finished.emit()
 	

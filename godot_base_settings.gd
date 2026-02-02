@@ -41,10 +41,13 @@ static var settings:GodotBase : get = get_settings
 @export var movie_maker_gif_fuzz:int = 3
 @export var movie_maker_make_webp:bool = false
 
-
+static var _settings:GodotBase # cached version
 static func get_settings()-> GodotBase:
-	if FileAccess.file_exists(CUSTOM_SETTINGS_PATH):
-		return load(CUSTOM_SETTINGS_PATH) as GodotBase
-	else:
-		push_warning("Custom GodotBase settings file not found, using default values")
-		return GodotBase.new()
+	if _settings== null:
+		if FileAccess.file_exists(CUSTOM_SETTINGS_PATH):
+			print(Time.get_ticks_msec()) 
+			_settings = load(CUSTOM_SETTINGS_PATH) as GodotBase
+		else:
+			push_warning("Custom GodotBase settings file not found, using default values")
+			_settings = GodotBase.new()
+	return _settings
