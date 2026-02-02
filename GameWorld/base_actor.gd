@@ -33,7 +33,11 @@ enum State {
 var state:State = State._undef : set = set_state
 
 var just_for_show:bool = false
-var being_destroyed:bool = false
+var being_destroyed:bool : 
+	get: 
+		return state == State.BEING_DESTROYED
+		
+
 
 
 func _ready()-> void:
@@ -91,6 +95,9 @@ func play_destruction_animation(_mode:String = "")-> void:
 	
 
 func destroy(mode:String = "")-> void:
+	if state in [State.BEING_DESTROYED or State.DESTROYED]:
+		return
+		
 	state = State.BEING_DESTROYED
 	destruction_started.emit()
 	@warning_ignore("redundant_await")
@@ -103,5 +110,12 @@ func drop(what)-> void:
 	dropped.emit(what)
 
 
+func spawn_projectile(projectile:BaseProjectile)-> void:
+	Events.projectile_spawned.emit(projectile)
+	
+
 func can_be_placed(position:Vector2, world:BaseGameWorld)-> bool:
 	return true
+	
+	
+	

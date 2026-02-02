@@ -4,8 +4,8 @@ extends EditorScript
 # -------- CONFIG --------
 var radius := 128
 var line_width := 10
-var dot_angle := 0.25
-var gap_angle := 0.15
+var dot_angle := 0.45
+var gap_angle := 0.25
 var resolution := 12
 var output_path := "res://dotted_circle.png"
 var color := Color.WHITE

@@ -95,15 +95,13 @@ func is_position_valid(pos:Vector2)-> bool:
 	return true
 	
 	
-func get_closest_valid_position(pos:Vector2)-> Vector2:
+func get_closest_position(pos:Vector2)-> Vector2:
 	var closest = pos
-	
-	
+		
 	var r = get_valid_rect()	
 	if not r.has_point(pos) and r.get_area() > 0:
 		closest = Utils.get_rect_segment_intersection(r, closest, r.get_center())
-		
-		
+				
 	if grid_enabled:
 		var row := int(round(closest.y / grid_size.y))
 		var y := row * grid_size.y
@@ -135,6 +133,12 @@ func is_something_selected()-> bool:
 	return selected_actor != null
 	
 
+func get_actors_at_position(pos:Vector2)-> BaseActor:
+	for actor in actors:
+		if get_closest_position(actor.position) == pos:
+			return actor
+	return null
+	
 #endregion Selection
 
 
@@ -180,7 +184,20 @@ func finish_placing(result = null)-> void:
 	
 func update_placing_actor(_delta: float)-> void:
 	var mpos = get_local_mouse_position()	
-	var candidate_position = get_closest_valid_position(mpos)
+	
+	
+	if placing_must_be_shown(mpos):
+		placing_actor.show()
+		placing_indicator.show()
+	else:
+		placing_actor.hide()
+		placing_indicator.hide()
+		return
+		
+	var candidate_position = mpos
+	if grid_enabled:
+		candidate_position = get_closest_position(mpos)	
+		
 	var valid = placing_actor.can_be_placed(candidate_position, self)
 	
 	if not is_position_valid(candidate_position):
@@ -188,8 +205,9 @@ func update_placing_actor(_delta: float)-> void:
 	
 	if not valid:
 		placing_actor.state = BaseActor.State.INVALID
-	
-	
+	else:
+		placing_actor.state = BaseActor.State.IDLE
+		
 	if placing_indicator != null:
 		placing_indicator.position = candidate_position
 		placing_indicator.valid = valid
@@ -198,8 +216,22 @@ func update_placing_actor(_delta: float)-> void:
 	
 	
 func can_place_right_now()-> bool:
-	return placing_actor.can_be_placed(placing_actor.position, self)
+	if not is_position_valid(placing_actor.position):
+		return false
+		
+	if not placing_actor.can_be_placed(placing_actor.position, self):
+		return false
+		
+	return true
 	
+	
+## Returns whether the actor being placed should be shown if the player
+## is trying to place it at this position. Useful for hiding the preview
+## if the valid area is not being hovered
+func placing_must_be_shown(candidate_position:Vector2)-> bool:
+	return true
+
+
 	
 func on_wrong_placement_attempt()-> void:
 	print("WRONG")
@@ -252,10 +284,11 @@ func add_actor(new_actor:BaseActor)-> void:
 	
 	
 func remove_actor(target:BaseActor)-> void:	
-	%Actors.remove_child(target)
+	if not target in actors:
+		push_warning("Tried to remove actor %s, but it was not on the actors list"% target)
 	actors.erase(target)
 	target.queue_free()
-	#print("Actor %s queued for freeing" % target)
+	%Actors.remove_child(target)
 	
 	
 func _on_actor_effect_dropped(effect:BaseEffect, actor:BaseActor)-> void:
@@ -351,7 +384,7 @@ func _on_mouse_left_click()-> void:
 		
 	
 	
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	
 	if event is InputEventMouseButton:
 		if event.is_released():
