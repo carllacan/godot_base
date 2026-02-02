@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SettingInfo" load_steps=2 format=3 uid="uid://dnqju7tw4hjh8"]
+
+[ext_resource type="Script" uid="uid://y1yl5gpm1oo1" path="res://GodotBase/SettingsSystem/setting_info.gd" id="1_cwppb"]
+
+[resource]
+script = ExtResource("1_cwppb")
+name = "steam_cloud_enabled"
+dname = "Enable Steam Cloud"
+description = "Whether the save data should be synced with steam cloud"
+metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

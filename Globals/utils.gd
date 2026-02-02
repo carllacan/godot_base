@@ -198,3 +198,10 @@ static func piecewise_linear(
 		result += (x - prev_x) * slopes[slopes.size() - 1]
 
 	return result
+	
+	
+	
+static func write_local_file(path:String, bytes:PackedByteArray) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_buffer(bytes)
+	f.close()

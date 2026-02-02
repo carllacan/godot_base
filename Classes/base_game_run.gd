@@ -7,6 +7,7 @@ const INITIAL_RUN_FILEPATH = "res://Data/GameRuns/initial_game_run.tres"
 const DEMO_INITIAL_RUN_FILEPATH = "res://Data/GameRuns/demo_initial_game_run.tres"
 
 @export_group("Others")
+@export var timestamp_unix:float = 0
 @export var version:String
 
 #region Saving
@@ -30,6 +31,7 @@ func actually_save(filepath:String = "")-> Error:
 	if result != OK:
 		print("Creating save directory failed. Error code: %s" % result)
 		
+	timestamp_unix = Time.get_unix_time_from_system()
 	version = Dist.get_version()
 		
 	result = ResourceSaver.save(self, filepath)
@@ -38,6 +40,9 @@ func actually_save(filepath:String = "")-> Error:
 		print("Game saved to '%s'" % filepath)
 	else:
 		print("Game saving failed. Error code: %s" % result)
+		
+	# Upload save, if configured to do so.
+	Integration.sync_file(filepath)
 		
 	return result
 
@@ -52,6 +57,9 @@ static func get_run_filepath(filename:String)-> String:
 	
 # Loads a GameRun saved as a resource
 static func load(filepath:String)-> BaseGameState:
+	# Sync save, if configured to do so. This might download a new save.
+	Integration.sync_file(filepath)
+	
 	var r:BaseGameState = ResourceLoader.load(filepath)
 	
 	if r != null:

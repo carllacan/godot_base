@@ -10,12 +10,16 @@ class_name ResourceGetter
 ## Include subdirectories
 @export var include_subdirectories: bool = false
 
+var cached_resources:Array[Resource] = []
 
 func get_all() -> Array[Resource]:
-	var dir_path := get_resource_directory()
-	if dir_path.is_empty():
-		return []
-	return _scan_directory(dir_path)
+	if cached_resources.is_empty():
+		var dir_path := get_resource_directory()
+		if dir_path.is_empty():
+			return []
+		cached_resources = _scan_directory(dir_path)
+		
+	return cached_resources
 
 
 func _scan_directory(dir_path: String) -> Array[Resource]:
@@ -37,9 +41,11 @@ func _scan_directory(dir_path: String) -> Array[Resource]:
 				if include_subdirectories and not file.begins_with("."):
 					results.append_array(_scan_directory(full_path))
 			else:
-				if file.get_extension() in target_extensions:				
-					var res := load(full_path)
-						
+				var actual_path = full_path.trim_suffix(".remap")
+					
+				if actual_path.get_extension() in target_extensions:		
+											
+					var res := load(actual_path)
 						
 					if target_scripts.is_empty():
 						results.append(res)
