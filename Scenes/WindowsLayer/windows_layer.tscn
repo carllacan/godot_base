@@ -1,13 +1,13 @@
-[gd_scene load_steps=2 format=3 uid="uid://bsmbcxm5lhuj7"]
+[gd_scene format=3 uid="uid://bsmbcxm5lhuj7"]
 
 [ext_resource type="Script" uid="uid://bajpe7j15ll8q" path="res://GodotBase/Scenes/WindowsLayer/windows_layer.gd" id="1_g14bo"]
 
-[node name="WindowsLayer" type="CanvasLayer"]
+[node name="WindowsLayer" type="CanvasLayer" unique_id=1638601748]
 process_mode = 3
 script = ExtResource("1_g14bo")
 metadata/_custom_type_script = "uid://bajpe7j15ll8q"
 
-[node name="WindowsBackground" type="ColorRect" parent="."]
+[node name="WindowsBackground" type="ColorRect" parent="." unique_id=1727505755]
 unique_name_in_owner = true
 visible = false
 anchors_preset = 15
@@ -18,7 +18,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.2509804)
 
-[node name="CurrentWindowContainer" type="CenterContainer" parent="."]
+[node name="CurrentWindowContainer" type="CenterContainer" parent="." unique_id=280089724]
 unique_name_in_owner = true
 anchors_preset = 15
 anchor_right = 1.0

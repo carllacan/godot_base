@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://boqeev40laf1s"]
+[gd_scene format=3 uid="uid://boqeev40laf1s"]
 
 [ext_resource type="Script" uid="uid://bul3lwai03tqr" path="res://GodotBase/Scenes/Tooltip/tooltip.gd" id="1_txejn"]
 
-[node name="Tooltip" type="PanelContainer"]
+[node name="Tooltip" type="PanelContainer" unique_id=1699983588]
 visible = false
 anchors_preset = 2
 anchor_top = 1.0
@@ -15,7 +15,7 @@ size_flags_horizontal = 8
 mouse_filter = 2
 script = ExtResource("1_txejn")
 
-[node name="TextContents" type="RichTextLabel" parent="."]
+[node name="TextContents" type="RichTextLabel" parent="." unique_id=1193287380]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0

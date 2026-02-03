@@ -1,7 +1,22 @@
-[gd_scene load_steps=6 format=3 uid="uid://bncvjocuxeycm"]
+[gd_scene format=3 uid="uid://bncvjocuxeycm"]
 
 [ext_resource type="Script" uid="uid://cwo43jw0s8ttb" path="res://GodotBase/Scenes/SaveIndicator/saving_indicator.gd" id="1_kkmc1"]
-[ext_resource type="Texture2D" uid="uid://n8mgft8goyw2" path="res://icon.svg" id="2_m3it0"]
+[ext_resource type="Texture2D" uid="uid://cwvqnywxhwtdi" path="res://icon.svg" id="2_m3it0"]
+
+[sub_resource type="Animation" id="Animation_0b5he"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
 
 [sub_resource type="Animation" id="Animation_m3it0"]
 resource_name = "spin"
@@ -19,37 +34,20 @@ tracks/0/keys = {
 "values": [0.0, 6.283185307179586]
 }
 
-[sub_resource type="Animation" id="Animation_0b5he"]
-length = 0.001
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:rotation")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [0.0]
-}
-
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_ughl1"]
 _data = {
 &"RESET": SubResource("Animation_0b5he"),
 &"spin": SubResource("Animation_m3it0")
 }
 
-[node name="SavingIndicator" type="Node2D"]
+[node name="SavingIndicator" type="Node2D" unique_id=1804077131]
 script = ExtResource("1_kkmc1")
 
-[node name="SaveIcon" type="Sprite2D" parent="."]
+[node name="SaveIcon" type="Sprite2D" parent="." unique_id=474219463]
 unique_name_in_owner = true
 texture = ExtResource("2_m3it0")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="SaveIcon"]
-libraries = {
-&"": SubResource("AnimationLibrary_ughl1")
-}
-autoplay = "spin"
+[node name="AnimationPlayer" type="AnimationPlayer" parent="SaveIcon" unique_id=1757992726]
+libraries/ = SubResource("AnimationLibrary_ughl1")
+autoplay = &"spin"
 speed_scale = 0.8

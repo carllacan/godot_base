@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://cxmwacwawq1qj"]
+[gd_scene format=3 uid="uid://cxmwacwawq1qj"]
 
 [ext_resource type="Script" uid="uid://dkwc0poiqvh3b" path="res://GodotBase/Scenes/BaseGameWorld/base_gameworld.gd" id="1_scwc4"]
 [ext_resource type="Shader" uid="uid://bm6m7ilohgohq" path="res://GodotBase/Scenes/BaseGameWorld/grid.gdshader" id="2_jmjth"]
@@ -18,24 +18,24 @@ gradient = SubResource("Gradient_fplbe")
 width = 128
 height = 128
 
-[node name="World2d" type="Control"]
+[node name="World2d" type="Control" unique_id=308722189]
 layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_scwc4")
 
-[node name="Background" type="CanvasLayer" parent="."]
+[node name="Background" type="CanvasLayer" parent="." unique_id=179632735]
 layer = 0
 
-[node name="Grid" type="TextureRect" parent="Background"]
+[node name="Grid" type="TextureRect" parent="Background" unique_id=1006106629]
 unique_name_in_owner = true
 material = SubResource("ShaderMaterial_4re87")
 offset_right = 128.0
 offset_bottom = 128.0
 texture = SubResource("GradientTexture2D_6apsl")
 
-[node name="ElementsLayer" type="CanvasLayer" parent="."]
+[node name="ElementsLayer" type="CanvasLayer" parent="." unique_id=175470697]
 unique_name_in_owner = true
 follow_viewport_enabled = true
 
-[node name="Camera" type="Camera2D" parent="ElementsLayer"]
+[node name="Camera" type="Camera2D" parent="ElementsLayer" unique_id=659773842]
 unique_name_in_owner = true
