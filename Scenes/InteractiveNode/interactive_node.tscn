@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://dllaklutysa0"]
+[gd_scene format=3 uid="uid://dllaklutysa0"]
 
 [ext_resource type="Script" uid="uid://bo4urt6aq0ind" path="res://GodotBase/Scenes/InteractiveNode/interactive_node.gd" id="1_i4ook"]
 [ext_resource type="Texture2D" uid="uid://n8mgft8goyw2" path="res://icon.svg" id="2_8mf6s"]
@@ -6,26 +6,26 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_j6se0"]
 size = Vector2(128, 128)
 
-[node name="InteractiveNode" type="Control"]
+[node name="InteractiveNode" type="Control" unique_id=753729729]
 layout_mode = 3
 anchors_preset = 0
 focus_mode = 2
 script = ExtResource("1_i4ook")
 
-[node name="ButtonSprite" type="Node2D" parent="."]
+[node name="ButtonSprite" type="Node2D" parent="." unique_id=1056652448]
 unique_name_in_owner = true
 
-[node name="NormalSprite" type="Sprite2D" parent="ButtonSprite"]
+[node name="NormalSprite" type="Sprite2D" parent="ButtonSprite" unique_id=866797909]
 unique_name_in_owner = true
 texture = ExtResource("2_8mf6s")
 
-[node name="ClickArea" type="Area2D" parent="."]
+[node name="ClickArea" type="Area2D" parent="." unique_id=1444201715]
 unique_name_in_owner = true
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ClickArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ClickArea" unique_id=1917802859]
 shape = SubResource("RectangleShape2D_j6se0")
 
-[node name="GuiInputCatcher" type="Control" parent="."]
+[node name="GuiInputCatcher" type="Control" parent="." unique_id=1653154896]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8

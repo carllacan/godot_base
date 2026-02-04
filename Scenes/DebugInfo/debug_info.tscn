@@ -1,31 +1,31 @@
-[gd_scene load_steps=2 format=3 uid="uid://dhn0pewgngeln"]
+[gd_scene format=3 uid="uid://dhn0pewgngeln"]
 
 [ext_resource type="Script" uid="uid://cebwjbgyubkhg" path="res://GodotBase/Scenes/DebugInfo/debug_info.gd" id="1_wb4s0"]
 
-[node name="DebugInfo" type="CanvasLayer"]
+[node name="DebugInfo" type="CanvasLayer" unique_id=992460827]
 script = ExtResource("1_wb4s0")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=747085584]
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="GridContainer" type="GridContainer" parent="MarginContainer"]
+[node name="GridContainer" type="GridContainer" parent="MarginContainer" unique_id=1795290233]
 layout_mode = 2
 columns = 2
 
-[node name="VersionHeader" type="Label" parent="MarginContainer/GridContainer"]
+[node name="VersionHeader" type="Label" parent="MarginContainer/GridContainer" unique_id=925817368]
 layout_mode = 2
 text = "Version:"
 
-[node name="VersionValue" type="Label" parent="MarginContainer/GridContainer"]
+[node name="VersionValue" type="Label" parent="MarginContainer/GridContainer" unique_id=1035819199]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="FpsHeader" type="Label" parent="MarginContainer/GridContainer"]
+[node name="FpsHeader" type="Label" parent="MarginContainer/GridContainer" unique_id=999727336]
 layout_mode = 2
 text = "FPS:"
 
-[node name="FpsValue" type="Label" parent="MarginContainer/GridContainer"]
+[node name="FpsValue" type="Label" parent="MarginContainer/GridContainer" unique_id=1052686133]
 unique_name_in_owner = true
 layout_mode = 2
 text = "xxx"

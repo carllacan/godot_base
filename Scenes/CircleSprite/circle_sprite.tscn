@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://ccr1tgplbx8kj"]
+[gd_scene format=3 uid="uid://ccr1tgplbx8kj"]
 
 [ext_resource type="Shader" uid="uid://1ygex5pcfvi7" path="res://GodotBase/Shaders/multicircle.gdshader" id="1_3pwtm"]
 [ext_resource type="Script" uid="uid://dhpe38cqadotm" path="res://GodotBase/Scenes/CircleSprite/circle_sprite.gd" id="2_wfc6b"]
@@ -45,7 +45,7 @@ gradient = SubResource("Gradient_j2u8e")
 width = 250
 height = 250
 
-[node name="CircleSprite" type="Sprite2D"]
+[node name="CircleSprite" type="Sprite2D" unique_id=1956747909]
 material = SubResource("ShaderMaterial_ga1ld")
 texture = SubResource("GradientTexture2D_pjvlu")
 script = ExtResource("2_wfc6b")
