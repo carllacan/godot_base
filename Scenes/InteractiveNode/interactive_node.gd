@@ -22,7 +22,7 @@ var style:Styles = Styles._undef : set = set_style
 
 var is_pressed:bool = false : set = set_is_pressed
 var mouse_inside:bool = false : set = set_mouse_inside
-var is_focused:bool = false : set = set_is_focused
+#var is_focused:bool = false : set = set_is_focused
 
 # Tracks how much of the hovering animation has passed, from 0.0 to 1.0
 var style_animation_progress:float = 0 : set = set_style_animation_progress
@@ -40,6 +40,12 @@ var style_animation_progress:float = 0 : set = set_style_animation_progress
 @export var hovered_rotation_degrees_target:float = 0
 #@export var hovered_position_degrees_target:Vector2 = Vector2.ZERO
 
+@export_subgroup("External focus")
+# When true, tree manages focus via other mechanisms, like d-pad, ignore mouse hover
+var external_focus_active: bool = false
+# When true, this button is focused in ways other than the mouse
+var externally_focused: bool = false : set = set_externally_focused
+
 @export_subgroup("Colors", "color_")
 @export var color_normal:Color = Color.WHITE
 @export var color_hovered:Color = Color.YELLOW
@@ -55,8 +61,8 @@ var style_animation_progress:float = 0 : set = set_style_animation_progress
 
 
 func _ready()-> void:
-	focus_entered.connect(_on_focused)
-	focus_exited.connect(_on_unfocused)
+	#focus_entered.connect(_on_focused)
+	#focus_exited.connect(_on_unfocused)
 	
 	click_area.mouse_entered.connect(_on_mouse_entered_click_area)
 	click_area.mouse_exited.connect(_on_mouse_exited_click_area)
@@ -80,10 +86,15 @@ func set_is_pressed(value:bool)-> void:
 	update_style()
 	
 	
-func set_is_focused(value:bool)-> void:
-	#var old_value = is_focused
-	is_focused = value
+func set_externally_focused(new_value:bool)-> void:
+	externally_focused = new_value
 	update_style()
+	
+#func set_is_focused(value:bool)-> void:
+	#var old_value = is_focused
+	#is_focused = value
+	#update_style()
+	
 	#if old_value == true and is_focused == false:
 		#_on_focused()
 		#unfocused.emit()
@@ -95,6 +106,14 @@ func set_is_focused(value:bool)-> void:
 func is_mouse_inside()-> bool:
 	return mouse_inside
 	
+	
+func is_focused()-> bool:	
+	if not external_focus_active and is_mouse_inside():
+		return true
+	if external_focus_active and externally_focused:
+		return true
+	return false
+		
 	
 func set_mouse_inside(value:bool)-> void:
 	var old_value = mouse_inside
@@ -117,8 +136,7 @@ func update_style()-> void:
 		if is_disabled:
 			style = Styles.DISABLED
 		else:
-			#style = Styles.NORMAL			
-			if is_mouse_inside() or is_focused:
+			if is_focused():
 				style = Styles.HOVERED
 			else:
 				style = Styles.NORMAL
@@ -208,14 +226,14 @@ func _on_mouse_exited_click_area()-> void:
 	mouse_inside = false
 	
 	
-func _on_focused()-> void:
-	pass
-	is_focused = true
-	
-	
-func _on_unfocused()-> void:
-	is_focused = false
-	pass
+#func _on_focused()-> void:
+	#pass
+	#is_focused = true
+	#
+	#
+#func _on_unfocused()-> void:
+	#is_focused = false
+	#pass
 	
 	
 func _on_pressed()-> void:
@@ -254,10 +272,8 @@ func _gui_input_catcher_gui_input(event: InputEvent) -> void:
 				is_pressed = false
 				released.emit()
 				
-	#if event is InputEventMouseMotion:
-		#update_is_mouse_inside()
 			
 	
-	if is_focused:
+	if is_focused():
 		if event.is_action_pressed("ui_accept"):
 			press_button()
