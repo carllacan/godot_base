@@ -1,7 +1,35 @@
 extends Node
 class_name GraphFocus
-## A stateless utility node that builds navigation graphs from element lists
+## A utility node that builds navigation graphs from element lists
 ## and provides neighbor queries for d-pad navigation.
+
+## Usage examples:
+
+## To build the graph whenever something changes
+##	func rebuild_navigation_graph() -> void:
+##		if graph_focus == null:
+##			return
+##		graph_focus.build_graph(upgrade_controls, func(b): return b.must_be_shown())
+##	# If current focus is no longer visible, find nearest or clear
+##	if focused_button != null and not focused_button.must_be_shown():
+##		var nearest = graph_focus.get_nearest_to(focused_button.global_position, func(b): return b.must_be_shown())
+##		if nearest:
+##			set_focus(nearest)
+##		else:
+##			clear_focus()
+			
+## And then, in input:
+##	if direction != Vector2.ZERO:
+##		get_viewport().set_input_as_handled()
+##		if focused_button == null:
+##			# Initial focus: nearest to center (global_position of the tree)
+##			set_focus(graph_focus.get_nearest_to(global_position, func(b): return b.must_be_shown()))
+##		else:
+##			var next = graph_focus.get_neighbor(focused_button, direction)
+##			if next:
+##				set_focus(next)
+			
+			
 
 # Internal graph: maps Node -> {Vector2 direction: Node neighbor}
 var _graph: Dictionary = {}
@@ -9,7 +37,7 @@ var _graph: Dictionary = {}
 # Elements used to build the graph
 var _elements: Array = []
 
-# Minimum dot product to consider a neighbor in a direction (0.3 = ~72 degree cone)
+## Minimum dot product to consider a neighbor in a direction (0.3 = ~72 degree cone)
 @export var direction_threshold: float = 0.3
 
 
