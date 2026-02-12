@@ -27,6 +27,12 @@ var mouse_inside:bool = false : set = set_mouse_inside
 # Tracks how much of the hovering animation has passed, from 0.0 to 1.0
 var style_animation_progress:float = 0 : set = set_style_animation_progress
 
+# When true, tree manages focus via other mechanisms, like d-pad, ignore mouse hover
+var external_focus_active: bool = false
+# When true, this button is focused in ways other than the mouse
+var externally_focused: bool = false : set = set_externally_focused
+
+
 @export_subgroup("Configuration")
 @export var ignore_mouse_movements:bool = false
 @export var is_clickable:bool = false
@@ -40,11 +46,6 @@ var style_animation_progress:float = 0 : set = set_style_animation_progress
 @export var hovered_rotation_degrees_target:float = 0
 #@export var hovered_position_degrees_target:Vector2 = Vector2.ZERO
 
-@export_subgroup("External focus")
-# When true, tree manages focus via other mechanisms, like d-pad, ignore mouse hover
-var external_focus_active: bool = false
-# When true, this button is focused in ways other than the mouse
-var externally_focused: bool = false : set = set_externally_focused
 
 @export_subgroup("Colors", "color_")
 @export var color_normal:Color = Color.WHITE
