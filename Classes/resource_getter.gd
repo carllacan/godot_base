@@ -9,16 +9,25 @@ class_name ResourceGetter
 @export var target_scripts: Array[Script]
 ## Include subdirectories
 @export var include_subdirectories: bool = false
+@export_group("Debug")
+@export var verbose:bool = false
+
 
 var cached_resources:Array[Resource] = []
 
+func p(msg:String)-> void:
+	if not verbose: return
+	print(msg)
+	
+	
 func get_all() -> Array[Resource]:
 	if cached_resources.is_empty():
 		var dir_path := get_resource_directory()
 		if dir_path.is_empty():
 			return []
 		cached_resources = _scan_directory(dir_path)
-		
+	
+	p("Loaded %d resources from %s" % [len(cached_resources), get_resource_directory()])
 	return cached_resources
 
 
