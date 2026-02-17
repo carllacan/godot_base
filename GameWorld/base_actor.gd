@@ -10,6 +10,7 @@ signal dropped(what)
 signal destruction_started
 signal destroyed
 
+@warning_ignore("unused_signal")
 signal hovered
 signal unhovered
 signal pressed # it was clicked or otherwise selected
@@ -22,10 +23,11 @@ enum State {
 	HOVERED, # I might need to turn this into a bool
 	SELECTED,
 	DISABLED,
+	BEING_PLACED,
 	# These next state might have to be put in another enum
 	BEING_DESTROYED,
 	DESTROYED,
-	INVALID, # can't be placed there
+	INVALID_PLACING, # can't be placed there
 }
 
 @export var selectable:bool = true
@@ -38,15 +40,17 @@ var being_destroyed:bool :
 		return state == State.BEING_DESTROYED
 		
 
-
-
 func _ready()-> void:
-	pass
+	update_state_representation()
 	
 	
 func set_state(new_value:State)-> void:
+	var old_value = state
 	state = new_value
+	var _has_changed:bool = old_value != new_value
 	
+	#print("%s state changed to %s from %s" % [
+		#self.name, State.keys()[new_value], State.keys()[old_value], ])
 	update_state_representation()
 	
 
@@ -63,14 +67,16 @@ func _on_pressed()-> void:
 	
 	
 func start_hover()-> void:
-	assert(not is_hovered())
+	#assert(not is_hovered())
+	if is_hovered(): return
 	state = State.HOVERED
 	update_state_representation()
 	unhovered.emit()
 	
 	
 func stop_hover()-> void:
-	assert(is_hovered())
+	#assert(is_hovered())
+	if not is_hovered(): return
 	state = State.IDLE
 	update_state_representation()
 	unhovered.emit()
@@ -86,8 +92,10 @@ func update_state_representation()-> void:
 			modulate = Color.YELLOW
 		State.DISABLED:
 			modulate = Color.DARK_GRAY
-		State.INVALID:
+		State.INVALID_PLACING:
 			modulate = Color.RED
+		State.BEING_PLACED:
+			modulate = Color.WHITE
 	
 	
 func play_destruction_animation(_mode:String = "")-> void:
@@ -114,7 +122,7 @@ func spawn_projectile(projectile:BaseProjectile)-> void:
 	Events.projectile_spawned.emit(projectile)
 	
 
-func can_be_placed(position:Vector2, world:BaseGameWorld)-> bool:
+func can_be_placed(_position:Vector2, _world:BaseGameWorld)-> bool:
 	return true
 	
 	

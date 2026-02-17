@@ -1,9 +1,13 @@
 extends Node2D
 class_name BaseGameWorld
 
+@warning_ignore("unused_signal")
 signal hovered_changed(new_element)
 signal selection_changed(new_selection)
-signal placing_finished(result )
+
+## PLacing as finished or canceled. Returns the placement position in the first place
+## and null otherwise.
+signal placing_finished(result)
 
 enum State {
 	_undef,
@@ -91,7 +95,7 @@ func get_valid_rect()-> Rect2:
 	return Rect2(0, 0, 0, 0)
 	
 		
-func is_position_valid(pos:Vector2)-> bool:
+func is_position_valid(_pos:Vector2)-> bool:
 	return true
 	
 	
@@ -118,11 +122,17 @@ func get_closest_position(pos:Vector2)-> Vector2:
 #region Selection
 		
 func select_actor(actor:BaseActor)-> void:
+	var changed:bool = selected_actor != actor
+	if not changed:
+		return
+		
 	if is_something_selected():
 		unselect_current()
 		
 	selected_actor = actor
 	state = State.SELECTED
+	selected_actor.state = BaseActor.State.SELECTED
+	selection_changed.emit(selected_actor)
 	
 	
 func unselect_current()-> void:
@@ -173,11 +183,15 @@ func start_placing(what:BaseActor)-> void:
 	
 	%PlacingActor.add_child(placing_actor)
 		
+	placing_actor.state = BaseActor.State.BEING_PLACED
 	set_state(BaseGameWorld.State.PLACING)
 	
 		
 func finish_placing(result = null)-> void:
 	%PlacingActor.remove_child(placing_actor)
+	placing_actor.set_deferred("state", BaseActor.State.IDLE)
+	placing_actor = null
+	
 	state = State.IDLE
 	placing_finished.emit(result)
 	
@@ -204,9 +218,9 @@ func update_placing_actor(_delta: float)-> void:
 		valid = false
 	
 	if not valid:
-		placing_actor.state = BaseActor.State.INVALID
+		placing_actor.state = BaseActor.State.INVALID_PLACING
 	else:
-		placing_actor.state = BaseActor.State.IDLE
+		placing_actor.state = BaseActor.State.BEING_PLACED
 		
 	if placing_indicator != null:
 		placing_indicator.position = candidate_position
@@ -228,7 +242,7 @@ func can_place_right_now()-> bool:
 ## Returns whether the actor being placed should be shown if the player
 ## is trying to place it at this position. Useful for hiding the preview
 ## if the valid area is not being hovered
-func placing_must_be_shown(candidate_position:Vector2)-> bool:
+func placing_must_be_shown(_candidate_position:Vector2)-> bool:
 	return true
 
 
@@ -277,8 +291,8 @@ func add_actor(new_actor:BaseActor)-> void:
 	new_actor.dropped.connect(_on_actor_dropped.bind(new_actor))
 	new_actor.destroyed.connect(_on_actor_destroyed.bind(new_actor))
 	
-	new_actor.pressed.connect(_on_actor_pressed)
-	new_actor.hovered.connect(_on_actor_hovered)
+	new_actor.pressed.connect(_on_actor_pressed.bind(new_actor))
+	new_actor.hovered.connect(_on_actor_hovered.bind(new_actor))
 	
 	%Actors.add_child(new_actor)
 	
@@ -296,9 +310,9 @@ func _on_actor_effect_dropped(effect:BaseEffect, actor:BaseActor)-> void:
 	
 		
 func _on_actor_effect_emitted(
-	effect:BaseEffect, global_position:Vector2, _actor:BaseActor
+	effect:BaseEffect, actor_global_position:Vector2, _actor:BaseActor
 	)-> void:	
-	effect.global_position = global_position
+	effect.global_position = actor_global_position
 	add_child(effect)
 	await effect.finished
 	effect.queue_free()
