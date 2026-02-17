@@ -20,16 +20,22 @@ signal stopped
 
 enum State {
 	_undef,
+	
 	## Doing nothing, awaiting external input
 	STOPPED,
+	
 	## Waiting for the timer to run out so we can generate a new enemy
 	NEXT_ENEMY_WAITING,
+	
 	## All enemies of the current wave have been generated, waiting for them to die
 	WAITING_FOR_WAVE_END,
+	
 	## Wave could start, but is waiting for an external trigger
 	WAITING_FOR_MANUAL_START,
+	
 	## All enemies of the current wave have died, waiting for the next wave to start
 	NEXT_WAVE_WAITING,
+	
 	## No waves left, waiting for the last wave's enemies to die
 	## TODO: merge with NEXT_WAVE_WAITING, and check is_last_wave when a wave finishes
 	WAITING_FOR_LAST_WAVE_END,
@@ -51,7 +57,7 @@ var time_to_next_enemy:float = NAN
 ## Seconds until the next wave should start
 var time_to_next_wave:float = NAN
 
-## Number of the wave currently generating enemies
+## Number of the wave currently generating enemies. Negative if it hasn't started.
 var current_wave:int = -1
 ## How many enemies have been generated so far in the current wave
 var generated_so_far:int = 0
@@ -163,6 +169,14 @@ func has_started()-> bool:
 	# Otherwise at least the first wave has started
 	return true
 	
+	
+func is_generating()-> bool:
+	return state in [
+		State.NEXT_ENEMY_WAITING, 
+		State.WAITING_FOR_WAVE_END,
+		State.WAITING_FOR_LAST_WAVE_END,
+		]
+		
 
 ## Make the next wave start generating enemies
 func start_next_wave()-> void:
@@ -223,6 +237,7 @@ func generate()-> void:
 		_on_wave_finished()
 	else:
 		time_to_next_enemy = time_between_enemies
+		state = State.NEXT_ENEMY_WAITING
 		p("\t(enemy generation timer reset to %2.2f)" % time_to_next_enemy)
 		
 		
