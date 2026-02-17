@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://b2hnfeorojq3k"]
+
+[ext_resource type="Shader" uid="uid://bl2u2lceg167x" path="res://GodotBase/Scenes/DottedCircle/dotted_circle.gdshader" id="1_kcntp"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kcntp"]
+resource_local_to_scene = true
+shader = ExtResource("1_kcntp")
+shader_parameter/dash_color = Color(0, 0, 0, 1)
+shader_parameter/radius = 64.0
+shader_parameter/width = 6.0
+shader_parameter/dash_length = 12.0
+shader_parameter/gap_length = 8.0
+shader_parameter/offset = 0.0
+
+[sub_resource type="Gradient" id="Gradient_1t6dx"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_gkw6i"]
+resource_local_to_scene = true
+gradient = SubResource("Gradient_1t6dx")
+width = 250
+height = 250
+
+[node name="RangeHint" type="Node2D" unique_id=1503602431]
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1801023246]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_kcntp")
+texture = SubResource("GradientTexture2D_gkw6i")
