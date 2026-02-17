@@ -144,7 +144,7 @@ func _on_mouse_movement(event:InputEventMouseMotion)-> void:
 	
 	
 func _physics_process(_delta: float) -> void:
-	if not visible: return
+	if not is_visible_in_tree(): return
 	if not drag_enabled: return
 	
 	match state:
@@ -202,7 +202,7 @@ func clamp_position()-> void:
 
 func _unhandled_input(event: InputEvent) -> void:	
 	#print("world received unhandled input")
-	if not visible:return
+	if not is_visible_in_tree(): return
 	
 	if event is InputEventMouseButton:
 		var click = event as InputEventMouseButton
