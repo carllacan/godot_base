@@ -13,6 +13,14 @@ static func unique(array:Array)-> Array:
 	return unique_values
 
 
+static func sum_array(a:Array)-> float:
+	var acc = 0
+	for n in a:
+		assert(n is float or n is int)
+		acc += n
+	return acc
+	
+
 static func angle_distance(angle1:float, angle2:float)-> float:
 	return Vector2.from_angle(angle1).angle_to(Vector2.from_angle(angle2))
 	
