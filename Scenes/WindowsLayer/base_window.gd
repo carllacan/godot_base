@@ -18,6 +18,7 @@ enum Results
 enum State
 {
 	_undef,
+	READY, # just created
 	CLOSED,
 	OPENING,
 	OPEN,
@@ -68,7 +69,7 @@ func _ready()-> void:
 	if has_growing_animation():
 		pivot_offset = get_rect().size*0.5
 		
-	state = State.CLOSED
+	state = State.READY
 	
 	await tree_entered
 	set_anchors_preset(Control.PRESET_CENTER)
@@ -98,6 +99,8 @@ func set_state(new_value:State)-> void:
 	
 	if changed:
 		match state:
+			State.READY:
+				pass
 			State.CLOSED:
 				if has_fading_animation():
 					modulate.a = 0.0
@@ -214,6 +217,7 @@ func start_opening()-> void:
 	
 func close()-> void:
 	state = State.CLOSING
+	print("Closing window " + self.name)
 	#hide()
 	#closed.emit()
 	
