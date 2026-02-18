@@ -27,6 +27,9 @@ var intercycle_time:float = 0
 
 
 func _ready()-> void:
+	if target == null:
+		target = get_parent()
+	#assert(property in target.get_property_list())
 	finished_cycle.connect(_on_cycle_finished)
 	if autostart:
 		start()
@@ -63,6 +66,7 @@ func stop()-> void:
 
 func finish_cycle_and_stop()-> void:
 	if not is_node_ready(): return
+	if state != State.PLAYING: return
 	
 	state = State.WAITING_FOR_CYCLE_TO_STOP
 	
@@ -101,6 +105,7 @@ func _on_cycle_finished()-> void:
 	
 func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return
+	if not target.is_visible_in_tree(): return
 	
 	match state:
 		State.STOPPED:
