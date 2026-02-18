@@ -20,6 +20,13 @@ static func sum_array(a:Array)-> float:
 		acc += n
 	return acc
 	
+	
+static func staircase(x: float, step_width: float, step_height: float) -> float:
+	if step_width == 0.0:
+		push_error("step_width cannot be 0")
+		return 0.0
+	
+	return floor(x / step_width) * step_height
 
 static func angle_distance(angle1:float, angle2:float)-> float:
 	return Vector2.from_angle(angle1).angle_to(Vector2.from_angle(angle2))
