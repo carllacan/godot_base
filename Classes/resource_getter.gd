@@ -50,7 +50,7 @@ func _scan_directory(dir_path: String) -> Array[Resource]:
 				if include_subdirectories and not file.begins_with("."):
 					results.append_array(_scan_directory(full_path))
 			else:
-				var actual_path = full_path.trim_suffix(".remap")
+				var actual_path = full_path.trim_suffix(".remap").trim_suffix(".import")
 					
 				if actual_path.get_extension() in target_extensions:		
 											
