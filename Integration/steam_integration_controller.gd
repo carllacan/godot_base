@@ -63,7 +63,8 @@ func _on_overlay_toggled(active: bool, _user_initiated: bool, _app_id: int):
 func mark_achievement_as_completed(ach_name:String)-> void:
 	if not Flags.STEAM:
 		return
-	print("Marking ach '%s' as completed..." % ach_name)
+				
+	#print("Marking ach '%s' as completed..." % ach_name)
 	var success = Steam.setAchievement(ach_name)
 	if not success:
 		push_error("Failed to mark ach '%s' as completed" % ach_name)

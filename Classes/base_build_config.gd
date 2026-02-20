@@ -43,13 +43,13 @@ func force_flag(original_value:bool, force_value:ForceActions)-> bool:
 	return false
 
 
-
+static var _cached_default_build:BaseBuildConfig = null
 static func get_default_build()-> BaseBuildConfig:
-	var b:BaseBuildConfig
-	if OS.has_feature("editor"):
-		b = load("res://Parameters/editor_build_config.tres")
-	else:
-		b = load("res://Parameters/release_build_config.tres")
-	if b == null:
-		push_error("No build configuration found")
-	return b
+	if _cached_default_build == null:
+		if OS.has_feature("editor"):
+			_cached_default_build = load("res://Parameters/editor_build_config.tres")
+		else:
+			_cached_default_build = load("res://Parameters/release_build_config.tres")
+		if _cached_default_build == null:
+			push_error("No build configuration found")
+	return _cached_default_build

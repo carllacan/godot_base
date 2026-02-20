@@ -1,6 +1,8 @@
 extends Node
 class_name Utils
 
+const WHITESPACE = " ,:-;().¶\n"
+
 
 ## Returns a copy of an array with no duplicate elements
 static func unique(array:Array)-> Array:
@@ -220,3 +222,38 @@ static func write_local_file(path:String, bytes:PackedByteArray) -> void:
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	f.store_buffer(bytes)
 	f.close()
+
+
+static func rstrip_whitespace(original_string:String)-> String:
+	return original_string.rstrip(WHITESPACE)
+	
+	
+static func lstrip_whitespace(original_string:String)-> String:
+	return original_string.lstrip(WHITESPACE)
+	
+	
+
+## Transforms the string to a standard form that starts with a capital letter
+## and removes all trailing and starting whitespace.
+## If final_period is false it removes any existing period at the end (unless
+## it ends in ...). If it is true it ensures it finishes with a period.
+static func standardize_string(original:String, final_period:bool = false)-> String:
+	if original.is_empty(): return ""
+	
+	var std = original
+	std[0] = std[0].to_upper()
+	
+	std = rstrip_whitespace(std)
+	std = lstrip_whitespace(std)	
+	
+	if final_period:
+		# Ensure it finishes with a period.
+		if not std.ends_with("."):
+			std += "."
+	else:
+		# Remove the final period, unless it ends in dot dot dot.
+		if std.ends_with("."):
+			if not std.ends_with("..."):
+				std = std.rstrip(".")
+					
+	return std
