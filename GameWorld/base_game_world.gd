@@ -5,6 +5,8 @@ class_name BaseGameWorld
 signal hovered_changed(new_element)
 signal selection_changed(new_selection)
 
+signal actor_removed
+
 ## PLacing as finished or canceled. Returns the placement position in the first place
 ## and null otherwise.
 signal placing_finished(result)
@@ -136,7 +138,12 @@ func select_actor(actor:BaseActor)-> void:
 	
 	
 func unselect_current()-> void:
+	if selected_actor == null:
+		return
+	selected_actor.state = BaseActor.State.IDLE
 	selected_actor = null
+	selection_changed.emit(null)
+	state = State.IDLE
 	
 	
 func is_something_selected()-> bool:
@@ -299,10 +306,20 @@ func add_actor(new_actor:BaseActor)-> void:
 	
 func remove_actor(target:BaseActor)-> void:	
 	if not target in actors:
-		push_warning("Tried to remove actor %s, but it was not on the actors list"% target)
+		push_warning("Tried to remove actor %s, but it was not on the actors list" % target)
 	actors.erase(target)
 	target.queue_free()
 	%Actors.remove_child(target)
+	
+	_on_actor_removed(target)
+	actor_removed.emit(target)
+	
+	
+func _on_actor_removed(actor:BaseActor)-> void:
+	if selected_actor == actor:
+		cancel_current_action()
+	if hovered_actor == actor:
+		stop_hovering_current()
 	
 	
 func _on_actor_effect_dropped(effect:BaseEffect, actor:BaseActor)-> void:
