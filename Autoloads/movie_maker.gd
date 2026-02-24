@@ -303,21 +303,21 @@ func finalize_recording() -> void:
 func _input(event: InputEvent) -> void:
 	if not Flags.DEBUG: return
 	
-	if event.is_action_pressed("cancel_recording"):
+	if event.is_action_pressed("movie_maker_cancel_recording"):
 		match state:
 			State.RECORDING:
 				stop(true)
 			State.PAUSED:
 				stop(true)
 		return
-	if event.is_action_pressed("toggle_recording"):
+	if event.is_action_pressed("movie_maker_toggle_recording"):
 		match state:
 			State.RECORDING:
 				stop()
 			State.STOPPED:
 				start()
 		return
-	if event.is_action_pressed("toggle_recording_pause"):
+	if event.is_action_pressed("movie_maker_toggle_recording_pause"):
 		match state:
 			State.RECORDING:
 				pause()
