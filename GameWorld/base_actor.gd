@@ -71,7 +71,7 @@ func start_hover()-> void:
 	if is_hovered(): return
 	state = State.HOVERED
 	update_state_representation()
-	unhovered.emit()
+	hovered.emit()
 	
 	
 func stop_hover()-> void:
@@ -118,8 +118,8 @@ func drop(what)-> void:
 	dropped.emit(what)
 
 
-func spawn_projectile(projectile:BaseProjectile)-> void:
-	Events.projectile_spawned.emit(projectile)
+#func spawn_projectile(projectile:BaseProjectile)-> void:
+	#Events.projectile_spawned.emit(projectile)
 	
 
 func can_be_placed(_position:Vector2, _world:BaseGameWorld)-> bool:
