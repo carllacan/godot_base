@@ -12,7 +12,7 @@ enum Mode {
 @export var mode:Mode = Mode.ADDITIVE
 var origin:Resource
 
-
+## TODO: turn into a wrapper for apply, to avoid code duplication
 @warning_ignore("shadowed_variable")
 static func apply_all(base_value, key:String, sources:Array)-> float:
 	var result = base_value
@@ -22,6 +22,15 @@ static func apply_all(base_value, key:String, sources:Array)-> float:
 			if mod.key == key:
 				result = mod.apply(result)
 				
+	return result
+
+
+@warning_ignore("shadowed_variable")
+static func apply_list(base_value, key:String, modifiers:Array[Modifier])-> float:
+	var result = base_value
+	for mod:Modifier in modifiers:
+		if mod.key == key:
+			result = mod.apply(result)				
 	return result
 
 
