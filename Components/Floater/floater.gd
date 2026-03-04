@@ -8,12 +8,46 @@ enum TriggerType {
 	ON_SHOWN,
 }
 
-@export var final_pos:Vector2
+var _final_pos:Vector2 = Vector2(0, -50)
+
+@export var final_pos:Vector2 = Vector2(0, -50) : set = set_final_pos
+@export var final_distance:float = 50 : set = set_final_distance
+@export var direction:float = -90 : set = set_direction
 @export var final_alpha:float = 0
 @export var float_time_s:float = 0.5
 ## How much randomness will be added to the float time
 @export_range(0, 1.0) var float_time_fluctuation:float = 0
 @export var trigger:TriggerType = TriggerType.ON_READY
+
+
+func _apply_final_pos(value:Vector2)-> void:
+	_final_pos = value
+	if final_pos != value:
+		final_pos = value
+	var dist = value.length()
+	if final_distance != dist:
+		final_distance = dist
+	var angle = rad_to_deg(value.angle())
+	if direction != angle:
+		direction = angle
+
+
+func set_final_pos(value:Vector2)-> void:
+	if final_pos == value: return
+	final_pos = value
+	_apply_final_pos(value)
+
+
+func set_final_distance(value:float)-> void:
+	if final_distance == value: return
+	final_distance = value
+	_apply_final_pos(Vector2.from_angle(deg_to_rad(direction)) * value)
+
+
+func set_direction(value:float)-> void:
+	if direction == value: return
+	direction = value
+	_apply_final_pos(Vector2.from_angle(deg_to_rad(direction)) * final_distance)
 
 
 func _ready()-> void:
@@ -43,7 +77,7 @@ func float_away()-> void:
 	var tw = p.create_tween()	
 	tw.tween_property(p, "modulate:a", final_alpha, t)
 	tw.set_parallel()
-	tw.tween_property(p, "position", final_pos, t).as_relative()
+	tw.tween_property(p, "position", _final_pos, t).as_relative()
 		
 	await tw.finished
 	
