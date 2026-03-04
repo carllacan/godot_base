@@ -28,7 +28,6 @@ vertical_alignment = 1
 
 [node name="Floater" type="Node" parent="." unique_id=1210882928]
 script = ExtResource("2_semk3")
-final_pos = Vector2(0, -50)
 float_time_s = 1.0
 float_time_fluctuation = 0.2
 metadata/_custom_type_script = "uid://bb7bvpctk8ssf"
