@@ -1,6 +1,6 @@
 class_name BaseWindow
 extends Control
-const BASE_SCENE = preload("res://GodotBase/Scenes/WindowsLayer/base_window.tscn")
+static var BASE_SCENE = GodotBase.settings.base_window_scene
 
 signal started_opening
 signal started_closing

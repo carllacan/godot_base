@@ -13,16 +13,27 @@ const CUSTOM_SETTINGS_PATH:String = "res://Parameters/godot_base_settings.tres"
 
 static var settings:GodotBase : get = get_settings
 
+## Scene that will be used to create windows in BaseWindow factory methods.
+@export var base_window_scene:PackedScene = preload(
+	"res://GUI/Windows/BaseWindow/base_window.tscn")
+	
+## These can be used if the developer doesn't want to use the default settings
+## that come with GodotBase
 @export_group("SettingInfo overrides")
 
+## Points to the settings that controls music
 @export var music_enabled_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/music_enabled.tres")
+## Points to the settings that controls SFX volume
 @export var sfx_enabled_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/sfx_enabled.tres")
+## Points to the settings that controls music.
 @export var sound_enabled_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/sound_enabled.tres")
+## Points to the settings that controls music.
 @export var window_mode_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/window_mode.tres")
+## Points to the settings that controls music.
 @export var language_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/language.tres")
 	

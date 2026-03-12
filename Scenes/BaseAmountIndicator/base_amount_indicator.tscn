@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://bm8yqaqvnt5k1"]
+
+[ext_resource type="Script" uid="uid://bccujtnn04f6o" path="res://GodotBase/Scenes/BaseAmountIndicator/base_amount_indicator.gd" id="1_base"]
+
+[node name="BaseAmountIndicator" type="MarginContainer" unique_id=1540817948]
+offset_right = 51.0
+offset_bottom = 24.0
+script = ExtResource("1_base")
+
+[node name="OuterGrid" type="GridContainer" parent="." unique_id=1000000002]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="InnerGrid" type="GridContainer" parent="OuterGrid" unique_id=1000000003]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="AmountArea" type="HBoxContainer" parent="OuterGrid/InnerGrid" unique_id=1000000004]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AmountLabel" type="Label" parent="OuterGrid/InnerGrid/AmountArea" unique_id=1000000005]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.0"
+
+[node name="SlashLabel" type="Label" parent="OuterGrid/InnerGrid/AmountArea" unique_id=1000000006]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = " / "
+
+[node name="MaxLabel" type="Label" parent="OuterGrid/InnerGrid/AmountArea" unique_id=1000000007]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "0"
+
+[node name="IconWrapper" type="CenterContainer" parent="OuterGrid/InnerGrid" unique_id=1000000008]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="OuterGrid/InnerGrid/IconWrapper" unique_id=1000000009]
+unique_name_in_owner = true
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ArrowsContainer" type="HBoxContainer" parent="OuterGrid" unique_id=1000000010]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="MoreButton" type="Button" parent="OuterGrid/ArrowsContainer" unique_id=1000000011]
+unique_name_in_owner = true
+layout_mode = 2
+text = "+"
+
+[node name="LessButton" type="Button" parent="OuterGrid/ArrowsContainer" unique_id=1000000012]
+unique_name_in_owner = true
+layout_mode = 2
+text = "-"
