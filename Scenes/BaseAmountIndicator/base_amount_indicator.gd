@@ -22,7 +22,7 @@ signal amount_change_requested(delta:float)
 @export var number_format:NumberFormat = NumberFormat.Plain : set = set_number_format
 @export var right_hand_figures:int = 1 : set = set_right_hand_figures
 @export var show_max:bool = false : set = set_show_max
-@export var show_if_zero:bool = true : set = set_show_if_zero
+@export var hide_if_zero:bool = false : set = set_hide_if_zero
 
 @export_group("Arrows")
 @export var step_change:float = 1.0
@@ -91,8 +91,8 @@ func set_show_max(new_value:bool)-> void:
 	update_info()
 
 
-func set_show_if_zero(new_value:bool)-> void:
-	show_if_zero = new_value
+func set_hide_if_zero(new_value:bool)-> void:
+	hide_if_zero = new_value
 	update_info()
 
 
@@ -160,7 +160,8 @@ func update_info()-> void:
 	%MaxLabel.visible = show_max
 	if show_max:
 		%MaxLabel.text = _format_amount(max_amount)
-	visible = show_if_zero or amount != 0
+	if amount == 0 and hide_if_zero:
+		hide()
 
 
 func _format_amount(value:float)-> String:
@@ -173,7 +174,6 @@ func _format_amount(value:float)-> String:
 			if right_hand_figures <= 0:
 				return str(int(value))
 			return ("%." + str(right_hand_figures) + "f") % value
-	return str(value)
 
 
 func _on_more_pressed()-> void:
