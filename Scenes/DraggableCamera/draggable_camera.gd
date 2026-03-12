@@ -30,7 +30,7 @@ enum States {
 @export var min_y:float = -1000
 @export var max_y:float = +1000
 
-@export var keyboard_movement_speed:float = 500
+@export var keyboard_movement_speed:float = 0
 @export var joystick_movement_speed:float = 10
 
 var state:States = States._undef# : set = set_state
@@ -159,7 +159,7 @@ func _physics_process(_delta: float) -> void:
 	
 	# Keyboard movement
 	if keyboard_movement_speed > 0:
-		var move_dir = InputManager.get_direction("drag")
+		var move_dir = InputManager.get_direction("camera_drag")
 		move += move_dir*keyboard_movement_speed*_delta
 		
 	# Joystick movement

@@ -69,7 +69,6 @@ func _scan_directory(dir_path: String) -> Array[Resource]:
 	return results
 
 
-
 func get_resource_directory() -> String:
 	var path := get_path()
 	if path.is_empty():

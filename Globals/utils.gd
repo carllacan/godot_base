@@ -237,6 +237,64 @@ static func lstrip_whitespace(original_string:String)-> String:
 ## and removes all trailing and starting whitespace.
 ## If final_period is false it removes any existing period at the end (unless
 ## it ends in ...). If it is true it ensures it finishes with a period.
+## Formats a number using RKM notation (IEC 60062): SI prefix symbols act as
+## infix decimal markers. e.g. 3547 -> "3k5", 1200000 -> "1M2", 999 -> "999"
+## right_hand_figures controls how many digits appear after the infix symbol.
+static func format_as_rkm(amount:float, right_hand_figures:int = 1)-> String:
+	const THRESHOLDS:Array = [
+		[1e12, "T"],
+		[1e9,  "B"],
+		[1e6,  "M"],
+		[1e3,  "k"],
+	]
+
+	var sign_str:String = "-" if amount < 0 else ""
+	var abs_amount:float = abs(amount)
+
+	for entry in THRESHOLDS:
+		var threshold:float = entry[0]
+		var symbol:String = entry[1]
+		if abs_amount >= threshold:
+			var divided:float = abs_amount / threshold
+			var integer_part:int = int(divided)
+			if right_hand_figures <= 0:
+				return "%s%d%s" % [sign_str, integer_part, symbol]
+			var frac_digits:int = int((divided - integer_part) * pow(10, right_hand_figures))
+			return "%s%d%s%s" % [sign_str, integer_part, symbol,
+				str(frac_digits).pad_zeros(right_hand_figures)]
+
+	return sign_str + str(int(abs_amount))
+
+
+## Formats a number with SI prefix symbols as trailing suffixes and a decimal
+## point. e.g. 3547 -> "3.5k", 1200000 -> "1.2M", 999 -> "999"
+## right_hand_figures controls decimal places when a suffix is used.
+static func format_with_suffix(amount:float, right_hand_figures:int = 1)-> String:
+	const THRESHOLDS:Array = [
+		[1e12, "T"],
+		[1e9,  "B"],
+		[1e6,  "M"],
+		[1e3,  "k"],
+	]
+
+	var sign_str:String = "-" if amount < 0 else ""
+	var abs_amount:float = abs(amount)
+
+	for entry in THRESHOLDS:
+		var threshold:float = entry[0]
+		var symbol:String = entry[1]
+		if abs_amount >= threshold:
+			var divided:float = abs_amount / threshold
+			var factor:float = pow(10, max(right_hand_figures, 0))
+			var truncated:float = int(divided * factor) / factor
+			if right_hand_figures <= 0:
+				return "%s%d%s" % [sign_str, int(truncated), symbol]
+			var format_str:String = "%." + str(right_hand_figures) + "f"
+			return sign_str + (format_str % truncated) + symbol
+
+	return sign_str + str(int(abs_amount))
+
+
 static func standardize_string(original:String, final_period:bool = false)-> String:
 	if original.is_empty(): return ""
 	
