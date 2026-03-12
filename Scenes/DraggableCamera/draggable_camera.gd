@@ -138,7 +138,6 @@ func _on_mouse_wheel_moved(factor:float)-> void:
 		
 @warning_ignore("unused_parameter")
 func _on_mouse_movement(event:InputEventMouseMotion)-> void:	
-	pass	
 	if state == States.DRAGGING_MAP:
 		update_map_dragging(event.relative)
 	
