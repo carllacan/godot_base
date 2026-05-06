@@ -1,6 +1,6 @@
 class_name BaseWindow
 extends Control
-static var BASE_SCENE = GodotBase.settings.base_window_scene
+#static var BASE_SCENE = GodotBase.settings.base_window_scene
 
 signal started_opening
 signal started_closing
