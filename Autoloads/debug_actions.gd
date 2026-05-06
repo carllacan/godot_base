@@ -1,6 +1,5 @@
 extends Node
-class_name BaseDebugActions
-# TODO: rename to just Debug
+class_name BaseDebugUtils
 
 const CHECKING_PERIOD_S = 1
 

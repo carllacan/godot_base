@@ -3,7 +3,7 @@ extends CanvasLayer
 
 func _ready()-> void:
 	add_to_group(BaseGroups.DEBUG_ELEMENTS)
-	visible = DebugActions.show_debug_elements
+	visible = Debug.show_debug_elements
 	initialize_values()
 		
 		
