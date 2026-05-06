@@ -16,6 +16,7 @@ static var SCENE = load(
 @export var color:Color = Color.WHITE : set = set_color
 @export var outline_color:Color = Color.WHITE : set = set_outline_color
 @export var outline_size:float = 0 : set = set_outline_size
+@export var font:Font : set = set_font
 
 
 static func from_text(shown_text:String)-> FloatingLabel:
@@ -51,12 +52,21 @@ func set_outline_color(new_value:Color)-> void:
 func set_outline_size(new_value:float)-> void:
 	outline_size = new_value
 	update_representation()
-	
-	
+
+
+func set_font(new_value:Font)-> void:
+	font = new_value
+	update_representation()
+
+
 func update_representation()-> void:
 	if not is_node_ready(): return
 	%Label.text = text
 	%Label.add_theme_color_override("font_color", color)
 	%Label.add_theme_color_override("font_outline_color", outline_color)
 	%Label.add_theme_constant_override("outline_size", outline_size)
+	if font:
+		%Label.add_theme_font_override("font", font)
+	else:
+		%Label.remove_theme_font_override("font")
 	

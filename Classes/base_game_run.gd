@@ -14,9 +14,16 @@ signal resource_revealed(resource:GameResource)
 @export var current_resources:Dictionary[GameResource, float] = {}
 @export var total_collected_resources:Dictionary[GameResource, float] = {}
 @export var revealed_resources:Array[GameResource] = []
+@export_group("Debug")
+@export var verbose:bool = false
 @export_group("Others")
 @export var timestamp_unix:float = 0
 @export var version:String
+
+
+func p(text:String)-> void:
+	if not verbose: return
+	print("GameState: %s" % text)
 
 #region Saving
 
@@ -33,11 +40,10 @@ func actually_save(filepath:String = "")-> Error:
 	if BuildConfig.Default.disable_saving:
 		print("Saving aborted because 'disable_saves' is enabled")
 		return ERR_UNAUTHORIZED
-		
-		
+				
 	result = DirAccess.open("user://").make_dir_recursive(filepath.get_base_dir())
 	if result != OK:
-		print("Creating save directory failed. Error code: %s" % result)
+		p("Creating save directory failed. Error code: %s" % result)
 		
 	timestamp_unix = Time.get_unix_time_from_system()
 	version = Dist.get_version()
@@ -45,9 +51,9 @@ func actually_save(filepath:String = "")-> Error:
 	result = ResourceSaver.save(self, filepath)
 	
 	if result == OK:
-		print("Game saved to '%s'" % filepath)
+		p("Game saved to '%s'" % filepath)
 	else:
-		print("Game saving failed. Error code: %s" % result)
+		p("Game saving failed. Error code: %s" % result)
 		
 	# Upload save, if configured to do so.
 	Integration.sync_file(filepath)
@@ -71,18 +77,17 @@ static func load(filepath:String)-> BaseGameState:
 	var r:BaseGameState = ResourceLoader.load(filepath)
 	
 	if r != null:
-		print("Game loaded from '%s'" % filepath)
+		r.p("Game loaded from '%s'" % filepath)
 	else:
-		print("Game loaded failed.")
+		r.p("Game loaded failed.")
 		
 	return r
 	
 	
 #endregion Saving
 
-#region Resource managaement
+#region Resource management
 
-#region Resources
 	
 func get_current_resource(res:GameResource)-> float:
 	return current_resources.get(res, 0)
@@ -90,6 +95,7 @@ func get_current_resource(res:GameResource)-> float:
 	
 func is_resource_revealed(res:GameResource)-> bool:
 	if res in revealed_resources:
+		p("%s IS revealed" % res.dname)
 		return true
 	else:
 		return false
@@ -100,6 +106,7 @@ func reveal_resource(resource:GameResource)-> void:
 		set_resource(resource, 0)
 	revealed_resources.append(resource)
 	resource_revealed.emit(resource)
+	p("%s revealed" % resource.dname)
 	
 	
 func set_resource(resource:GameResource, value:float)-> void:
@@ -115,13 +122,19 @@ func set_resource(resource:GameResource, value:float)-> void:
 		SignalManager.emit_this_frame(resources_changed)
 
 
+func increase_resource(resource:GameResource, amount: float)-> void:
+	return increase_resources({resource: amount})
+	
+	
 func increase_resources(amount:Dictionary[GameResource, float])-> void:
 	for c in amount.keys():
+		if amount[c] == 0:
+			continue
+			
+		if c not in revealed_resources:
+			reveal_resource(c)
+			
 		current_resources[c] += amount[c]
-
-		if current_resources[c] > 0 and c not in revealed_resources:
-			revealed_resources.append(c)
-			resource_revealed.emit(c)
 
 		if c not in total_collected_resources.keys():
 			total_collected_resources[c] = 0
