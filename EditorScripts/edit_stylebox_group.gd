@@ -1,13 +1,11 @@
 @tool
 extends EditorScript
 
-@export_dir var folder_path : String = "res://Theming/NormalStyleBox/"
+@export_dir var folder_path : String = "res://Themes/TabButton//"
 @export var copy_all_normal_properties : bool = true
 @export var autocreate_missing_styles : bool = true
 
 @export_group("BG Colors")
-@export var normal_bg_color : Color = Color.GRAY
-
 @export_subgroup("Offsets")
 @export var use_offsets : bool = true
 @export_range(-1.0, 1.0, 0.01) var highlight_bg_offset : float = 0.1
@@ -21,8 +19,6 @@ extends EditorScript
 
 
 @export_group("Border Colors")
-@export var normal_border_color : Color
-
 @export_subgroup("Offsets")
 @export var border_use_offsets : bool = false
 @export_range(-1.0, 1.0, 0.01) var highlight_border_offset : float = 0.1
@@ -30,9 +26,9 @@ extends EditorScript
 @export_range(-1.0, 1.0, 0.01) var disabled_border_offset : float = -0.3
 
 @export_subgroup("Direct Colors")
-@export var highlight_border_color : Color
-@export var pressed_border_color : Color
-@export var disabled_border_color : Color
+@export var highlight_border_color : Color = Color.WHITE.darkened(0.1)
+@export var pressed_border_color : Color = Color.WHITE.darkened(0.1)
+@export var disabled_border_color : Color = Color.WHITE.darkened(0.1)
 
 
 func _run():
@@ -132,8 +128,8 @@ func _run():
 		if copy_all_normal_properties and key != "normal":
 			_copy_stylebox_properties(normal_sb, sb)
 
-		sb.bg_color = _get_bg_color(key)
-		sb.border_color = _get_border_color(key)
+		sb.bg_color = _get_bg_color(key, normal_sb.bg_color)
+		sb.border_color = _get_border_color(key, normal_sb.border_color)
 
 		ResourceSaver.save(sb, sb.resource_path)
 
@@ -143,55 +139,55 @@ func _run():
 
 
 
-func _get_bg_color(state : String) -> Color:
+func _get_bg_color(state : String, base_color : Color) -> Color:
 
 	match state:
 
 		"normal":
-			return normal_bg_color
+			return base_color
 
 		"highlight":
 			if use_offsets:
-				return _apply_offset(normal_bg_color, highlight_bg_offset)
+				return _apply_offset(base_color, highlight_bg_offset)
 			return highlight_bg_color
 
 		"pressed":
 			if use_offsets:
-				return _apply_offset(normal_bg_color, pressed_bg_offset)
+				return _apply_offset(base_color, pressed_bg_offset)
 			return pressed_bg_color
 
 		"disabled":
 			if use_offsets:
-				return _apply_offset(normal_bg_color, disabled_bg_offset)
+				return _apply_offset(base_color, disabled_bg_offset)
 			return disabled_bg_color
 
-	return normal_bg_color
+	return base_color
 
 
 
-func _get_border_color(state : String) -> Color:
+func _get_border_color(state : String, base_color : Color) -> Color:
 
 	match state:
 
 		"normal":
-			return normal_border_color
+			return base_color
 
 		"highlight":
 			if border_use_offsets:
-				return _apply_offset(normal_border_color, highlight_border_offset)
+				return _apply_offset(base_color, highlight_border_offset)
 			return highlight_border_color
 
 		"pressed":
 			if border_use_offsets:
-				return _apply_offset(normal_border_color, pressed_border_offset)
+				return _apply_offset(base_color, pressed_border_offset)
 			return pressed_border_color
 
 		"disabled":
 			if border_use_offsets:
-				return _apply_offset(normal_border_color, disabled_border_offset)
+				return _apply_offset(base_color, disabled_border_offset)
 			return disabled_border_color
 
-	return normal_border_color
+	return base_color
 
 
 
