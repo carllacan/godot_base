@@ -33,6 +33,10 @@ enum States {
 @export var keyboard_movement_speed:float = 0
 @export var joystick_movement_speed:float = 10
 
+@export_group("Debug")
+@export var verbose:bool = false
+
+
 var state:States = States._undef# : set = set_state
 var zoom_factor:float = 1 : set = set_zoom_factor
 var last_mouse_position:Vector2 = Vector2.INF
@@ -43,6 +47,11 @@ func _ready()-> void:
 	center()
 	
 	
+func p(msg:String)-> void:
+	if not verbose: return
+	print(msg)
+	
+	
 func set_zoom_factor(value:float)-> void:
 	zoom_factor = clamp(value, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR)
 	zoom = Vector2.ONE*zoom_factor
@@ -50,52 +59,49 @@ func set_zoom_factor(value:float)-> void:
 	
 func center()-> void:
 	position = Vector2.ZERO
-	#position = get_viewport().get_visible_rect().size/2
-	#print("Camera centerd at %s" % position)
+	p("Camera centerd at %s" % position)
 	
 
 @warning_ignore("unused_parameter")
 func _on_left_click(pos:Vector2)-> void:
 	match state:
 		States.IDLE:
-			#print("Left click while IDLE")
+			print("Left click while IDLE")
 			pass
 			
 			
 func _on_left_click_pressed(pos:Vector2)-> void:	
 	match state:
 		States.IDLE:
-			#print("Left click pressed while IDLE")			
+			p("Left click pressed while IDLE")			
 			if drag_actions & MOUSE_BUTTON_MASK_LEFT:
 				start_dragging_map(pos)
-		#States.DRAGGING_ELEMENT:	
-			#print("Left click pressed while DRAGGING_ELEMENT")
 			
 			
 @warning_ignore("unused_parameter")
 func _on_left_click_released(pos:Vector2)-> void:
 	match state:
-		#States.IDLE:
-			#print("Left click released while IDLE")
+		States.IDLE:
+			p("Left click released while IDLE")
 		States.DRAGGING_MAP:
-			#print("Left click released while DRAGGING_MAP")
+			p("Left click released while DRAGGING_MAP")
 			if drag_actions & MOUSE_BUTTON_MASK_LEFT:
 				stop_dragging_map()
 		
 @warning_ignore("unused_parameter")
 func _on_right_click(pos:Vector2)-> void:
 	pass
-	#match state:
-		#States.IDLE:
-			#print("Right click while IDLE")
+	match state:
+		States.IDLE:
+			p("Right click while IDLE")
 		#States.DRAGGING_ELEMENT:	
-			#print("Right click while DRAGGING_ELEMENT")
+			#p("Right click while DRAGGING_ELEMENT")
 			
 		
 func _on_right_click_pressed(pos:Vector2)-> void:
 	match state:
 		States.IDLE:
-			#print("Right click pressed while IDLE")	
+			p("Right click pressed while IDLE")	
 			if drag_actions & MOUSE_BUTTON_MASK_RIGHT:
 				start_dragging_map(pos)
 			
@@ -103,12 +109,10 @@ func _on_right_click_pressed(pos:Vector2)-> void:
 @warning_ignore("unused_parameter")
 func _on_right_click_released(pos:Vector2)-> void:
 	match state:
-		#States.IDLE:
-			#print("Right click released while IDLE")
-		#States.DRAGGING_ELEMENT:	
-			#print("Right click released while DRAGGING_ELEMENT")
+		States.IDLE:
+			p("Right click released while IDLE")
 		States.DRAGGING_MAP:
-			#print("Right click released while DRAGGING_MAP")
+			p("Right click released while DRAGGING_MAP")
 			if drag_actions & MOUSE_BUTTON_MASK_RIGHT:
 				stop_dragging_map()
 			
@@ -117,7 +121,7 @@ func _on_right_click_released(pos:Vector2)-> void:
 func _on_middle_click_pressed(pos:Vector2)-> void:
 	match state:
 		States.IDLE:
-			#print("Middle click pressed while IDLE")	
+			p("Middle click pressed while IDLE")	
 			if drag_actions & MOUSE_BUTTON_MASK_MIDDLE:
 				start_dragging_map(pos)
 				
@@ -125,13 +129,13 @@ func _on_middle_click_pressed(pos:Vector2)-> void:
 func _on_middle_click_released(_pos:Vector2)-> void:
 	match state:
 		States.DRAGGING_MAP:
-			#print("Middle click pressed while IDLE")	
+			p("Middle click pressed while IDLE")	
 			if drag_actions & MOUSE_BUTTON_MASK_MIDDLE:
 				stop_dragging_map()
 				
 				
 func _on_mouse_wheel_moved(factor:float)-> void:
-	#print("Mouse wheel moved. Factor: %s" % factor)
+	p("Mouse wheel moved. Factor: %s" % factor)
 	if zoom_enabled:
 		zoom_factor += ZOOM_WHEEL_SENSIBILITY*factor
 	
@@ -149,10 +153,10 @@ func _physics_process(_delta: float) -> void:
 	
 	match state:
 		States.IDLE:
-			#print("Mouse moved while IDLE")
+			p("Mouse moved while IDLE")
 			pass
 		#States.DRAGGING_MAP:	
-			##print("Mouse moved at '%s' while DRAGGING_MAP" % event.global_position)
+			##p("Mouse moved at '%s' while DRAGGING_MAP" % event.global_position)
 			#update_map_dragging()
 			
 	var move:Vector2 = Vector2.ZERO
