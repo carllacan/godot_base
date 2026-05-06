@@ -57,10 +57,10 @@ func _check_target_property()-> void:
 
 
 func _connect_state_signals()-> void:
-	if Globals.State == null:
-		push_error("GameResourceSyncer: Globals.State is null")
+	if Current.Save == null:
+		push_error("GameResourceSyncer: Current.State is null")
 		return
-	Globals.State.resource_changed.connect(_on_resource_changed)
+	Current.Save.resource_changed.connect(_on_resource_changed)
 
 
 func _connect_change_request_signal()-> void:
@@ -88,12 +88,12 @@ func _on_resource_changed(changed_resource:GameResource, _new_value:float)-> voi
 	
 	
 func update_info()-> void:
-	var a = Globals.State.get_current_resource(resource)
+	var a = Current.Save.get_current_resource(resource)
 	get_parent().set(target_property, a)
 
 
 func _on_change_requested(delta:float)-> void:
-	if Globals.State == null: return
+	if Current.Save == null: return
 	if resource == null: return
-	var current:float = Globals.State.get_current_resource(resource)
-	Globals.State.set_resource(resource, current + delta)
+	var current:float = Current.Save.get_current_resource(resource)
+	Current.Save.set_resource(resource, current + delta)
