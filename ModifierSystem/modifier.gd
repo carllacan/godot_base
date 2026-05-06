@@ -8,8 +8,13 @@ enum Mode {
 }
 
 @export var key:String
-@export var value:float = 0
+@export var value:float = 0 : get = get_value
 @export var mode:Mode = Mode.ADDITIVE
+@export var description:String
+@export_group("Debug")
+@export var override_value:float
+@export var apply_override:bool = false
+
 var origin:Resource
 
 ## TODO: turn into a wrapper for apply, to avoid code duplication
@@ -63,6 +68,13 @@ func apply(base_value)-> float:
 			return NAN
 			
 			
+func get_value()-> float:
+	if apply_override:
+		return override_value
+	else:
+		return value
+		
+		
 ## Returns the value, transforming to % if it's a multiplicative mod
 func get_value_str()-> String:
 	match mode:	
