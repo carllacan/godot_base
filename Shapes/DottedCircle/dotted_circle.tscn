@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b2hnfeorojq3k"]
 
-[ext_resource type="Shader" uid="uid://bl2u2lceg167x" path="res://GodotBase/Scenes/DottedCircle/dotted_circle.gdshader" id="1_kcntp"]
+[ext_resource type="Shader" uid="uid://bl2u2lceg167x" path="res://GodotBase/Shapes/DottedCircle/dotted_circle.gdshader" id="1_kcntp"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_kcntp"]
 resource_local_to_scene = true
