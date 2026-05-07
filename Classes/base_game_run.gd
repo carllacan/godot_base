@@ -20,6 +20,9 @@ signal resource_revealed(resource:GameResource)
 @export_group("Others")
 @export var timestamp_unix:float = 0
 @export var version:String
+@export_group("Tools")
+@export_tool_button("Set as testing") var sat = set_as_testing_savefile
+@export_tool_button("Overwrite user save") var ous = overwrite_user_save
 
 
 func p(text:String)-> void:
@@ -176,4 +179,50 @@ func can_afford(price:Dictionary[GameResource, float])-> bool:
 
 	return true
 	
+#endregion
+
+
+#region Tools
+
+func set_as_testing_savefile()-> void:
+	BuildConfig.Default.testing_savefile = self
+
+
+func overwrite_user_save() -> void:
+	if resource_path.is_empty():
+		push_error("This resource has no file path — save it as a .tres first.")
+		return
+
+	# Replicate Flags.DEMO logic directly — Flags.DEMO shortcuts to false in
+	# editor, which would ignore force_demo and give the wrong destination path.
+	var is_demo := BuildConfig.Default.force_flag(
+			OS.has_feature("demo"), BuildConfig.Default.force_demo)
+	var dest_virtual: String
+	if is_demo:
+		dest_virtual = "user://".path_join("demo").path_join(DEFAULT_FILENAME)
+	else:
+		dest_virtual = "user://".path_join(DEFAULT_FILENAME)
+
+	DirAccess.open("user://").make_dir_recursive(dest_virtual.get_base_dir())
+
+	var source_path := ProjectSettings.globalize_path(resource_path)
+	var dest_path := ProjectSettings.globalize_path(dest_virtual)
+
+	var source_file := FileAccess.open(source_path, FileAccess.READ)
+	if not source_file:
+		push_error("Could not open source file: %s" % source_path)
+		return
+	var content := source_file.get_buffer(source_file.get_length())
+	source_file.close()
+
+	var dest_file := FileAccess.open(dest_path, FileAccess.WRITE)
+	if not dest_file:
+		push_error("Could not open destination file: %s" % dest_path)
+		return
+	dest_file.store_buffer(content)
+	dest_file.close()
+
+	print("Overwrote user save: %s -> %s" % [resource_path, dest_virtual])
+
+
 #endregion
