@@ -81,9 +81,9 @@ static func load(filepath:String)-> BaseGameState:
 	var r:BaseGameState = ResourceLoader.load(filepath)
 	
 	if r != null:
-		r.p("Game loaded from '%s'" % filepath)
+		print("Game loaded from '%s'" % filepath)
 	else:
-		r.p("Game loaded failed.")
+		print("Game loaded failed.")
 		
 	return r
 	

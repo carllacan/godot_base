@@ -173,12 +173,12 @@ func start_hovering(actor:BaseActor)-> void:
 	
 	
 func stop_hovering_current()-> void:
-	hovered_actor = null
 	hovered_actor.state = BaseActor.State.IDLE
+	hovered_actor = null
 	
 		
 func is_something_hovered()-> bool:
-	return selected_actor != null
+	return hovered_actor != null
 	
 #endregion
 

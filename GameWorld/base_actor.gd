@@ -103,7 +103,7 @@ func play_destruction_animation(_mode:String = "")-> void:
 	
 
 func destroy(mode:String = "")-> void:
-	if state in [State.BEING_DESTROYED or State.DESTROYED]:
+	if state in [State.BEING_DESTROYED, State.DESTROYED]:
 		return
 		
 	state = State.BEING_DESTROYED

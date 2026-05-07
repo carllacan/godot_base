@@ -21,7 +21,6 @@ func _ready()-> void:
 	if debug_view:
 		url = "https://www.google-analytics.com/debug/mp/collect"
 	else:
-		url = "https://www.google-analytics.com/collect"
 		url = "https://www.google-analytics.com/mp/collect"
 	url += "?measurement_id=%s" % MEASUREMENT_ID
 	url += "&api_secret=%s" % API_SECRET
