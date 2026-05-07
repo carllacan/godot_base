@@ -3,6 +3,53 @@ class_name Utils
 
 const WHITESPACE = " ¶\n"
 
+#region Suffixes
+
+## Abbreviated suffixes: K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc
+const ABB_SUFFIXES: Dictionary[float, String] = {
+	1e33: "Dc",  # decillion
+	1e30: "No",  # nonillion
+	1e27: "Oc",  # octillion
+	1e24: "Sp",  # septillion
+	1e21: "Sx",  # sextillion
+	1e18: "Qi",  # quintillion
+	1e15: "Qa",  # quadrillion
+	1e12: "T",   # trillion
+	1e9:  "B",   # billion
+	1e6:  "M",   # million
+	1e3:  "K",   # thousand
+}
+
+## Standard SI prefixes: k, M, G, T, P, E, Z, Y, R, Q
+const SI_SUFFIXES: Dictionary[float, String] = {
+	1e30: "Q",   # quetta
+	1e27: "R",   # ronna
+	1e24: "Y",   # yotta
+	1e21: "Z",   # zetta
+	1e18: "E",   # exa
+	1e15: "P",   # peta
+	1e12: "T",   # tera
+	1e9:  "G",   # giga
+	1e6:  "M",   # mega
+	1e3:  "k",   # kilo
+}
+
+## Scientific notation suffixes: e3, e6, e9, ...
+const SCI_SUFFIXES: Dictionary[float, String] = {
+	1e33: "e33",
+	1e30: "e30",
+	1e27: "e27",
+	1e24: "e24",
+	1e21: "e21",
+	1e18: "e18",
+	1e15: "e15",
+	1e12: "e12",
+	1e9:  "e9",
+	1e6:  "e6",
+	1e3:  "e3",
+}
+
+#endregion
 
 ## Returns a copy of an array with no duplicate elements
 static func unique(array:Array)-> Array:
@@ -265,7 +312,7 @@ static func format_as_rkm(amount:float, right_hand_figures:int = 1)-> String:
 
 	return sign_str + str(int(abs_amount))
 
-
+## TODO: merge with format_number_compact, but probably keep this name
 ## Formats a number with SI prefix symbols as trailing suffixes and a decimal
 ## point. e.g. 3547 -> "3.5k", 1200000 -> "1.2M", 999 -> "999"
 ## right_hand_figures controls decimal places when a suffix is used.
@@ -315,3 +362,41 @@ static func standardize_string(original:String, final_period:bool = false)-> Str
 				std = std.rstrip(".")
 					
 	return std
+
+
+
+## Returns a compact string representation of a large number using order-of-magnitude suffixes.
+## Truncates (does not round) to fit within max_chars, including the suffix character(s).
+## Numbers that already fit within max_chars are returned as-is.
+static func format_number_compact(value: float, 
+	max_chars: int = 6, suffixes:Dictionary[float, String] = ABB_SUFFIXES
+	) -> String:
+	var plain := str(int(value))
+	if plain.length() <= max_chars:
+		return plain
+
+	var sorted_keys: Array = suffixes.keys()
+	sorted_keys.sort()
+	sorted_keys.reverse()
+
+	var chosen_divisor := 1.0
+	var chosen_suffix := ""
+	for key: float in sorted_keys:
+		if value >= key:
+			chosen_divisor = key
+			chosen_suffix = suffixes[key]
+			break
+
+	var divided := value / chosen_divisor
+	var digits_before := int(floor(log(divided) / log(10.0))) + 1
+	var available_for_num := max_chars - chosen_suffix.length()
+	var decimals := available_for_num - digits_before - 1  # reserve one char for decimal point
+
+	if decimals <= 0:
+		return str(int(divided)) + chosen_suffix
+
+	# Truncate (floor) to avoid rounding up past the visible digits
+	var scale := pow(10.0, decimals)
+	var truncated: float = floor(divided * scale) / scale
+	var fmt := "%." + str(decimals) + "f"
+	return (fmt % truncated) + chosen_suffix
