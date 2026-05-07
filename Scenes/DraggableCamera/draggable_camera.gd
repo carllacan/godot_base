@@ -90,7 +90,6 @@ func _on_left_click_released(pos:Vector2)-> void:
 		
 @warning_ignore("unused_parameter")
 func _on_right_click(pos:Vector2)-> void:
-	pass
 	match state:
 		States.IDLE:
 			p("Right click while IDLE")
