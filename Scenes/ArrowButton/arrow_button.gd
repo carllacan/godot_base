@@ -2,10 +2,6 @@ extends TextureButton
 class_name ArrowButton
 
 
-#@export var width:float = 50
-#@export var height:float = 50
-
-
 func _ready()-> void:
 	var pressed_img = texture_normal.get_image()
 	pressed_img.adjust_bcs(0.9, 0.9, 0.9)	
