@@ -1,7 +1,7 @@
 extends Node
 class_name Utils
 
-const WHITESPACE = " ,:-;().¶\n"
+const WHITESPACE = " ¶\n"
 
 
 ## Returns a copy of an array with no duplicate elements
