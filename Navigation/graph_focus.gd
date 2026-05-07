@@ -58,7 +58,7 @@ func build_graph(elements: Array, visibility_check: Callable = Callable()) -> vo
 	for el in visible_elements:
 		var neighbors: Dictionary = {}
 		for dir in directions:
-			var neighbor = _find_nearest_in_direction(el, dir, visible_elements, visibility_check)
+			var neighbor = _find_nearest_in_direction(el, dir, visible_elements)
 			if neighbor != null:
 				neighbors[dir] = neighbor
 		_graph[el] = neighbors
@@ -92,7 +92,7 @@ func get_nearest_to(pos: Vector2, visibility_check: Callable = Callable()) -> No
 	return best
 
 
-func _find_nearest_in_direction(from: Node, direction: Vector2, elements: Array, visibility_check: Callable) -> Node:
+func _find_nearest_in_direction(from: Node, direction: Vector2, elements: Array) -> Node:
 	var best: Node = null
 	var best_score := INF
 
@@ -100,8 +100,6 @@ func _find_nearest_in_direction(from: Node, direction: Vector2, elements: Array,
 
 	for other in elements:
 		if other == from:
-			continue
-		if visibility_check.is_valid() and not visibility_check.call(other):
 			continue
 
 		var other_pos: Vector2 = _get_element_position(other)
