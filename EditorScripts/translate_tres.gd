@@ -34,6 +34,8 @@ func _scan_dir(current_path: String, result: Dictionary) -> void:
 				for prop in res.get_property_list():
 					if prop.usage & PROPERTY_USAGE_EDITOR == 0:
 						continue
+					if prop.name.begins_with("_"):
+						continue
 					if prop.name in ["resource_path", "resource_name", "metadata/_custom_type_script"]:
 						continue
 						
