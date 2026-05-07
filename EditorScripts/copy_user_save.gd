@@ -10,9 +10,9 @@ func _run() -> void:
 			OS.has_feature("demo"), BuildConfig.Default.force_demo)
 	var source_virtual: String
 	if is_demo:
-		source_virtual = "user://".path_join("demo").path_join(GameRun.DEFAULT_FILENAME)
+		source_virtual = "user://".path_join("demo").path_join(GameState.DEFAULT_FILENAME)
 	else:
-		source_virtual = "user://".path_join(GameRun.DEFAULT_FILENAME)
+		source_virtual = "user://".path_join(GameState.DEFAULT_FILENAME)
 	var source_path := ProjectSettings.globalize_path(source_virtual)
 
 	if not FileAccess.file_exists(source_path):
