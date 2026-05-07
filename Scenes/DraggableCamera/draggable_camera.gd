@@ -152,7 +152,7 @@ func _physics_process(_delta: float) -> void:
 	
 	match state:
 		States.IDLE:
-			p("Mouse moved while IDLE")
+			#p("Mouse moved while IDLE")
 			pass
 		#States.DRAGGING_MAP:	
 			##p("Mouse moved at '%s' while DRAGGING_MAP" % event.global_position)
@@ -203,8 +203,7 @@ func clamp_position()-> void:
 #endregion
 
 
-func _unhandled_input(event: InputEvent) -> void:	
-	#print("world received unhandled input")
+func _unhandled_input(event: InputEvent) -> void:
 	if not is_visible_in_tree(): return
 	
 	if event is InputEventMouseButton:

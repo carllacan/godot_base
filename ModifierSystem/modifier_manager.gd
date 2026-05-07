@@ -39,10 +39,10 @@ func remove_modifier(mod:Modifier)-> void:
 			multiplicative[mod.key] -= mod.value
 
 
-func apply_modifiers(base_value:float, key:String)-> float:
+func apply_modifiers(base_value:float, key:String, times:int = 1)-> float:
 	var result = base_value
 	if key in additive:
-		result += additive[key]
+		result += additive[key]*times
 	if key in multiplicative:
-		result *= 1.0 + multiplicative[key]
+		result *= pow(1.0 + multiplicative[key], times)
 	return result
