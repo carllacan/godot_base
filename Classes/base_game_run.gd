@@ -85,8 +85,13 @@ static func load(filepath:String)-> BaseGameState:
 	else:
 		print("Game loaded failed.")
 		
+	r.on_load()
+		
 	return r
 	
+	
+func on_load()-> void:
+	return
 	
 #endregion Saving
 
