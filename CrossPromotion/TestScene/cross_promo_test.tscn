@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cjvwu5lv0m605"]
+
+[ext_resource type="Script" uid="uid://bhe32cd1bdfog" path="res://GodotBase/CrossPromotion/TestScene/cross_promo_test.gd" id="1_script"]
+
+[node name="CrossPromo" type="Node2D" unique_id=940422359]
+script = ExtResource("1_script")
