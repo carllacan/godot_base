@@ -77,6 +77,7 @@ static func staircase(x: float, step_width: float, step_height: float) -> float:
 	
 	return floor(x / step_width) * step_height
 
+
 static func angle_distance(angle1:float, angle2:float)-> float:
 	return Vector2.from_angle(angle1).angle_to(Vector2.from_angle(angle2))
 	
@@ -173,7 +174,10 @@ static func rand_weighted(
 		# If the catalog has been sorted we can avoid traversing it to maintain
 		# consistent access.
 		keys = catalog.keys()
-		values = catalog.values()
+		
+		values.clear()
+		for v in catalog.values():
+			values.append(v)
 	else:
 		# If the catalog is not sorted then we have no guarantee that the element
 		# at position X in catalog.keys() corresponds to the element at position X
@@ -188,6 +192,10 @@ static func rand_weighted(
 	return keys[chosen_idx]
 	
 	
+static func rand_bool(probability:float)-> bool:
+	if probability < 0 or probability > 1: 
+		push_warning("rand_bool called with p %0.2f, not in [0,1]" % probability)
+	return randf() < probability
 	
 	
 static func get_magnitude_order(amount:float)-> int:
@@ -306,7 +314,7 @@ static func format_as_rkm(amount:float, right_hand_figures:int = 1)-> String:
 			var integer_part:int = int(divided)
 			if right_hand_figures <= 0:
 				return "%s%d%s" % [sign_str, integer_part, symbol]
-			var frac_digits:int = int((divided - integer_part) * pow(10, right_hand_figures))
+			var frac_digits:int = int((divided - integer_part) * pow(10, right_hand_figures) + 1e-9)
 			return "%s%d%s%s" % [sign_str, integer_part, symbol,
 				str(frac_digits).pad_zeros(right_hand_figures)]
 
