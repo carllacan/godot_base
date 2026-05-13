@@ -1,3 +1,4 @@
+@tool
 extends Node
 class_name PropertyAnimator
 
@@ -10,8 +11,16 @@ enum State {
 	WAITING_BETWEEN_CYCLES,
 }
 
+enum Mode {
+	## Goes from min to max and then back in the opposite sense
+	PERIODIC,
+	## Goes from min to max and then wraps back to min
+	RESTART,
+}
+
 @export var target:Node
 @export var property:String
+@export var mode:Mode
 @export var min_value:Variant
 @export var max_value:Variant
 @export var period:float = 1.0
@@ -19,6 +28,7 @@ enum State {
 @export var autostart:bool = true
 @export_group("Debug")
 @export var verbose:bool = false
+@export var run_in_editor:bool = false
 
 
 var state:State = State.STOPPED
@@ -75,9 +85,16 @@ func update_property()-> void:
 	if not is_node_ready(): return
 	
 	var phase = cycle_time/period
-	var c = sin(2*PI*phase)
+	var c:float
+	var value:float
+	match mode:
+		Mode.PERIODIC:
+			c = sin(2*PI*phase)
+			value = lerp(min_value, max_value, inverse_lerp(-1, 1, c))
+		Mode.RESTART:
+			c = phase
+			value = lerp(min_value, max_value, c)
 	
-	var value = lerp(min_value, max_value, inverse_lerp(-1, 1, c))
 	target.set(property, value)
 	
 	if verbose:
@@ -106,6 +123,7 @@ func _on_cycle_finished()-> void:
 func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return
 	if not target.is_visible_in_tree(): return
+	if not run_in_editor and Engine.is_editor_hint(): return
 	
 	match state:
 		State.STOPPED:
