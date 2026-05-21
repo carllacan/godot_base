@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "id": "bingobingle",
+      "title": "Bingo Bingle",
+      "description": "A bingo incremental",
+      "store_url": "https://store.steampowered.com/app/4550270/Bingo_Bingle",
+      "thumbnail_url": "https://carllacan.github.io/carllacan-games/thumbnails/bingobingle.png",
+      "sort_order": 1
+    },
+        {
+      "id": "coreward",
+      "title": "Coreward",
+      "description": "A roguelike about turning around",
+      "store_url": "https://store.steampowered.com/app/3695440/Coreward",
+      "thumbnail_url": "https://carllacan.github.io/carllacan-games/thumbnails/coreward.png",
+      "sort_order": 1
+    }
+  ]
+}

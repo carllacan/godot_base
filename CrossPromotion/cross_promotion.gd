@@ -13,11 +13,28 @@ static func fetch(caller: Node, game_id: String) -> Array[CrossPromotionInfo]:
 	if json_body.is_empty():
 		return infos
 
-	var data = JSON.parse_string(json_body.get_string_from_utf8())
-	if not data is Dictionary or not data.has("games") or not data["games"] is Array:
-		return infos
+	var entries: Array[CrossPromotionInfo] = _parse_json_body(json_body, game_id)
 
+	for entry: CrossPromotionInfo in entries:
+		if not entry.thumbnail_url.is_empty():
+			var img_body := await _http_get(caller, entry.thumbnail_url)
+			if not img_body.is_empty():
+				entry.thumbnail = _body_to_texture(img_body, entry.thumbnail_url)
+		infos.append(entry)
+
+	return infos
+
+
+static func _parse_json_body(json_body: PackedByteArray, game_id: String) -> Array[CrossPromotionInfo]:
 	var entries: Array[CrossPromotionInfo] = []
+
+	var json := JSON.new()
+	if json.parse(json_body.get_string_from_utf8()) != OK:
+		return entries
+	var data = json.data
+	if not data is Dictionary or not data.has("games") or not data["games"] is Array:
+		return entries
+
 	for game_dict: Dictionary in data["games"]:
 		var info := CrossPromotionInfo.new()
 		info.id = game_dict.get("id", "")
@@ -35,14 +52,7 @@ static func fetch(caller: Node, game_id: String) -> Array[CrossPromotionInfo]:
 	entries.sort_custom(func(a: CrossPromotionInfo, b: CrossPromotionInfo) -> bool:
 		return a.sort_order < b.sort_order)
 
-	for entry: CrossPromotionInfo in entries:
-		if not entry.thumbnail_url.is_empty():
-			var img_body := await _http_get(caller, entry.thumbnail_url)
-			if not img_body.is_empty():
-				entry.thumbnail = _body_to_texture(img_body, entry.thumbnail_url)
-		infos.append(entry)
-
-	return infos
+	return entries
 
 
 static func _http_get(caller: Node, url: String) -> PackedByteArray:
