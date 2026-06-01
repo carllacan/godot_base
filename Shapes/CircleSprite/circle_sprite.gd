@@ -7,6 +7,7 @@ const MAX_CIRCLES:int = 10
 @export var background_color = Color.TRANSPARENT : set = set_background_color;
 @export var mix_color:Color = Color.WHITE : set = set_mix_color
 @export_range(0, 1.0) var mix_color_factor:float = 0.0 : set = set_mix_color_factor
+@export_range(0, 1.0) var alpha_factor:float = 1.0 : set = set_alpha_factor
 @export var size:Vector2 = Vector2.ONE*250 : set = set_size
 @export var circles:Array[CircleInfo]
 @export var update_frame_interval:int = 1
@@ -61,6 +62,14 @@ func set_mix_color_factor(value:float)-> void:
 	s = material as ShaderMaterial
 	if s == null: return
 	s.set_shader_parameter("mix_color_factor", mix_color_factor)
+		
+	
+func set_alpha_factor(value:float)-> void:
+	alpha_factor = value
+	
+	s = material as ShaderMaterial
+	if s == null: return
+	s.set_shader_parameter("alpha_factor", alpha_factor)
 		
 
 # TODO: auto set size whenere a new circle is added

@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ccr1tgplbx8kj"]
 
 [ext_resource type="Shader" uid="uid://1ygex5pcfvi7" path="res://GodotBase/Shaders/multicircle.gdshader" id="1_3pwtm"]
-[ext_resource type="Script" uid="uid://dhpe38cqadotm" path="res://GodotBase/Shapes/CircleSprite/circle_sprite.gd" id="2_wfc6b"]
+[ext_resource type="Script" uid="uid://df04u5kwnwb2s" path="res://GodotBase/Shapes/CircleSprite/circle_sprite.gd" id="2_wfc6b"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ga1ld"]
 resource_local_to_scene = true

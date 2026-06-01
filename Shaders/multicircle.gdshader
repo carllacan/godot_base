@@ -21,6 +21,7 @@ uniform bool[MAX_AMOUNT_OF_CIRCLES] enabled;
 uniform vec4 background_color : source_color = vec4(0.0);
 uniform vec3 mix_color : source_color;
 uniform float mix_color_factor : hint_range(0.0, 1.0);
+uniform float alpha_factor : hint_range(0.0, 1.0) = 1.0;
 group_uniforms;
 
 
@@ -220,4 +221,5 @@ void fragment()
 	 //Mix with a secondary color
 	if (mix_color_factor > 0.0)
 		COLOR.rgb = mix(COLOR.rgb, mix_color, mix_color_factor);
+	COLOR.a *= alpha_factor;
 }
