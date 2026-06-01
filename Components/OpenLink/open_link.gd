@@ -14,6 +14,7 @@ class_name OpenLink
 
 @export var overlay_id:String
 
+
 func _ready()-> void:
 	get_parent().ready.connect(_on_parent_ready)
 	

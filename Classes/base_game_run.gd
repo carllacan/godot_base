@@ -33,6 +33,7 @@ func p(text:String)-> void:
 
 # Saves this run to a resource file. Uses a default filename if none specified
 func save(filepath:String = "")-> void:
+	if Engine.is_editor_hint(): return
 	SaveManager.queue_save(actually_save.bind(filepath))
 	
 	
@@ -65,6 +66,11 @@ func actually_save(filepath:String = "")-> Error:
 	return result
 
 
+static func get_default_run()-> BaseGameState:
+	var filepath = get_run_filepath(DEFAULT_FILENAME)
+	return load(filepath)
+		
+		
 # Joins the save files directory with a filename
 static func get_run_filepath(filename:String)-> String:
 	if Flags.DEMO:

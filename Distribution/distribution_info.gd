@@ -64,6 +64,7 @@ static func get_version()-> String:
 	var v = "_".join(flags)
 	
 	var di = get_dist_info()
+	if di == null: return ""
 	if di.commit != "" and di.commit != "--":
 		v += " (%s)" % di.commit.substr(0, 6)
 		

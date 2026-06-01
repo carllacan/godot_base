@@ -5,6 +5,7 @@ class_name SettingSetter
 
 @export var target_setting:SettingInfo
 @export var override_text:bool = true
+## Textures to be set to the parent "icon" property, indexed by value
 @export var icon_overrides:Dictionary[Variant, Texture] = {}
 @export_group("Controls")
 @export var left_click_increases:bool = true
