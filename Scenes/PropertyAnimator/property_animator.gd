@@ -122,8 +122,8 @@ func _on_cycle_finished()-> void:
 	
 func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return
-	if not target.is_visible_in_tree(): return
 	if not run_in_editor and Engine.is_editor_hint(): return
+	if not target.is_visible_in_tree(): return
 	
 	match state:
 		State.STOPPED:
