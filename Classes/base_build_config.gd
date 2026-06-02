@@ -48,9 +48,22 @@ static var _cached_default_build:BaseBuildConfig = null
 static func get_default_build()-> BaseBuildConfig:
 	if _cached_default_build == null:
 		if OS.has_feature("editor"):
-			_cached_default_build = load("res://Data/BuildConfigs/editor_build_config.tres")
+			var editor_build = load(
+				"res://Data/BuildConfigs/editor_build_config.tres")
+			
+			if editor_build.force_debug != ForceActions.ForceFalse:
+				print("Using EDITOR build")
+				_cached_default_build = editor_build
+			else:
+				print("Using RELEASE build")
+				_cached_default_build = load(
+				"res://Data/BuildConfigs/release_build_config.tres")
+			
 		else:
-			_cached_default_build = load("res://Data/BuildConfigs/release_build_config.tres")
+			print("Using RELEASE build")
+			_cached_default_build = load(
+				"res://Data/BuildConfigs/release_build_config.tres")
+				
 		if _cached_default_build == null:
 			push_error("No build configuration found")
 	return _cached_default_build
