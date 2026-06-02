@@ -10,8 +10,14 @@ enum TriggerType {
 
 var _final_pos:Vector2 = Vector2(0, -50)
 
+## Sets the position the target will float to via coordinates. 
+## Seting it changes final_distance and direction.
 @export var final_pos:Vector2 = Vector2(0, -50) : set = set_final_pos
+## Sets how far away the target node will float. 
+## Seting it changes final_pos.
 @export var final_distance:float = 50 : set = set_final_distance
+## Sets how the direction in which the target node will float. 
+## Seting it changes final_pos.
 @export var direction:float = -90 : set = set_direction
 @export var final_alpha:float = 0
 @export var float_time_s:float = 0.5
@@ -19,7 +25,7 @@ var _final_pos:Vector2 = Vector2(0, -50)
 @export_range(0, 1.0) var float_time_fluctuation:float = 0
 @export var trigger:TriggerType = TriggerType.ON_READY
 
-
+## Calculate position the target will float to.
 func _apply_final_pos(value:Vector2)-> void:
 	_final_pos = value
 	if final_pos != value:
