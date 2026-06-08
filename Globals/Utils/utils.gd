@@ -408,3 +408,12 @@ static func format_number_compact(value: float,
 	var truncated: float = floor(divided * scale) / scale
 	var fmt := "%." + str(decimals) + "f"
 	return (fmt % truncated) + chosen_suffix
+
+
+static func format_without_zero_decimals(amount:float)-> String:
+	var has_decimals = (amount != floor(amount))
+	
+	if has_decimals:
+		return "%0.2f" % amount
+	else:
+		return str(int(floor(amount)))
