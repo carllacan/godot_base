@@ -99,6 +99,11 @@ static func load(filepath:String)-> BaseGameState:
 func on_load()-> void:
 	return
 	
+
+func reset()-> void:
+	return
+	
+	
 #endregion Saving
 
 #region Resource management
@@ -161,6 +166,10 @@ func increase_resources(amount:Dictionary[GameResource, float])-> void:
 	SignalManager.emit_this_frame(resources_changed)
 
 
+func decrease_resource(resource:GameResource, amount: float)-> void:
+	return decrease_resources({resource: amount})
+	
+	
 func decrease_resources(amount:Dictionary[GameResource, float])-> void:
 	if BuildConfig.Default.blank_check:
 		push_warning("Omitting decrease_resources because blank_check is active")
@@ -168,10 +177,16 @@ func decrease_resources(amount:Dictionary[GameResource, float])-> void:
 
 	for c in amount.keys():
 		if is_nan(amount[c]): continue
-		assert(current_resources[c] >= amount[c],
-		"Can't take %s %s from %s" % [amount[c], c.dname, current_resources[c]])
+		if amount[c] == 0: continue
+		
+		assert(
+			get_current_resource(c) >= amount[c],
+			"Can't take %s %s from %s" % [amount[c], c.dname, get_current_resource(c)]
+		)
+		
 		current_resources[c] -= amount[c]
-		resource_changed.emit(c, current_resources[c])
+		
+		resource_changed.emit(c, get_current_resource(c))
 
 	SignalManager.emit_this_frame(changed)
 	SignalManager.emit_this_frame(resources_changed)
@@ -185,7 +200,7 @@ func can_afford(price:Dictionary[GameResource, float])-> bool:
 		return true
 
 	for c in price.keys():
-		if current_resources[c] < price[c]:
+		if get_current_resource(c) < price[c]:
 			return false
 
 	return true

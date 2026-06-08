@@ -11,17 +11,19 @@ enum ForceActions
 	ForceFalse,
 }
 
-@export_category("Launch settings")
+@export_group("Gameplay")
+@export var blank_check:bool = false
+@export_group("Launch settings")
 @export var use_testing_savefile:bool = false
 @export var testing_savefile:BaseGameState
 @export var skip_main_menu:bool = false
 @export var skip_splash_screen:bool = false
 @export var force_new_game:bool = false
 
-@export_category("Integration testing")
+@export_group("Integration testing")
 @export var clear_achievements_at_start:bool = false
 
-@export_category("Flag management")
+@export_group("Flag management")
 @export var force_debug:ForceActions = ForceActions.None
 @export var force_demo:ForceActions = ForceActions.None
 @export var force_web:ForceActions = ForceActions.None
