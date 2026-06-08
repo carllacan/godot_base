@@ -2,6 +2,8 @@
 extends Resource
 class_name BaseBuildConfig
 
+const EDITOR_CONFIG_PATH:String = "res://Data/Dev/editor_build_config.tres"
+
 enum ForceActions
 {
 	None,
@@ -48,8 +50,7 @@ static var _cached_default_build:BaseBuildConfig = null
 static func get_default_build()-> BaseBuildConfig:
 	if _cached_default_build == null:
 		if OS.has_feature("editor"):
-			var editor_build = load(
-				"res://Data/BuildConfigs/editor_build_config.tres")
+			var editor_build = get_editor_config()
 			
 			if editor_build.force_debug != ForceActions.ForceFalse:
 				print("Using EDITOR build")
@@ -67,3 +68,10 @@ static func get_default_build()-> BaseBuildConfig:
 		if _cached_default_build == null:
 			push_error("No build configuration found")
 	return _cached_default_build
+	
+	
+static func get_editor_config()-> BuildConfig:
+	if FileAccess.file_exists(EDITOR_CONFIG_PATH):
+		return load(EDITOR_CONFIG_PATH)
+	else:
+		return BuildConfig.new()
