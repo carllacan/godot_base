@@ -13,6 +13,7 @@ enum ForceActions
 
 @export_group("Gameplay")
 @export var blank_check:bool = false
+@export var autoplayer:BaseAutoplayer = null
 @export_group("Launch settings")
 @export var use_testing_savefile:bool = false
 @export var testing_savefile:BaseGameState
