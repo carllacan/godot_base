@@ -31,6 +31,15 @@ extends EditorScript
 @export var disabled_border_color : Color = Color.WHITE.darkened(0.1)
 
 
+func run(paths:Array) -> void:
+	if paths.is_empty():
+		push_error("No paths selected.")
+		return
+	var selected:String = paths[0]
+	folder_path = selected if DirAccess.open(selected) != null else selected.get_base_dir()
+	_run()
+
+
 func _run():
 
 	if folder_path.is_empty():
