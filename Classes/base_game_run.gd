@@ -101,7 +101,9 @@ func on_load()-> void:
 	
 
 func reset()-> void:
-	return
+	current_resources = {}
+	revealed_resources = []
+	total_collected_resources = {}
 	
 	
 #endregion Saving
@@ -154,6 +156,7 @@ func increase_resources(amount:Dictionary[GameResource, float])-> void:
 		if c not in revealed_resources:
 			reveal_resource(c)
 			
+		if c not in current_resources.keys(): current_resources[c] = 0 # JIC
 		current_resources[c] += amount[c]
 
 		if c not in total_collected_resources.keys():
@@ -162,6 +165,7 @@ func increase_resources(amount:Dictionary[GameResource, float])-> void:
 
 		resource_changed.emit(c, current_resources[c])
 
+	save()
 	SignalManager.emit_this_frame(changed)
 	SignalManager.emit_this_frame(resources_changed)
 
@@ -188,6 +192,7 @@ func decrease_resources(amount:Dictionary[GameResource, float])-> void:
 		
 		resource_changed.emit(c, get_current_resource(c))
 
+	save()
 	SignalManager.emit_this_frame(changed)
 	SignalManager.emit_this_frame(resources_changed)
 	
