@@ -5,7 +5,8 @@ var player:BaseAutoplayer
 
 
 func _ready()-> void:
-	player = BuildConfig.Default.autoplayer
+	if BuildConfig.Default.autoplayer != null:
+		player = BuildConfig.Default.autoplayer
 	
 	
 # Called every frame. 'delta' is the elapsed time since the previous frame.
