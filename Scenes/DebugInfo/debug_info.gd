@@ -2,6 +2,8 @@ extends CanvasLayer
 
 
 func _ready()-> void:
+	if Engine.is_editor_hint(): return
+
 	add_to_group(BaseGroups.DEBUG_ELEMENTS)
 	visible = Debug.show_debug_elements
 	initialize_values()
