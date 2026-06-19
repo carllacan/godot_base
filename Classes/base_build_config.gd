@@ -11,6 +11,7 @@ enum ForceActions
 	ForceFalse,
 }
 
+@export var disable_saving:bool = false
 @export_group("Gameplay")
 @export var blank_check:bool = false
 @export var autoplayer:BaseAutoplayer = null
