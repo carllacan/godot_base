@@ -57,6 +57,7 @@ func _check_target_property()-> void:
 
 
 func _connect_state_signals()-> void:
+	if Engine.is_editor_hint(): return
 	if Current.Save == null:
 		push_error("GameResourceSyncer: Current.State is null")
 		return
