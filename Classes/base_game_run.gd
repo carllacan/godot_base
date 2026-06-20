@@ -201,7 +201,7 @@ func decrease_resources(amount:Dictionary[GameResource, float])-> void:
 # use prices typed with GameResource
 func can_afford(price:Dictionary[GameResource, float])-> bool:
 	if BuildConfig.Default.blank_check:
-		push_warning("Omitting can_afford checks because blank_check is active")
+		#push_warning("Omitting can_afford checks because blank_check is active")
 		return true
 
 	for c in price.keys():
