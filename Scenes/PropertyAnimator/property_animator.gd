@@ -83,6 +83,7 @@ func finish_cycle_and_stop()-> void:
 
 func update_property()-> void:	
 	if not is_node_ready(): return
+	if min_value == null or max_value == null or property == "": return
 	
 	var phase = cycle_time/period
 	var c:float
