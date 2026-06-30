@@ -96,7 +96,7 @@ func update_property()-> void:
 			c = phase
 			value = lerp(min_value, max_value, c)
 	
-	target.set(property, value)
+	target.set_indexed(property, value)
 	
 	if verbose:
 		print("%s->%s" % [cycle_time, value])
