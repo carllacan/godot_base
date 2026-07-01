@@ -198,6 +198,17 @@ static func rand_bool(probability:float)-> bool:
 	return randf() < probability
 	
 	
+## Returns a copy of the given array, sorted randomly
+static func rand_sort(array:Array)-> Array:
+	var d = array.duplicate()
+	var random_sort := []
+	for i in len(array):
+		var chosen_element = d.pick_random()
+		d.erase(d)
+		random_sort.append(chosen_element)
+	return random_sort
+		
+		
 static func get_magnitude_order(amount:float)-> int:
 	var magnitude = 1
 	while abs(amount) >= pow(10, magnitude):
