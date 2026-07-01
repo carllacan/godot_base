@@ -22,6 +22,10 @@ func queue_save(saving_method:Callable)-> void:
 
 
 func actually_save()-> void:
+	if is_saving:
+		push_error("SaveManager: actually_save() called while a save is already in progress. The save callback must not trigger another save.")
+		return
+
 	# Store the current saving callback so it can be overwritten safely
 	var to_be_called = next_saving_method
 
@@ -36,13 +40,17 @@ func start_saving(to_be_called: Callable)-> void:
 	# Wait for any previous save thread to finish before starting a new one
 	if _save_thread != null and _save_thread.is_alive():
 		_save_thread.wait_to_finish()
-
-	_save_thread = Thread.new()
-	_save_thread.start(func():
+		
+	var save_and_cleanup = func():
 		to_be_called.call()
 		_on_save_thread_finished.call_deferred()
-	)
 
+	if Flags.WEB:
+		save_and_cleanup.call()
+	else:
+		_save_thread = Thread.new()
+		_save_thread.start(save_and_cleanup)
+		
 
 func _on_save_thread_finished()-> void:
 	if _save_thread != null:
