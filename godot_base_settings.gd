@@ -24,12 +24,18 @@ static var settings:GodotBase : get = get_settings
 ## Points to the settings that controls music
 @export var music_enabled_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/music_enabled.tres")
-## Points to the settings that controls SFX volume
+@export var music_volume_setting:SettingInfo = preload(
+	"res://GodotBase/SettingsSystem/BaseSettings/music_volume.tres")
+
 @export var sfx_enabled_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/sfx_enabled.tres")
-## Points to the settings that controls music.
+@export var sfx_volume_setting:SettingInfo = preload(
+	"res://GodotBase/SettingsSystem/BaseSettings/sfx_volume.tres")
+
 @export var sound_enabled_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/sound_enabled.tres")
+@export var master_volume_setting:SettingInfo = preload(
+	"res://GodotBase/SettingsSystem/BaseSettings/sound_volume.tres")
 ## Points to the settings that controls music.
 @export var window_mode_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/window_mode.tres")
