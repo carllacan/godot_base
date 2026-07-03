@@ -63,12 +63,14 @@ func is_paused()-> bool:
 	
 func update_pause_state()-> void:
 	if must_pause() and not is_paused():
+		await get_tree().physics_frame
 		get_tree().paused = true
 		print("PAUSED")
 		paused.emit()
 		return
 		
 	if not must_pause() and is_paused():
+		await get_tree().physics_frame
 		get_tree().paused = false
 		print("UNPAUSED")
 		unpaused.emit()
