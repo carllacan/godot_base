@@ -6,12 +6,16 @@ extends Label
 
 func _ready()-> void:
 	if Engine.is_editor_hint():
+		text = "editor_build"
 		return
 		
 	if long:
 		text = Dist.get_version()
 	else:
 		text = Dist.get_version_num()
+		
+	if text == "":
+		text = "no_version"
 		
 
 func set_long(value:bool)-> void:
