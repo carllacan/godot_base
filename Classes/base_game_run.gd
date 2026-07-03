@@ -93,11 +93,11 @@ static func load_from_file(filepath:String)-> BaseGameState:
 	else:
 		print("Game loaded failed.")
 		
-	r.on_load()
 		
 	return r
 	
 	
+## To be called just before the game starts
 func on_load()-> void:
 	return
 	
@@ -117,7 +117,6 @@ static func load_last_run()-> BaseGameState:
 	if BuildConfig.Default.use_testing_savefile and Flags.DEBUG:
 		assert(BuildConfig.Default.testing_savefile, "No testing save!")
 		game_run = BuildConfig.Default.testing_savefile
-		game_run.on_load()
 		if game_run != null:
 			print("Loaded testing run")
 		else:
@@ -157,8 +156,6 @@ static func create_new_run()-> GameState:
 		game_run = GameState.new()
 		game_run.initialize()
 		
-	game_run.on_load()
-
 	assert(game_run != null)
 	return game_run
 

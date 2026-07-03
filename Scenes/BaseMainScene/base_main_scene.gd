@@ -99,6 +99,10 @@ func continue_game(game_run:GameState = null) -> void:
 func start_game(game_run: GameState) -> void:
 	_hide_main_menu()
 	
+	Current.Save = game_run
+	game_run.on_load()
+	Events.save_loaded.emit(Current.Save)
+	
 	if load_screen_scene != null:
 		load_screen = load_screen_scene.instantiate()
 		add_child(load_screen)
@@ -109,8 +113,6 @@ func start_game(game_run: GameState) -> void:
 		_current_game.queue_free()
 		_current_game = null
 
-	Current.Save = game_run
-	Events.save_loaded.emit(Current.Save)
 
 	_preload_game_scene()
 	await get_tree().create_timer(0.1).timeout
