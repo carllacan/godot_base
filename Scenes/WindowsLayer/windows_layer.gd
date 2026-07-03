@@ -5,9 +5,12 @@ class_name WindowsLayer
 #signal window_closed
 signal window_changed
 
+static var CurrentLayer:WindowsLayer
+
+
 @export var windows:Array[BaseWindow] = []
 
-static var CurrentLayer:WindowsLayer
+@onready var background = %WindowsBackground
 
 
 func _ready()-> void:	
@@ -61,12 +64,12 @@ func get_open_window()-> BaseWindow:
 	for w in windows:
 		if w.is_open() or w.is_opening():# w.visible:
 			return w
-	return null
-	
+	return null	
 	
 	
 func update_visibility()-> void:			
 	visible = any_window_open()
+	background.visible = any_window_open()
 
 
 func close_all()-> void:
