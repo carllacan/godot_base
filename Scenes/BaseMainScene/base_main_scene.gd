@@ -104,8 +104,12 @@ func start_game(game_run: GameState) -> void:
 	Events.save_loaded.emit(Current.Save)
 
 	if _current_game != null:
+		remove_child(_current_game)
 		_current_game.queue_free()
 		_current_game = null
+
+	Current.Save = game_run
+	Events.save_loaded.emit(Current.Save)
 
 	_preload_game_scene()
 	await get_tree().create_timer(0.1).timeout
