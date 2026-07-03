@@ -3,7 +3,7 @@ extends Resource
 class_name BaseGameState
 
 const DEFAULT_FILENAME = "save.tres"
-const INITIAL_RUN_FILEPATH = "res://Data/GameRuns/initial_game_run.tres"
+const INITIAL_RUN_FILEPATH = "res://Data/GameStates/initial_game_run.tres"
 const DEMO_INITIAL_RUN_FILEPATH = "res://Data/GameRuns/demo_initial_game_run.tres"
 
 
@@ -23,6 +23,8 @@ signal resource_revealed(resource:GameResource)
 @export_group("Tools")
 @export_tool_button("Set as testing") var sat = set_as_testing_savefile
 @export_tool_button("Overwrite user save") var ous = overwrite_user_save
+@export_tool_button("Initialize this save") var its = initialize_this_save
+
 
 
 func p(text:String)-> void:
@@ -80,7 +82,7 @@ static func get_run_filepath(filename:String)-> String:
 	
 	
 # Loads a GameRun saved as a resource
-static func load(filepath:String)-> BaseGameState:
+static func load_from_file(filepath:String)-> BaseGameState:
 	# Sync save, if configured to do so. This might download a new save.
 	Integration.sync_file(filepath)
 	
@@ -100,12 +102,77 @@ func on_load()-> void:
 	return
 	
 
-func reset()-> void:
+func initialize()-> void:
 	current_resources = {}
 	revealed_resources = []
 	total_collected_resources = {}
-	
-	
+
+
+#region Run Loading/Creation (for BaseMainScene)
+
+## Loads the last saved run, checking testing save first (if in DEBUG mode), then user save.
+## Returns null if no saved game exists.
+static func load_last_run()-> BaseGameState:
+	var game_run: BaseGameState
+	if BuildConfig.Default.use_testing_savefile and Flags.DEBUG:
+		assert(BuildConfig.Default.testing_savefile, "No testing save!")
+		game_run = BuildConfig.Default.testing_savefile
+		game_run.on_load()
+		if game_run != null:
+			print("Loaded testing run")
+		else:
+			push_error("Failed to load testing run")
+	else:
+		var last_saved_run_filepath: String = get_run_filepath(DEFAULT_FILENAME)
+		if FileAccess.file_exists(last_saved_run_filepath):
+			game_run = load_from_file(last_saved_run_filepath)
+			if game_run != null:
+				print("Last game run successfully loaded")
+			else:
+				push_error("FAILED to load saved file, even though it exists")
+		else:
+			print("No last-save file found at '%s'" % last_saved_run_filepath)
+
+	return game_run
+
+
+## Creates a new run by loading from initial save (respecting DEMO flag) or creating fresh.
+## Implements fallback chain: initial save → create new.
+static func create_new_run()-> GameState:
+	var game_run: GameState
+
+	var initial_game_run_path:String = ""
+	if Flags.DEMO:
+		print("Loading DEMO initial save file")
+		initial_game_run_path = DEMO_INITIAL_RUN_FILEPATH
+	else:
+		print("Loading initial save file")
+		initial_game_run_path = INITIAL_RUN_FILEPATH
+		
+
+	if FileAccess.file_exists(initial_game_run_path):
+		game_run = load(initial_game_run_path)
+	else:
+		push_warning("Initial save not found, creating empty run")
+		game_run = GameState.new()
+		game_run.initialize()
+		
+	game_run.on_load()
+
+	assert(game_run != null)
+	return game_run
+
+
+## Checks if a saved game exists (returns true if load_last_run would succeed).
+static func has_saved_game()-> bool:
+	if BuildConfig.Default.use_testing_savefile and Flags.DEBUG:
+		return true
+	var last_saved_run_filepath: String = get_run_filepath(DEFAULT_FILENAME)
+	if FileAccess.file_exists(last_saved_run_filepath):
+		return true
+		
+	return false
+
 #endregion Saving
 
 #region Resource management
@@ -255,5 +322,19 @@ func overwrite_user_save() -> void:
 
 	print("Overwrote user save: %s -> %s" % [resource_path, dest_virtual])
 
+
+func initialize_this_save()-> void:
+	if not Engine.is_editor_hint():
+		return
+
+	var _dialog: ConfirmationDialog
+	_dialog = ConfirmationDialog.new()
+	_dialog.title = "Confirm"
+	_dialog.dialog_text = "This will reset this save to the default state. Continue?"
+	_dialog.confirmed.connect(initialize)
+	EditorInterface.get_base_control().add_child(_dialog)
+
+	_dialog.popup_centered()
+	
 
 #endregion
