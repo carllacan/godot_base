@@ -2,15 +2,10 @@ extends Control
 class_name BaseMainScene
 
 ## Base scene for managing game initialization, scene loading, and flow transitions.
-## Subclasses should override get_game_scene_path() and optionally _on_game_ready().
-##
-## Signals from child scenes are expected:
-##  - new_game_requested: emitted when user clicks "new game"
-##  - continue_requested: emitted when user clicks "continue"
-##  - reset_requested: emitted from game when requesting new game
-##  - main_menu_requested: emitted from game when requesting return to menu
 
-#@export var game_scene:PackedScene
+
+@export var skip_main_menu_in_web:bool = false
+@export_group("Scenes")
 @export_file(".tscn") var game_scene_path:String = "res://Game/game_main.tscn"
 
 @export var splash_screen_scene:PackedScene
@@ -52,12 +47,21 @@ func _ready() -> void:
 
 	_show_main_menu()
 
-	if BuildConfig.Default.skip_main_menu:
+	if must_skip_main_menu():
 		if BuildConfig.Default.force_new_game or not GameState.has_saved_game():
 			begin_new_game()
 		else:
 			continue_game()
 
+
+func must_skip_main_menu()-> bool:
+	if BuildConfig.Default.skip_main_menu:
+		return true
+	
+	if skip_main_menu_in_web and Flags.WEB:
+		return true
+		
+	return false
 
 ## Override this to customize main menu appearance
 func _show_main_menu() -> void:
