@@ -32,9 +32,9 @@ var _current_game: Node
 func _ready() -> void:
 	assert(main_menu_scene != null)
 	Events.new_game_requested.connect(_on_reset_requested)
-	Events.new_game_requested.connect(_on_new_game_requested)
 	Events.load_save_requested.connect(continue_game)
 	Events.main_menu_requested.connect(_on_main_menu_requested)
+	Events.quit_game_requested.connect(_on_quit_requested)
 	
 	main_menu = main_menu_scene.instantiate()
 	add_child(main_menu)
@@ -71,8 +71,8 @@ func _hide_main_menu() -> void:
 
 #region Menu Signal Connections
 
-func _on_new_game_requested() -> void:
-	pass
+func _on_quit_requested()-> void:
+	get_tree().quit()
 
 #endregion
 
@@ -99,9 +99,6 @@ func start_game(game_run: GameState) -> void:
 		load_screen = load_screen_scene.instantiate()
 		add_child(load_screen)
 		load_screen.show()
-
-	Current.Save = game_run
-	Events.save_loaded.emit(Current.Save)
 
 	if _current_game != null:
 		remove_child(_current_game)
