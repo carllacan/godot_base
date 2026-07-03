@@ -75,7 +75,7 @@ func update_pause_state()-> void:
 		return
 
 
-#func _input(event: InputEvent) -> void:
-	#if event.is_action_pressed("ui_cancel"):
-		#get_viewport().set_input_as_handled()
-		#toggle_pause(self)
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_pause"):
+		get_viewport().set_input_as_handled()
+		toggle_pause(self)
