@@ -1,6 +1,5 @@
 extends Control
 class_name InteractiveNode
-const SCENE = preload("uid://dllaklutysa0")
 
 
 signal pressed
