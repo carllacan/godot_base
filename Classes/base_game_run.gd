@@ -329,7 +329,9 @@ func initialize_this_save()-> void:
 	_dialog.title = "Confirm"
 	_dialog.dialog_text = "This will reset this save to the default state. Continue?"
 	_dialog.confirmed.connect(initialize)
-	EditorInterface.get_base_control().add_child(_dialog)
+	# Editor classes don't exist in export templates and naming them fails at
+	# parse time (godotengine/godot#91713), so resolve the singleton by name.
+	Engine.get_singleton(&"EditorInterface").get_base_control().add_child(_dialog)
 
 	_dialog.popup_centered()
 	
