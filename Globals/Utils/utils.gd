@@ -204,7 +204,7 @@ static func rand_sort(array:Array)-> Array:
 	var random_sort := []
 	for i in len(array):
 		var chosen_element = d.pick_random()
-		d.erase(d)
+		d.erase(chosen_element)
 		random_sort.append(chosen_element)
 	return random_sort
 		
