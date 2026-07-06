@@ -37,6 +37,11 @@ func actually_save()-> void:
 
 
 func start_saving(to_be_called: Callable)-> void:
+	# TODO: the save callback serializes the live game state (ResourceSaver.save
+	# on the GameState resource) while the main thread keeps mutating it, so a
+	# threaded save can capture inconsistent state or crash if an Array/Dictionary
+	# is resized mid-serialization. Snapshot the state on the main thread (e.g.
+	# duplicate(true)) before handing it to the thread, or save synchronously.
 	# Wait for any previous save thread to finish before starting a new one
 	if _save_thread != null and _save_thread.is_alive():
 		_save_thread.wait_to_finish()
