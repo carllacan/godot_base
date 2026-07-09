@@ -21,11 +21,15 @@ enum Mode {
 @export var target:Node
 @export var property:String
 @export var mode:Mode
-@export var min_value:Variant
-@export var max_value:Variant
 @export var period:float = 1.0
 @export var pause_between_cycles:float = 0.0
 @export var autostart:bool = true
+@export_group("Values")
+@export var min_value:Variant : set = set_min_value
+@export var max_value:Variant : set = set_max_value
+@export var value_offset:Variant : set = set_value_offset
+@export var transform_to_degrees:bool = false : set = set_transform_to_degrees
+@export var invert_ends:bool = false : set = set_invert_ends
 @export_group("Debug")
 @export var verbose:bool = false
 @export var run_in_editor:bool = false
@@ -35,15 +39,85 @@ var state:State = State.STOPPED
 var cycle_time:float = 0
 var intercycle_time:float = 0
 
+var actual_max:float
+var actual_min:float
+
+
 
 func _ready()-> void:
 	if target == null:
 		target = get_parent()
+	
+	calculate_actual_values()
+	
 	#assert(property in target.get_property_list())
 	finished_cycle.connect(_on_cycle_finished)
 	if autostart:
 		start()
 
+
+func set_min_value(new_value:Variant)-> void:
+	var old_value = min_value
+	min_value = new_value
+	var has_changed:bool = new_value != old_value
+
+	if has_changed:
+		calculate_actual_values()
+
+
+func set_max_value(new_value:Variant)-> void:
+	var old_value = max_value
+	max_value = new_value
+	var has_changed:bool = new_value != old_value
+
+	if has_changed:
+		calculate_actual_values()
+
+
+func set_value_offset(new_value:Variant)-> void:
+	var old_value = value_offset
+	value_offset = new_value
+	var has_changed:bool = new_value != old_value
+
+	if has_changed:
+		calculate_actual_values()
+
+
+func set_transform_to_degrees(new_value:bool)-> void:
+	var old_value = transform_to_degrees
+	transform_to_degrees = new_value
+	var has_changed:bool = new_value != old_value
+
+	if has_changed:
+		calculate_actual_values()
+
+
+func set_invert_ends(new_value:bool)-> void:
+	var old_value = invert_ends
+	invert_ends = new_value
+	var has_changed:bool = new_value != old_value
+
+	if has_changed:
+		calculate_actual_values()
+
+
+func calculate_actual_values()-> void:
+	if min_value == null or max_value == null: return
+
+	actual_max = max_value if not transform_to_degrees else deg_to_rad(max_value)
+	actual_min = min_value if not transform_to_degrees else deg_to_rad(min_value)
+	
+	if value_offset != null:
+		var offset_v  = value_offset if not transform_to_degrees else deg_to_rad(value_offset)
+		
+		actual_max += offset_v
+		actual_min += offset_v
+		
+	if invert_ends:
+		var _a = actual_max
+		actual_max = actual_min
+		actual_min = _a
+	
 
 func start()-> void:
 	if not is_node_ready(): return
@@ -88,13 +162,15 @@ func update_property()-> void:
 	var phase = cycle_time/period
 	var c:float
 	var value:float
+	
+	
 	match mode:
 		Mode.PERIODIC:
 			c = sin(2*PI*phase)
-			value = lerp(min_value, max_value, inverse_lerp(-1, 1, c))
+			value = lerp(actual_min, actual_max, inverse_lerp(-1, 1, c))
 		Mode.RESTART:
 			c = phase
-			value = lerp(min_value, max_value, c)
+			value = lerp(actual_min, actual_max, c)
 	
 	target.set_indexed(property, value)
 	
