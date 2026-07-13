@@ -12,10 +12,9 @@ signal resource_changed(resource:GameResource, new_value:float)
 signal resource_revealed(resource:GameResource)
 
 @export_group("Saving")
-@export var saving_enabled:bool = true
 ## Default filename if none is specified when calling save(). If empty it will use
 ## the global default saving path
-@export var saving_default_filename:String = ""
+@export var saving_default_filename:String = "" # TODO use in get_default_run(), load_last_run(), and has_saved_game()
 @export_group("Resources")
 @export var current_resources:Dictionary[GameResource, float] = {}
 @export var total_collected_resources:Dictionary[GameResource, float] = {}
@@ -30,6 +29,8 @@ signal resource_revealed(resource:GameResource)
 @export_tool_button("Overwrite user save") var ous = overwrite_user_save
 @export_tool_button("Initialize this save") var its = initialize_this_save
 
+
+var saving_enabled:bool = true
 
 
 func p(text:String)-> void:
@@ -56,7 +57,8 @@ func actually_save(filename:String = "")-> Error:
 		else:
 			fname = DEFAULT_FILENAME
 	else:
-		filename = DEFAULT_FILENAME
+		fname = filename
+
 	var filepath:String = get_run_filepath(fname)
 		
 	if BuildConfig.Default.disable_saving:
