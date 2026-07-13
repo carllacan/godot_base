@@ -82,6 +82,10 @@ func save_if_possible()-> void:
 	current_save_deadtime = SAVE_DEADTIME
 
 
+func flush_saves()-> void:
+	save_if_possible()
+	
+
 func _physics_process(delta: float) -> void:
 	current_save_deadtime -= delta
 	if current_save_deadtime < 0: current_save_deadtime = 0 # clamp
