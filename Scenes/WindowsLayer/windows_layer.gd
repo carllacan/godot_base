@@ -51,7 +51,12 @@ func _on_window_visibility_changed(_w:BaseWindow)-> void:
 	
 	# TODO: emit open/close windows
 	# TODO: close all other windows if this has been opened
-	
+func _exit_tree()-> void:
+	Pause.remove_pause_source(self)
+	Pause.can_pause = true
+	if CurrentLayer == self: 
+		CurrentLayer = null 
+
 	
 func any_window_open()-> bool:
 	if get_open_window() == null:

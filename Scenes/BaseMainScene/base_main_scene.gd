@@ -75,6 +75,7 @@ func _hide_main_menu() -> void:
 
 #region Menu Signal Connections
 
+	
 func _on_quit_requested()-> void:
 	get_tree().quit()
 
@@ -98,7 +99,7 @@ func continue_game(game_run:GameState = null) -> void:
 
 func start_game(game_run: GameState) -> void:
 	_hide_main_menu()
-	
+		
 	Current.Save = game_run
 	game_run.on_load()
 	Events.save_loaded.emit(Current.Save)
