@@ -11,6 +11,11 @@ signal resources_changed
 signal resource_changed(resource:GameResource, new_value:float)
 signal resource_revealed(resource:GameResource)
 
+@export_group("Saving")
+@export var saving_enabled:bool = true
+## Default filename if none is specified when calling save(). If empty it will use
+## the global default saving path
+@export var saving_default_filename:String = ""
 @export_group("Resources")
 @export var current_resources:Dictionary[GameResource, float] = {}
 @export var total_collected_resources:Dictionary[GameResource, float] = {}
@@ -34,15 +39,25 @@ func p(text:String)-> void:
 #region Saving
 
 # Saves this run to a resource file. Uses a default filename if none specified
-func save(filepath:String = "")-> void:
+func save(filename:String = "")-> void:
 	if Engine.is_editor_hint(): return
-	SaveManager.queue_save(actually_save.bind(filepath))
+	if not saving_enabled: return
+	
+	SaveManager.queue_save(actually_save.bind(filename))
 	
 	
-func actually_save(filepath:String = "")-> Error:
+func actually_save(filename:String = "")-> Error:
 	var result:Error
-	if filepath == "":
-		filepath = get_run_filepath(DEFAULT_FILENAME)
+	
+	var fname:String
+	if filename == "":
+		if saving_default_filename != "":
+			fname = saving_default_filename
+		else:
+			fname = DEFAULT_FILENAME
+	else:
+		filename = DEFAULT_FILENAME
+	var filepath:String = get_run_filepath(fname)
 		
 	if BuildConfig.Default.disable_saving:
 		print("Saving aborted because 'disable_saves' is enabled")
@@ -60,7 +75,7 @@ func actually_save(filepath:String = "")-> Error:
 	if result == OK:
 		p("Game saved to '%s'" % filepath)
 	else:
-		p("Game saving failed. Error code: %s" % result)
+		p("Error %s saving game to %s" % [result, filepath])
 		
 	# Upload save, if configured to do so.
 	Integration.sync_file(filepath)
@@ -86,7 +101,8 @@ static func load_from_file(filepath:String)-> BaseGameState:
 	# Sync save, if configured to do so. This might download a new save.
 	Integration.sync_file(filepath)
 	
-	var r:BaseGameState = ResourceLoader.load(filepath)
+	var r:BaseGameState = ResourceLoader.load(filepath, 
+		"", ResourceLoader.CACHE_MODE_IGNORE_DEEP)
 	
 	if r != null:
 		print("Game loaded from '%s'" % filepath)
