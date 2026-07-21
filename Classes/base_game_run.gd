@@ -16,8 +16,11 @@ signal resource_revealed(resource:GameResource)
 ## the global default saving path
 @export var saving_default_filename:String = "" # TODO use in get_default_run(), load_last_run(), and has_saved_game()
 @export_group("Resources")
+## Current amount of resources available to the player
 @export var current_resources:Dictionary[GameResource, float] = {}
+## Resources of each kind collected through the entire run.
 @export var total_collected_resources:Dictionary[GameResource, float] = {}
+## Which resources have been revealed to the player so far
 @export var revealed_resources:Array[GameResource] = []
 @export_group("Debug")
 @export var verbose:bool = false
