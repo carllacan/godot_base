@@ -106,8 +106,14 @@ static func load_from_file(filepath:String)-> BaseGameState:
 	# Sync save, if configured to do so. This might download a new save.
 	Integration.sync_file(filepath)
 	
-	var r:BaseGameState = ResourceLoader.load(filepath, 
-		"", ResourceLoader.CACHE_MODE_IGNORE_DEEP)
+	# IGNORE (not IGNORE_DEEP): the save file itself must always be re-read
+	# fresh, but its ext_resource dependencies (GameResource singletons,
+	# UpgradeInfo, CardModel, etc.) must be reused from cache. Those are used
+	# as Dictionary keys elsewhere (e.g. current_resources[GameResource.COINS])
+	# and Dictionary equality for Resources is identity-based, so forcing them
+	# to reload as new instances orphans the values stored under the old key.
+	var r:BaseGameState = ResourceLoader.load(filepath,
+		"", ResourceLoader.CACHE_MODE_IGNORE)
 	
 	if r != null:
 		print("Game loaded from '%s'" % filepath)
