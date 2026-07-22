@@ -120,7 +120,13 @@ static func load_from_file(filepath:String)-> BaseGameState:
 	
 ## To be called just before the game starts
 func on_load()-> void:
-	return
+	# Ensure the total_collected resources is at least coherent.
+	# Manually created saves might leave it empty, while having positive 
+	# values in current_resources
+	for r in current_resources.keys():
+		var t = total_collected_resources.get(r, 0)
+		if t < current_resources[r]:
+			total_collected_resources[r] = current_resources[r]
 	
 
 func initialize()-> void:
