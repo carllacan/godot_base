@@ -1,6 +1,9 @@
 extends Node
 class_name Utils
 
+const RPM_TO_RADS:float = TAU/60
+const RADS_TO_RPM:float = 1.0/RPM_TO_RADS
+
 const WHITESPACE = " ¶\n"
 
 #region Suffixes
