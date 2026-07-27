@@ -35,6 +35,7 @@ func initialize_steam()-> void:
 	if initialize_response['status'] > Steam.STEAM_API_INIT_RESULT_OK:
 		print("Failed to initialize Steam, shutting down: %s" % initialize_response)
 		get_tree().quit()
+		return
 	
 	Steam.overlay_toggled.connect(_on_overlay_toggled)
 	Steam.user_stats_received.connect(
