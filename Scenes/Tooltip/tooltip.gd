@@ -76,7 +76,7 @@ func _on_focus_exited_target_control(control:Control)-> void:
 	
 func update_visiblity()-> void:
 	if focused_controls.is_empty() and hovered_controls.is_empty():
-		hide()
+		disappear()
 	else:
 		appear()
 		
