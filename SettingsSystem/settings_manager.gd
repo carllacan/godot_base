@@ -95,24 +95,6 @@ func save_settings()-> void:
 # TODO use settinginfo type here?
 func _on_setting_changed(setting_name:String, new_value:Variant)-> void:	
 	match setting_name:
-		GodotBase.settings.music_enabled_setting.name: # TODO: move to an AudioManager?
-			var i = AudioServer.get_bus_index("Music")
-			AudioServer.set_bus_mute(i, not new_value)
-		GodotBase.settings.music_volume_setting.name: # TODO: move to an AudioManager?
-			var i = AudioServer.get_bus_index("Music")
-			AudioServer.set_bus_volume_linear(i, new_value / 10.0)
-		GodotBase.settings.sfx_enabled_setting.name: # TODO: move to an AudioManager?
-			var i = AudioServer.get_bus_index("Sfx")
-			AudioServer.set_bus_mute(i, not new_value)
-		GodotBase.settings.sfx_volume_setting.name: # TODO: move to an AudioManager?
-			var i = AudioServer.get_bus_index("Sfx")
-			AudioServer.set_bus_volume_linear(i, new_value / 10.0)
-		GodotBase.settings.sound_enabled_setting.name: # TODO: move to an AudioManager?
-			var i = AudioServer.get_bus_index("Master")
-			AudioServer.set_bus_mute(i, not new_value)
-		GodotBase.settings.master_volume_setting.name: # TODO: move to an AudioManager?
-			var i = AudioServer.get_bus_index("Master")
-			AudioServer.set_bus_volume_linear(i, new_value / 10.0)
 		GodotBase.settings.window_mode_setting.name:
 			match new_value:
 				"fullscreen":

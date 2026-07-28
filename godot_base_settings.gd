@@ -32,7 +32,7 @@ static var settings:GodotBase : get = get_settings
 @export var sfx_volume_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/sfx_volume.tres")
 
-@export var sound_enabled_setting:SettingInfo = preload(
+@export var master_enabled_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/sound_enabled.tres")
 @export var master_volume_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/sound_volume.tres")
