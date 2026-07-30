@@ -11,6 +11,7 @@ signal resources_changed
 signal resource_changed(resource:GameResource, new_value:float)
 signal resource_revealed(resource:GameResource)
 
+@export var id:String = ""
 @export_group("Saving")
 ## Default filename if none is specified when calling save(). If empty it will use
 ## the global default saving path
@@ -188,7 +189,7 @@ static func create_new_run()-> GameState:
 		push_warning("Initial save not found, creating empty run")
 		game_run = GameState.new()
 		game_run.initialize()
-		
+
 	assert(game_run != null)
 	return game_run
 
