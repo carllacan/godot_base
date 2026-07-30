@@ -22,8 +22,11 @@ enum ForceActions
 @export var skip_splash_screen:bool = false
 @export var force_new_game:bool = false
 
-@export_group("Integration testing")
+@export_group("Integration")
 @export var clear_achievements_at_start:bool = false
+
+@export_group("Log")
+@export var log_sinks:Array[BaseLogSinkConfig] = []
 
 @export_group("Flag management")
 @export var force_debug:ForceActions = ForceActions.None
