@@ -191,6 +191,9 @@ static func create_new_run()-> GameState:
 		game_run.initialize()
 
 	assert(game_run != null)
+
+	Log.info("Save started", "Save", {"version": Dist.get_version(), "name": game_run.id})
+
 	return game_run
 
 
