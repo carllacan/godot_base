@@ -23,8 +23,17 @@ const AUTOPLAYER_ARG:String = "--autoplayer"
 ##   godot -- --autoplayer=none
 const NO_AUTOPLAYER:String = "none"
 
+## How long to wait for a pending save to land before quitting anyway. Saving is
+## debounced and threaded, so it needs a moment; but a save that never comes must
+## not keep a finished run open forever.
+const SAVE_FLUSH_TIMEOUT_MS:int = 5000
+
 ## Turn off to suspend the player without unassigning it from the build config.
 var enabled:bool = true
+
+## Whether the game closes once the player meets an ending condition. Turn off to
+## have it stop playing and leave the run up to be looked at by hand.
+var quit_when_finished:bool = true
 
 var player:BaseAutoplayer
 
@@ -59,6 +68,8 @@ func _ready()-> void:
 
 	cursor = AutoplayerCursor.new()
 	add_child(cursor)
+
+	player.finished.connect(_on_player_finished)
 
 	Events.game_started.connect(_on_game_started)
 	Events.save_loaded.connect(_on_save_loaded)
@@ -130,9 +141,40 @@ func _on_main_menu_requested()-> void:
 	is_playing = false
 
 
+## Closes the game, once whatever the player has just done is on disk. A finished
+## player is not ticked again either way, so a run left open stands still.
+func _on_player_finished(_reason:String)-> void:
+	if not quit_when_finished: return
+
+	await _wait_for_saves()
+	Events.quit_game_requested.emit()
+
+
+## Waits out the debounced save, so quitting does not throw away the last few
+## seconds of a run that was left playing unattended. Gives up after
+## SAVE_FLUSH_TIMEOUT_MS: saving is driven by SaveManager._physics_process, which
+## a paused tree stops, and a player can finish while a window holds the pause.
+func _wait_for_saves()-> void:
+	var deadline:int = Time.get_ticks_msec() + SAVE_FLUSH_TIMEOUT_MS
+
+	SaveManager.flush_saves()
+
+	while SaveManager.needs_to_save() or SaveManager.is_saving:
+		if Time.get_ticks_msec() > deadline:
+			push_warning("Quitting with a save still pending")
+			return
+
+		await get_tree().process_frame
+
+
 func _process(delta:float)-> void:
 	if player == null: return
 	if not enabled: return
 	if not is_playing: return
+	if player.is_finished: return
 
 	player.act(delta)
+
+	var reason:String = player.get_ending_reason()
+	if not reason.is_empty():
+		player.finish(reason)
