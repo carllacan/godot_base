@@ -13,7 +13,15 @@ extends Node
 ##
 ##   godot -- --autoplayer=res://Data/Dev/Autoplayers/cheapfirst.tres
 ##   godot -- --autoplayer /home/me/players/impatient.tres
+##
+## Pass NO_AUTOPLAYER instead of a path to play by hand for once without having
+## to unassign the one in the build config.
 const AUTOPLAYER_ARG:String = "--autoplayer"
+
+## Value of AUTOPLAYER_ARG that turns autoplaying off outright:
+##
+##   godot -- --autoplayer=none
+const NO_AUTOPLAYER:String = "none"
 
 ## Turn off to suspend the player without unassigning it from the build config.
 var enabled:bool = true
@@ -31,9 +39,17 @@ var _is_initialized:bool = false
 
 
 func _ready()-> void:
-	player = _load_player_from_cmdline()
-	if player == null:
+	var path:String = _get_cmdline_autoplayer_path()
+
+	if path.to_lower() == NO_AUTOPLAYER:
+		print("Autoplaying turned off from the command line")
+		return
+
+	if path.is_empty():
 		player = BuildConfig.Default.autoplayer
+	else:
+		player = _load_player_at(path)
+
 	if player == null: return
 
 	# A player may drive windows, and an open window pauses the tree, so this has
@@ -49,14 +65,11 @@ func _ready()-> void:
 	Events.main_menu_requested.connect(_on_main_menu_requested)
 
 
-## Loads the autoplayer named on the command line, or null when the switch is
-## absent. A switch that is present but unusable is reported rather than ignored:
-## a run launched to autoplay itself and then quietly sitting idle is worse than
-## a loud failure.
-func _load_player_from_cmdline()-> BaseAutoplayer:
-	var path:String = _get_cmdline_autoplayer_path()
-	if path.is_empty(): return null
-
+## Loads the autoplayer sitting at a res:// or absolute path, or null when there
+## is none to load. A path that cannot be used is reported rather than ignored: a
+## run launched to autoplay itself and then quietly sitting idle is worse than a
+## loud failure.
+func _load_player_at(path:String)-> BaseAutoplayer:
 	# res:// paths go through ResourceLoader; a path from outside the project only
 	# shows up to FileAccess.
 	if not ResourceLoader.exists(path) and not FileAccess.file_exists(path):
@@ -80,8 +93,8 @@ func _load_player_from_cmdline()-> BaseAutoplayer:
 	return resource
 
 
-## The path given to AUTOPLAYER_ARG, written either as `--autoplayer=<path>` or
-## as `--autoplayer <path>`. Empty when the switch is absent.
+## The value given to AUTOPLAYER_ARG, written either as `--autoplayer=<value>` or
+## as `--autoplayer <value>`. Empty when the switch is absent.
 func _get_cmdline_autoplayer_path()-> String:
 	var args:PackedStringArray = OS.get_cmdline_user_args()
 	for i in args.size():
