@@ -31,10 +31,11 @@ func _ready() -> void:
 	Events.main_menu_requested.connect(_on_main_menu_requested)
 	Events.quit_game_requested.connect(_on_quit_requested)
 	
+	_apply_cmdline_overrides()
+
 	main_menu = main_menu_scene.instantiate()
 	add_child(main_menu)
-	
-	_apply_cmdline_overrides()
+
 	_preload_game_scene()
 
 	if not BuildConfig.Default.skip_splash_screen:
@@ -102,6 +103,8 @@ func start_game(game_run: GameState) -> void:
 		
 	Current.Save = game_run
 	game_run.on_load()
+	
+	Log.info("Save started", "Save", {"version": Dist.get_version(), "name": game_run.id})
 	Events.save_loaded.emit(Current.Save)
 	
 	if load_screen_scene != null:
@@ -186,9 +189,8 @@ func _wait_for_scene_load() -> void:
 #region Command Line Overrides
 
 func _apply_cmdline_overrides() -> void:
-	var args := OS.get_cmdline_user_args()
 	# Usage example
-	if "--straight-to-playing" in args:
+	if CommandLineManager.has_flag("--straight-to-playing"):
 		BuildConfig.Default.skip_splash_screen = true
 		BuildConfig.Default.skip_main_menu = true
 		BuildConfig.Default.force_new_game = true

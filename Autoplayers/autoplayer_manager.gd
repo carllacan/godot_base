@@ -48,7 +48,7 @@ var _is_initialized:bool = false
 
 
 func _ready()-> void:
-	var path:String = _get_cmdline_autoplayer_path()
+	var path:String = CommandLineManager.get_value(AUTOPLAYER_ARG)
 
 	if path.to_lower() == NO_AUTOPLAYER:
 		print("Autoplaying turned off from the command line")
@@ -102,22 +102,6 @@ func _load_player_at(path:String)-> BaseAutoplayer:
 
 	print("Using the autoplayer at %s" % path)
 	return resource
-
-
-## The value given to AUTOPLAYER_ARG, written either as `--autoplayer=<value>` or
-## as `--autoplayer <value>`. Empty when the switch is absent.
-func _get_cmdline_autoplayer_path()-> String:
-	var args:PackedStringArray = OS.get_cmdline_user_args()
-	for i in args.size():
-		var arg:String = args[i]
-
-		if arg.begins_with(AUTOPLAYER_ARG + "="):
-			return arg.trim_prefix(AUTOPLAYER_ARG + "=").strip_edges()
-
-		if arg == AUTOPLAYER_ARG and i + 1 < args.size():
-			return args[i + 1].strip_edges()
-
-	return ""
 
 
 func _on_game_started(_game:Node)-> void:
