@@ -48,14 +48,33 @@ for the existing convention this follows):
 | Flag | Effect |
 |------|--------|
 | `--no-default-log-sinks` | Skip the sinks configured in `BuildConfig.log_sinks` |
-| `--log-console` | Add a console sink (defaults) |
-| `--log-file` | Add a file sink (defaults: JSONL-capable `FileLogSinkConfig` defaults — see its fields) |
+| `--log-sinks=<json>` | Add the sinks described by a JSON array |
 
-E.g. `godot --headless -- --no-default-log-sinks --log-file` runs with only
-a file sink, ignoring whatever's baked into the build config. These are
-boolean presence flags, no `=value` overrides yet — for anything beyond the
-defaults (custom `log_dir`, `format`, `min_level`), configure it via
-`BuildConfig.log_sinks` instead.
+`--log-sinks` takes an array of objects. `"type"` picks the config class —
+`file` for `FileLogSinkConfig`, `console` for `ConsoleLogSinkConfig` — and
+every other key is one of that config's exported properties, so the flag
+gains whatever the configs gain, with nothing to keep in sync. Properties
+holding an enum also accept its name, case-insensitively: `format` takes
+`"text"` or `"json"`, `min_level` takes `"debug"`, `"info"`, `"warning"` or
+`"error"`.
+
+```sh
+godot --headless -- --no-default-log-sinks --log-sinks='[
+  {"type":"file","log_dir":"/tmp/run3","format":"json","rotation_enabled":false},
+  {"type":"console","min_level":"warning"}]'
+```
+
+That runs with only the two sinks named, ignoring whatever's baked into the
+build config; without `--no-default-log-sinks` they're added on top of it.
+Both spellings work, `--log-sinks=<json>` and `--log-sinks <json>`.
+
+One switch rather than one per property, because the main caller is a harness
+building the string in code. Typed by hand it needs the quoting above.
+
+Anything wrong with the string — bad JSON, an unknown `type`, a key the config
+doesn't have, a value of the wrong type — is a `push_error` and **no sinks at
+all** from this flag, rather than a quiet fall back to the defaults. A run that
+was told to log somewhere and silently didn't is worse than one that refuses.
 
 ## Logging
 
@@ -72,13 +91,34 @@ var _log := Log.get_tagged("Prestige")
 _log.info("Prestige applied", {"new_level": level})
 ```
 
-Levels: `Debug`, `Info`, `Warning`, `Error` (`LogLevel.Value`). `Error`
-entries bypass the async queue and are written synchronously, so they
-survive a crash immediately after.
+Levels: `Debug`, `Info`, `Warning`, `Error` (`LogLevel.Value`). Logging an
+`Error` flushes the file sink before returning, so it survives a crash
+immediately after — along with everything logged before it, in order.
+`Log.flush()` does the same on demand, for right before something that might
+not come back.
 
-**Metadata must be JSON-primitive** (bool/int/float/String, or Array/Dictionary
-of those). Anything else (e.g. a Node reference) logs a `push_warning` and
-may not serialize correctly.
+**Metadata must be JSON-primitive** (bool/int/float/String/null, or
+Array/Dictionary of those). Anything else (e.g. a Node reference) logs a
+`push_warning` and may not serialize correctly. What you pass is deep-copied
+into the entry, so handing over live game state and carrying on mutating it is
+safe — the log keeps the values as they were at the call.
+
+### Logging nothing costs nothing
+
+With no sink attached every call returns immediately, but the caller has still
+built the `Dictionary` it passed. Where that costs anything — a lookup, a loop
+over game state — guard the whole thing instead:
+
+```gdscript
+func _ready() -> void:
+    if not Log.is_enabled(): return
+    some_signal.connect(_on_something)   # never even connected
+```
+
+`Log.is_enabled()` is false when nothing is listening. Sinks are all attached
+in `Log._ready()`, so from any other `_ready()` onward the answer is final.
+`Log.get_log_paths()` gives the folders any file sinks are writing under; the
+autoload prints them at startup.
 
 ## Tagging a run for comparison
 
@@ -93,10 +133,11 @@ Log.info("Run started", "Run", {
 })
 ```
 
-Each launch gets its own timestamped session folder under `log_dir`
-(when `rotation_enabled = true`), which is what actually separates the two
-runs on disk — the `Run started` entry just makes it obvious which folder
-is which without checking file timestamps.
+Each launch gets its own session folder under `log_dir`, stamped to the second
+(when `rotation_enabled = true`), which is what actually separates the two runs
+on disk — the `Run started` entry just makes it obvious which folder is which
+without checking file timestamps. Within a folder, files roll over once they
+pass `max_file_size_kb` real kilobytes.
 
 ## Reading the logs back
 
