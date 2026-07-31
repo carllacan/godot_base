@@ -16,6 +16,9 @@ signal resource_revealed(resource:GameResource)
 ## Default filename if none is specified when calling save(). If empty it will use
 ## the global default saving path
 @export var saving_default_filename:String = "" # TODO use in get_default_run(), load_last_run(), and has_saved_game()
+## Default directory to save to. If empty saves go to user://, as they always
+## have. Takes a path relative to user:// or an absolute filesystem path.
+@export var saving_default_dir:String = ""
 @export_group("Resources")
 ## Current amount of resources available to the player
 @export var current_resources:Dictionary[GameResource, float] = {}
@@ -35,6 +38,12 @@ signal resource_revealed(resource:GameResource)
 
 
 var saving_enabled:bool = true
+
+## Save directory picked from the command line, overriding saving_default_dir on
+## every state (see BaseMainScene.SAVE_DIR_ARG). This is static because the
+## filepath helpers below are: they run without a state in hand, so an export
+## alone would be invisible to them. Set before any save is written or read.
+static var cmdline_save_dir:String = ""
 
 
 func p(text:String)-> void:
@@ -63,16 +72,20 @@ func actually_save(filename:String = "")-> Error:
 	else:
 		fname = filename
 
-	var filepath:String = get_run_filepath(fname)
-		
+	var filepath:String = get_run_filepath(fname, saving_default_dir)
+
 	if BuildConfig.Default.disable_saving:
 		print("Saving aborted because 'disable_saves' is enabled")
 		return ERR_UNAUTHORIZED
-				
-	result = DirAccess.open("user://").make_dir_recursive(filepath.get_base_dir())
-	if result != OK:
-		p("Creating save directory failed. Error code: %s" % result)
-		
+
+	# The directory can sit outside user://, so it has to be created as the
+	# absolute path it is rather than relative to an opened user://.
+	var save_dir:String = filepath.get_base_dir()
+	if not DirAccess.dir_exists_absolute(save_dir):
+		result = DirAccess.make_dir_recursive_absolute(save_dir)
+		if result != OK:
+			p("Creating save directory failed. Error code: %s" % result)
+
 	timestamp_unix = Time.get_unix_time_from_system()
 	version = Dist.get_version()
 		
@@ -95,11 +108,31 @@ static func get_default_run()-> BaseGameState:
 		
 		
 # Joins the save files directory with a filename
-static func get_run_filepath(filename:String)-> String:
-	if Flags.DEMO:
-		return "user://".path_join("demo").path_join(filename)
-	else:
-		return "user://".path_join(filename)
+static func get_run_filepath(filename:String, dir:String = "")-> String:
+	return get_save_dir(dir).path_join(filename)
+
+
+## The directory saves live in. The command line wins over [param dir] (a state's
+## own saving_default_dir), since it is aimed at one launch in particular; with
+## neither, saves go to user:// as they always have. A relative directory is
+## taken as relative to user://, so both `runs/a` and `/tmp/runs/a` work.
+##
+## [param is_demo] is only worth passing from the editor, where Flags.DEMO
+## shortcuts to false and would give the wrong directory.
+static func get_save_dir(dir:String = "", is_demo:bool = Flags.DEMO)-> String:
+	var base:String = "user://"
+	if not cmdline_save_dir.is_empty():
+		base = cmdline_save_dir
+	elif not dir.is_empty():
+		base = dir
+
+	if not base.is_absolute_path():
+		base = "user://".path_join(base)
+
+	if is_demo:
+		base = base.path_join("demo")
+
+	return base
 	
 	
 # Loads a GameRun saved as a resource
@@ -188,11 +221,10 @@ static func create_new_run()-> GameState:
 	else:
 		push_warning("Initial save not found, creating empty run")
 		game_run = GameState.new()
+		game_run.id = str(game_run.get_rid().get_id())
 		game_run.initialize()
 
 	assert(game_run != null)
-
-	Log.info("Save started", "Save", {"version": Dist.get_version(), "name": game_run.id})
 
 	return game_run
 
@@ -329,13 +361,11 @@ func overwrite_user_save() -> void:
 	# editor, which would ignore force_demo and give the wrong destination path.
 	var is_demo := BuildConfig.Default.force_flag(
 			OS.has_feature("demo"), BuildConfig.Default.force_demo)
-	var dest_virtual: String
-	if is_demo:
-		dest_virtual = "user://".path_join("demo").path_join(DEFAULT_FILENAME)
-	else:
-		dest_virtual = "user://".path_join(DEFAULT_FILENAME)
+	var dest_virtual:String = get_save_dir(saving_default_dir, is_demo) \
+			.path_join(DEFAULT_FILENAME)
 
-	DirAccess.open("user://").make_dir_recursive(dest_virtual.get_base_dir())
+	# The destination can sit outside user://, so create it as an absolute path.
+	DirAccess.make_dir_recursive_absolute(dest_virtual.get_base_dir())
 
 	var source_path := ProjectSettings.globalize_path(resource_path)
 	var dest_path := ProjectSettings.globalize_path(dest_virtual)
