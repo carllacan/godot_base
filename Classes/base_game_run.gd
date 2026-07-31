@@ -6,6 +6,24 @@ const DEFAULT_FILENAME = "save.tres"
 const INITIAL_RUN_FILEPATH = "res://Data/GameStates/initial_game_run.tres"
 const DEMO_INITIAL_RUN_FILEPATH = "res://Data/GameRuns/demo_initial_game_run.tres"
 
+## Command line switch that picks the directory saves are read from and written
+## to, overriding saving_default_dir. Takes a path relative to user:// or an
+## absolute filesystem path, written either way round, after the `--` that
+## separates user arguments:
+##
+##   godot -- --save-dir=runs/a
+##   godot -- --save-dir /tmp/bingo-run-a
+##
+## Give each one its own directory to run several copies of the game at once:
+## otherwise they all write the same file and trample both it and each other.
+const SAVE_DIR_ARG:String = "--save-dir"
+
+## Command line switch that picks the filename, overriding
+## saving_default_filename the same way SAVE_DIR_ARG overrides the directory:
+##
+##   godot -- --save-file=experiment.tres
+const SAVE_FILE_ARG:String = "--save-file"
+
 
 signal resources_changed
 signal resource_changed(resource:GameResource, new_value:float)
@@ -13,9 +31,9 @@ signal resource_revealed(resource:GameResource)
 
 @export var id:String = ""
 @export_group("Saving")
-## Default filename if none is specified when calling save(). If empty it will use
-## the global default saving path
-@export var saving_default_filename:String = "" # TODO use in get_default_run(), load_last_run(), and has_saved_game()
+## Filename to save under when none is passed to save(). Empty means
+## DEFAULT_FILENAME. SAVE_FILE_ARG overrides it.
+@export var saving_default_filename:String = ""
 ## Default directory to save to. If empty saves go to user://, as they always
 ## have. Takes a path relative to user:// or an absolute filesystem path.
 @export var saving_default_dir:String = ""
@@ -39,12 +57,6 @@ signal resource_revealed(resource:GameResource)
 
 var saving_enabled:bool = true
 
-## Save directory picked from the command line, overriding saving_default_dir on
-## every state (see BaseMainScene.SAVE_DIR_ARG). This is static because the
-## filepath helpers below are: they run without a state in hand, so an export
-## alone would be invisible to them. Set before any save is written or read.
-static var cmdline_save_dir:String = ""
-
 
 func p(text:String)-> void:
 	if not verbose: return
@@ -62,16 +74,10 @@ func save(filename:String = "")-> void:
 	
 func actually_save(filename:String = "")-> Error:
 	var result:Error
-	
-	var fname:String
-	if filename == "":
-		if saving_default_filename != "":
-			fname = saving_default_filename
-		else:
-			fname = DEFAULT_FILENAME
-	else:
-		fname = filename
 
+	# A name passed to save() beats the one this state was built with; both lose
+	# to the command line, which get_run_filepath settles.
+	var fname:String = filename if not filename.is_empty() else saving_default_filename
 	var filepath:String = get_run_filepath(fname, saving_default_dir)
 
 	if BuildConfig.Default.disable_saving:
@@ -103,13 +109,14 @@ func actually_save(filename:String = "")-> Error:
 
 
 static func get_default_run()-> BaseGameState:
-	var filepath = get_run_filepath(DEFAULT_FILENAME)
-	return load(filepath)
-		
-		
-# Joins the save files directory with a filename
-static func get_run_filepath(filename:String, dir:String = "")-> String:
-	return get_save_dir(dir).path_join(filename)
+	return load(get_run_filepath())
+
+
+## Where a save lives: the directory and the filename, each resolved the same
+## way. Both parts are optional, because half the callers here are static and
+## have no state to ask — they get the command line's answer, or the default.
+static func get_run_filepath(filename:String = "", dir:String = "")-> String:
+	return get_save_dir(dir).path_join(get_save_filename(filename))
 
 
 ## The directory saves live in. The command line wins over [param dir] (a state's
@@ -117,12 +124,19 @@ static func get_run_filepath(filename:String, dir:String = "")-> String:
 ## neither, saves go to user:// as they always have. A relative directory is
 ## taken as relative to user://, so both `runs/a` and `/tmp/runs/a` work.
 ##
+## The switch is read here rather than stored: this runs both with a state in
+## hand and without one, so anything remembered would have to be set by someone
+## else before the first read, and a save written before that would go to the
+## wrong place without saying so.
+##
 ## [param is_demo] is only worth passing from the editor, where Flags.DEMO
 ## shortcuts to false and would give the wrong directory.
 static func get_save_dir(dir:String = "", is_demo:bool = Flags.DEMO)-> String:
 	var base:String = "user://"
-	if not cmdline_save_dir.is_empty():
-		base = cmdline_save_dir
+
+	var override:String = CommandLineManager.get_value(SAVE_DIR_ARG)
+	if not override.is_empty():
+		base = override
 	elif not dir.is_empty():
 		base = dir
 
@@ -133,6 +147,24 @@ static func get_save_dir(dir:String = "", is_demo:bool = Flags.DEMO)-> String:
 		base = base.path_join("demo")
 
 	return base
+
+
+## The filename saves are written under, in the same order of precedence as
+## get_save_dir: the command line, then [param filename] (a state's own
+## saving_default_filename, or a name passed to save()), then DEFAULT_FILENAME.
+##
+## Having this makes the static readers below honour a configured filename
+## instead of only ever looking for DEFAULT_FILENAME, which is what let a run
+## save to one name and then go looking for another.
+static func get_save_filename(filename:String = "")-> String:
+	var override:String = CommandLineManager.get_value(SAVE_FILE_ARG)
+	if not override.is_empty():
+		return override
+
+	if not filename.is_empty():
+		return filename
+
+	return DEFAULT_FILENAME
 	
 	
 # Loads a GameRun saved as a resource
@@ -189,7 +221,7 @@ static func load_last_run()-> BaseGameState:
 		else:
 			push_error("Failed to load testing run")
 	else:
-		var last_saved_run_filepath: String = get_run_filepath(DEFAULT_FILENAME)
+		var last_saved_run_filepath: String = get_run_filepath()
 		if FileAccess.file_exists(last_saved_run_filepath):
 			game_run = load_from_file(last_saved_run_filepath)
 			if game_run != null:
@@ -233,7 +265,7 @@ static func create_new_run()-> GameState:
 static func has_saved_game()-> bool:
 	if BuildConfig.Default.use_testing_savefile and Flags.DEBUG:
 		return true
-	var last_saved_run_filepath: String = get_run_filepath(DEFAULT_FILENAME)
+	var last_saved_run_filepath: String = get_run_filepath()
 	if FileAccess.file_exists(last_saved_run_filepath):
 		return true
 		
@@ -362,7 +394,7 @@ func overwrite_user_save() -> void:
 	var is_demo := BuildConfig.Default.force_flag(
 			OS.has_feature("demo"), BuildConfig.Default.force_demo)
 	var dest_virtual:String = get_save_dir(saving_default_dir, is_demo) \
-			.path_join(DEFAULT_FILENAME)
+			.path_join(get_save_filename(saving_default_filename))
 
 	# The destination can sit outside user://, so create it as an absolute path.
 	DirAccess.make_dir_recursive_absolute(dest_virtual.get_base_dir())
