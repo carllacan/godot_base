@@ -14,10 +14,17 @@ var is_saving:bool = false
 var _save_thread: Thread = null
 
 
-# Queue a Callable that will save the current game state. This allows decoupling
-# this class from the actual saving system.
-func queue_save(saving_method:Callable)-> void:
-	next_saving_method = saving_method
+# Queue a save. This class stays decoupled from the actual saving system, which
+# it only ever sees as Callables.
+#
+# Saving happens in two steps because the write may run on a background thread.
+# [param prepare_method] is called on the main thread once the save actually
+# starts and must return the Callable that does the writing; taking whatever
+# snapshot that writer needs is its job. The writer itself then runs off-thread,
+# so it may only touch state nobody else can be changing meanwhile — see
+# BaseGameState.prepare_save() for what goes wrong otherwise.
+func queue_save(prepare_method:Callable)-> void:
+	next_saving_method = prepare_method
 	save_queued = true
 
 
@@ -26,10 +33,17 @@ func actually_save()-> void:
 		push_error("SaveManager: actually_save() called while a save is already in progress. The save callback must not trigger another save.")
 		return
 
-	# Store the current saving callback so it can be overwritten safely
-	var to_be_called = next_saving_method
+	# Store the current callback so it can be overwritten safely
+	var prepare_method:Callable = next_saving_method
 
 	save_queued = false
+
+	# Still on the main thread: this is the queued save's chance to snapshot.
+	var to_be_called:Variant = prepare_method.call()
+	if not (to_be_called is Callable and (to_be_called as Callable).is_valid()):
+		push_error("SaveManager: the queued save returned no writer, nothing was saved.")
+		return
+
 	is_saving = true
 	saving_started.emit()
 
@@ -37,11 +51,6 @@ func actually_save()-> void:
 
 
 func start_saving(to_be_called: Callable)-> void:
-	# TODO: the save callback serializes the live game state (ResourceSaver.save
-	# on the GameState resource) while the main thread keeps mutating it, so a
-	# threaded save can capture inconsistent state or crash if an Array/Dictionary
-	# is resized mid-serialization. Snapshot the state on the main thread (e.g.
-	# duplicate(true)) before handing it to the thread, or save synchronously.
 	# Wait for any previous save thread to finish before starting a new one
 	if _save_thread != null and _save_thread.is_alive():
 		_save_thread.wait_to_finish()

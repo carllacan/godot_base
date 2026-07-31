@@ -69,20 +69,54 @@ func save(filename:String = "")-> void:
 	if Engine.is_editor_hint(): return
 	if not saving_enabled: return
 	
-	SaveManager.queue_save(actually_save.bind(filename))
-	
-	
-func actually_save(filename:String = "")-> Error:
+	SaveManager.queue_save(prepare_save.bind(filename))
+
+
+## Runs on the main thread when a queued save starts and hands back the Callable
+## that writes the file — see BaseSaveManager.queue_save().
+##
+## The snapshot is the point of this step. ResourceSaver.save() walks the state
+## twice, once to collect every sub-resource and once to write them out, and the
+## write runs on SaveManager's thread. Handed the live run, the main thread gets
+## to insert a BallState, a CardState or a flying-coin id between the two passes;
+## anything arriving in that window is written before it was ever registered,
+## which is what "Resource was not pre cached for the resource section, bug?"
+## reports, and an Array resized mid-serialisation can corrupt the file outright.
+##
+## DEEP_DUPLICATE_INTERNAL copies exactly the sub-resources a run mutates (balls,
+## cards, stamps and the flying-coin ids, all of them built-in) and leaves the
+## ones with a path — GameResource, BallModel, CardModel, the stamp scenes —
+## shared, so they still serialise as ext_resource references and still compare
+## equal as Dictionary keys when the save is read back.
+func prepare_save(filename:String = "")-> Callable:
+	# Checked before duplicating rather than inside actually_save(): the snapshot
+	# is the expensive half of a save, and there would be nothing to write.
+	if BuildConfig.Default.disable_saving:
+		return _refuse_save
+
+	# Stamped here so the live run and the snapshot agree on when it was saved.
+	timestamp_unix = Time.get_unix_time_from_system()
+	version = Dist.get_version()
+
+	return actually_save.bind(
+		duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL), filename)
+
+
+func _refuse_save()-> Error:
+	print("Saving aborted because 'disable_saving' is enabled")
+	return ERR_UNAUTHORIZED
+
+
+## Writes [param state] out. This runs on SaveManager's save thread, so
+## [param state] has to be the snapshot prepare_save() took rather than the live
+## run: nothing here may touch state the main thread can still be changing.
+func actually_save(state:BaseGameState, filename:String = "")-> Error:
 	var result:Error
 
 	# A name passed to save() beats the one this state was built with; both lose
 	# to the command line, which get_run_filepath settles.
-	var fname:String = filename if not filename.is_empty() else saving_default_filename
-	var filepath:String = get_run_filepath(fname, saving_default_dir)
-
-	if BuildConfig.Default.disable_saving:
-		print("Saving aborted because 'disable_saves' is enabled")
-		return ERR_UNAUTHORIZED
+	var fname:String = filename if not filename.is_empty() else state.saving_default_filename
+	var filepath:String = get_run_filepath(fname, state.saving_default_dir)
 
 	# The directory can sit outside user://, so it has to be created as the
 	# absolute path it is rather than relative to an opened user://.
@@ -92,11 +126,8 @@ func actually_save(filename:String = "")-> Error:
 		if result != OK:
 			p("Creating save directory failed. Error code: %s" % result)
 
-	timestamp_unix = Time.get_unix_time_from_system()
-	version = Dist.get_version()
-		
-	result = ResourceSaver.save(self, filepath)
-	
+	result = ResourceSaver.save(state, filepath)
+
 	if result == OK:
 		p("Game saved to '%s'" % filepath)
 	else:
