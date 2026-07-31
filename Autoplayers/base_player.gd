@@ -13,6 +13,13 @@ signal finished(reason:String)
 ## Whether this player narrates what it does. Its lines go through p().
 @export var verbose:bool = true
 
+## Whether this player records what it does in the gameplay log, under the
+## Autoplayer tag. Separate from verbose: that one is narration for whoever is
+## watching stdout, this one is for whatever reads the log afterwards.
+##
+## Turn it off for a run whose log should hold gameplay and nothing else.
+@export var log_decisions:bool = true
+
 @export_group("Ending conditions")
 ## Seconds of play after which the player stops. Zero, or less, plays forever.
 ##
@@ -34,6 +41,10 @@ var total_time_played:float = 0
 ## again, so nothing has to keep checking this.
 var is_finished:bool = false
 
+## Where log_event() writes. Built on first use rather than in _init, because a
+## Resource can be loaded before the Log autoload exists.
+var _log:TaggedLogger
+
 
 ## Called once, as soon as a game scene exists and Current.Game and Current.Save
 ## are usable. Connect to signals here: this is a Resource, so it never receives
@@ -43,6 +54,11 @@ func initialize()-> void:
 	time_played = 0
 	total_time_played = 0
 	is_finished = false
+
+	log_event("Autoplayer started", {
+		"autoplayer": resource_path,
+		"strategy": _strategy_name(),
+	})
 
 
 ## Called every time a save is loaded, including the reload that follows a
@@ -80,6 +96,8 @@ func finish(reason:String)-> void:
 	is_finished = true
 	p("Done playing: %s" % reason)
 
+	log_event("Autoplayer finished", {"reason": reason})
+
 	on_finished()
 	finished.emit(reason)
 
@@ -91,9 +109,40 @@ func on_finished()-> void:
 	pass
 
 
-## Prints a line tagged with how far into the run it happened, when this player
-## is verbose.
+## Prints a line tagged with how long this player had been going when it
+## happened, if it is verbose.
+##
+## Tagged with total_time_played rather than time_played so the log stays in
+## order: a prestige reset restarts the run, and with it time_played, which would
+## otherwise send the timestamps back to zero halfway down the log.
 func p(msg:String)-> void:
 	if not verbose: return
 
-	print("[AUTOPLAYER][%0.2f] %s" % [time_played, msg])
+	print("[AUTOPLAYER][%0.2f] %s" % [total_time_played, msg])
+
+
+## Records something this player did in the gameplay log, under the Autoplayer
+## tag, if it is set to. Strategies call this for the decisions worth keeping:
+## what the gameplay log holds is what the game did, and a run's log should be
+## able to say who was at the controls and why.
+##
+## time_played rides along on every entry, because the log's own timestamps are
+## wall-clock and say nothing about how far into the run this happened.
+func log_event(message:String, metadata:Dictionary = {})-> void:
+	if not log_decisions: return
+
+	if _log == null:
+		_log = Log.get_tagged("Autoplayer")
+
+	metadata["time_played"] = total_time_played
+	_log.info(message, metadata)
+
+
+## What to call this player's strategy in the log: its script's class_name, or
+## the script's path when it has none.
+func _strategy_name()-> String:
+	var script:Script = get_script()
+	if script == null: return ""
+
+	var global_name:String = script.get_global_name()
+	return global_name if not global_name.is_empty() else script.resource_path
