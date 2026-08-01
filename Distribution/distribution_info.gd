@@ -1,6 +1,6 @@
 extends Node
 class_name Dist
-const DIST_FILE_PATH = "res://dist/dist_info.json"
+const DIST_FILE_PATH = "res://build_info.json"
 
 static var version:String = "--" : get = get_version
 
