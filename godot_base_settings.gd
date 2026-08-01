@@ -61,7 +61,9 @@ static var settings:GodotBase : get = get_settings
 static var _settings:GodotBase # cached version
 static func get_settings()-> GodotBase:
 	if _settings== null:
-		if FileAccess.file_exists(CUSTOM_SETTINGS_PATH):
+		# ResourceLoader.exists, not FileAccess.file_exists: exported builds convert
+		# .tres to binary and leave only a .remap, which file_exists doesn't follow.
+		if ResourceLoader.exists(CUSTOM_SETTINGS_PATH):
 			print(Time.get_ticks_msec()) 
 			_settings = load(CUSTOM_SETTINGS_PATH) as GodotBase
 		else:
