@@ -222,16 +222,16 @@ func _coerce(key:String, value:Variant, type:Variant.Type) -> Variant:
 
 
 # The int behind the name of an enum-typed property, or null if there is none.
-func _enum_value(key:String, name:String) -> Variant:
+func _enum_value(key:String, value:String) -> Variant:
 	match key:
 		"min_level":
-			match name.to_lower():
+			match value.to_lower():
 				"debug": return LogLevel.Value.Debug
 				"info": return LogLevel.Value.Info
 				"warning": return LogLevel.Value.Warning
 				"error": return LogLevel.Value.Error
 		"format":
-			match name.to_lower():
+			match value.to_lower():
 				"text", "plaintext", "plain_text": return FileLogSink.Format.PlainText
 				"json", "jsonl": return FileLogSink.Format.Json
 

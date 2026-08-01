@@ -6,9 +6,9 @@ static var _is_parsed:bool = false
 
 
 ## Whether a bare switch (no value) is present, e.g. "--no-default-log-sinks".
-static func has_flag(name:String)-> bool:
+static func has_flag(arg:String)-> bool:
 	_ensure_parsed()
-	return name in _args
+	return arg in _args
 
 
 ## The value given to a `--switch=<value>` or `--switch <value>` command line
