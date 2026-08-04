@@ -6,12 +6,7 @@
 script = ExtResource("1_b561b")
 name = "graphics_quality"
 dname = "Quality"
-description = "The higher the more, and the more expensive.
-3: all graphics as originally implemented
-2: no particles on collision
-1: no antialising
-0: no V-sync?"
+description = "How much the graphics of the game will be simplifed"
 type = 2
 min_value = 1.0
-max_value = 3.0
 metadata/_custom_type_script = "uid://y1yl5gpm1oo1"
