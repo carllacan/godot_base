@@ -9,7 +9,8 @@ var anim_player:AnimationPlayer
 	
 	
 func _ready()-> void:
-	super._ready()
+	# No super() call: BaseComponent does its setup from _notification, so it runs
+	# whether or not a subclass overrides _ready.
 	assert(get_parent() is Sprite2D)
 	anim_player = AnimationPlayer.new()
 	add_child(anim_player)
