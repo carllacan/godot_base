@@ -14,6 +14,7 @@ enum States {
 @export var visible_time:float = 3
 @export var transition_time:float = 1
 @export var autostart:bool = false
+# TODO: these two are never read anywhere, implement them or remove them
 @export var fade_in_when_activated:bool = true
 @export var fade_on_when_deactivated:bool = true
 # TODO: implement this
@@ -29,6 +30,10 @@ var is_active:bool = false : set = set_is_active
 
 
 func _ready()-> void:
+	# TODO: activation happens before the initial state is applied, so set_is_active
+	# runs while the state is still _undef, tries to fade in and fails its own guard.
+	# Every autostarted fader prints a warning on ready because of this. Setting the
+	# initial state first would fix it (the tests pin the current behaviour)
 	if autostart:
 		is_active = true
 	else:
@@ -56,6 +61,9 @@ func set_is_active(new_value:bool)-> void:
 	
 	if changed and verbose: print("Active: %s" % is_active)
 	
+	# TODO: fades cannot be interrupted. Deactivating while fading in (or activating
+	# while fading out) hits the guard in start_fading_out/start_fading_in, warns and
+	# does nothing, so the fader only reverses at the next period boundary
 	if changed:
 		if is_active and state not in [States.VISIBLE, States.FADING_IN]:
 			start_fading_in()
@@ -113,7 +121,10 @@ func _process(delta:float)-> void:
 	if state == States._undef: return
 	
 	time_left -= delta
-				
+
+	# TODO: q is not clamped, so a delta bigger than the time left overshoots the
+	# alpha past original_alpha (or below 0 when fading out). Nothing sets the alpha
+	# again when the period changes, so the wrong value stays for the whole next one
 	match state:
 		States.FADING_IN:
 			var q = 1.0-time_left/transition_time

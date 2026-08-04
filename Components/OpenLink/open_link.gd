@@ -37,7 +37,12 @@ func _on_pressed()-> void:
 			Integration.open_store_page()
 			return
 			
+	# TODO: this crashes. The Integration autoload is a BaseIntegrationController,
+	# which has no open_overlay: only SteamIntegrationController defines one.
+	# Pull it up into the base controller as a no-op.
+	# TODO: this branch does not return, so the overlay and the link both open
+	# (with an empty link if none is configured). The store branch above returns.
 	if overlay_id:
 		Integration.open_overlay(overlay_id)
-			
-	OS.shell_open(get_link()) 
+
+	OS.shell_open(get_link())

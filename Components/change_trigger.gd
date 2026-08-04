@@ -1,6 +1,8 @@
 extends Node
 class_name ChangeTrigger
 
+## Todo: move out of Components folder
+
 signal integer_part_changed
 
 ## Emits a signals when a quantity crosses certain thresholds. For instance,

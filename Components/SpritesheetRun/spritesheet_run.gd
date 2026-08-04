@@ -39,6 +39,9 @@ func create_animation()-> void:
 		
 	#anim.remove_track(anim.find_track("ExplosionSprite:frame", Animation.TYPE_VALUE))
 	var track_index = anim.add_track(Animation.TYPE_VALUE)
+	# TODO: this is the parent's absolute path at _ready time, so reparenting the
+	# sprite afterwards silently stops the animation. Set the AnimationPlayer's
+	# root_node to the parent and use a relative path instead.
 	anim.track_set_path(track_index, "%s:frame" % p.get_path())
 	anim.track_insert_key(track_index, 0.0, 0)
 	anim.track_insert_key(track_index, 1.0 - time_per_key, sprite_num-1)
@@ -48,5 +51,7 @@ func create_animation()-> void:
 func play_entire_sheet(offset_s:float = 0)-> void:
 	if offset_s > 0:
 		await get_tree().create_timer(offset_s).timeout
+	# TODO: a time of 0 makes this INF. Decide what a zero time should mean and
+	# either assert against it or handle it here.
 	anim_player.speed_scale = 1.0/time
 	anim_player.play("run")

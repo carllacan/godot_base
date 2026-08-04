@@ -3,10 +3,9 @@ class_name NavigationComponent
 ## Turns a [Button] into a menu-screen navigation link: pressing it hides one set
 ## of nodes and shows another.
 ##
-## Add this as a [b]direct child of a [Button][/b]. When that button is pressed
-## (or when [member action_shortcut] is triggered) every node in
-## [member to_hide] is hidden and every node in [member to_show] is shown, then
-## [signal performed] is emitted.
+## Add this as a [b]direct child of a [Button][/b]. When that button is pressed,
+## every node in [member to_hide] is hidden and every node in [member to_show] is
+## shown, then [signal performed] is emitted.
 ## [br][br]
 ## This is meant for menus built as sibling screens under a common parent, where
 ## exactly one screen is visible at a time. Each button that moves between two
@@ -19,25 +18,21 @@ class_name NavigationComponent
 ##  |             to_hide = [../..]              -> SettingsMainMenu
 ##  |             to_show = [../../../Graphics]  -> GraphicSettings
 ##  |- GraphicSettings           (hidden)
-##      |- BackButton
+##      |- BackButton            shortcut = ui_cancel.tres
 ##          |- BackToMainSettings (NavigationComponent)
 ##                to_hide = [../..]
 ##                to_show = [../../../SettingsMainMenu]
-##                action_shortcut = "ui_cancel"
 ## [/codeblock]
-## Set [member action_shortcut] to an [InputMap] action name to also reach the
-## navigation via the keyboard/gamepad — typically [code]"ui_cancel"[/code] on
-## back buttons. Leave it empty for forward navigation, which should only be
-## reachable by pressing the button.
-## [br][br]
-## The shortcut only fires when [method can_perform] is true, i.e. when the
-## navigation is not already in its destination state: every node in
-## [member to_show] must currently be invisible and every node in
-## [member to_hide] must currently be visible. This is what keeps several
-## components sharing [code]"ui_cancel"[/code] from all reacting to the same
-## press — only the one on the currently-open screen matches. Consuming the
-## event is left to whichever component acts first, so two components that can
-## both perform on the same action are a scene-authoring mistake.
+## To also reach a navigation from the keyboard or gamepad — typically
+## [kbd]Escape[/kbd] on a back button — do [b]not[/b] add anything here: set
+## [member BaseButton.shortcut] on the parent [Button] to a [Shortcut] holding an
+## [InputEventAction] with the [InputMap] action you want. [BaseButton] only fires
+## a shortcut when the button is [method Node.is_visible_in_tree] and not
+## [member BaseButton.disabled], so several back buttons can share one
+## [code]ui_cancel[/code] resource and only the one on the currently-open screen
+## reacts. It emits [signal BaseButton.pressed] like a real click, so the
+## navigation below runs unchanged, and you get the shortcut in the button's
+## tooltip and its press highlight for free.
 ## [br][br]
 ## Nodes are hidden before they are shown, which matters when a [FocusManager]
 ## is watching them: the outgoing screen releases focus before the incoming one
@@ -62,9 +57,6 @@ signal performed
 @export var to_hide:Array[Node]
 ## Nodes shown when the navigation is performed — the destination screen.
 @export var to_show:Array[Node]
-## Name of an [InputMap] action that also triggers this navigation, or
-## [code]""[/code] for button-press only. Only fires when [method can_perform].
-@export var action_shortcut:String = ""
 
 ## If [code]true[/code], hide [member to_hide] as soon as the parent button is
 ## ready, so the menu's closed state is declared by the components themselves.
@@ -125,26 +117,3 @@ func perform_show()-> void:
 	for node in to_show:
 		p("%s shows node %s" % [get_parent().name, node.name])
 		node.show()
-		
-	
-func can_perform()-> bool:
-	if not is_node_ready(): return false
-	
-	# check if any of the elements that must be shown is already visible
-	if to_show.any(func(n): return n.visible): 
-		return false
-	# check if any of the elements that must be shown is already invisible
-	if to_hide.any(func(n): return not n.visible): 
-		return false
-		
-	return true
-		
-
-func _input(event: InputEvent) -> void:
-	if action_shortcut == "": return
-	if not can_perform(): 
-		return
-	
-	if event.is_action_pressed(action_shortcut):
-		get_viewport().set_input_as_handled()
-		perform_navigation()

@@ -16,6 +16,9 @@ func _ready()-> void:
 	get_parent().ready.connect(_on_parent_ready)
 	
 		
+# TODO: the "pressed" default never happens. A typed Array export is never null,
+# so an unconfigured component returns [] here and listens to nothing. Use
+# target_signals.is_empty() instead to get the default the class comment promises.
 func get_target_signals()-> Array[String]:
 	if target_signals == null:
 		return ["pressed"]

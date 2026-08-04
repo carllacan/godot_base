@@ -1,3 +1,4 @@
+@tool
 extends Node
 class_name SettingSetterComponent
 
@@ -27,6 +28,10 @@ var original_icon:Texture
 
 
 func _ready()-> void:
+	# Settings is an autoload, so it does not exist at edit time. This also sets
+	# the parent's toggle_mode, which the editor would serialize into the scene.
+	if Engine.is_editor_hint(): return
+
 	Settings.setting_changed.connect(_on_setting_changed)
 	
 	var parent = get_parent()
@@ -134,8 +139,12 @@ func _on_setting_changed(setting_name:String, _new_value:Variant)-> void:
 		
 		
 func update_parent()-> void:
-	if not is_node_ready(): return 
-	
+	if not is_node_ready(): return
+	# Overwrites the parent's text and icon, which the editor would serialize into
+	# the scene, silently replacing whatever the button was authored with.
+	# Reached from _notification too, which does fire at edit time.
+	if Engine.is_editor_hint(): return
+
 	var parent = get_parent()
 	
 	var n = target_setting.dname.to_upper()

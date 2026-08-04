@@ -33,6 +33,9 @@ func _apply_final_pos(value:Vector2)-> void:
 	var dist = value.length()
 	if final_distance != dist:
 		final_distance = dist
+	# TODO: the direction is re-derived from the position, and Vector2.angle()
+	# returns the half turn as -PI, so setting direction to 180 reads back as
+	# -180. The float goes the right way, but the value the caller set is lost.
 	var angle = rad_to_deg(value.angle())
 	if direction != angle:
 		direction = angle
@@ -60,9 +63,11 @@ func _ready()-> void:
 	var p = get_parent()
 	p.ready.connect(_on_parent_ready)
 	
+	# TODO: this check buys nothing: the connect below runs anyway and crashes on
+	# a parent without the signal. Either return after the error or drop the check.
 	if not p.has_signal("visibility_changed"):
 		push_error("Parent has no visibility_changed signal")
-		
+
 	p.visibility_changed.connect(func(): if p.visible: _on_parent_shown())
 	
 	
@@ -86,5 +91,8 @@ func float_away()-> void:
 	tw.tween_property(p, "position", _final_pos, t).as_relative()
 		
 	await tw.finished
-	
+
+	# TODO: this frees the floater, not the node it floated away. The faded out
+	# parent stays in the tree, and neither FloatingLabel nor CoinsToast frees
+	# itself, so they pile up invisible nodes.
 	queue_free()

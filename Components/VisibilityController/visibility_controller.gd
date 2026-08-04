@@ -1,3 +1,4 @@
+@tool
 extends Node
 class_name VisibilityController
 
@@ -27,7 +28,10 @@ var target_hovered:bool = false
 var force_show_time_ms:float = NAN
 
 
-func _ready()-> void:	
+func _ready()-> void:
+	# Settings and InputManager are autoloads, so they do not exist at edit time.
+	if Engine.is_editor_hint(): return
+
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	
 	if not hide_if_settings.is_empty():
@@ -57,6 +61,11 @@ func _on_mouse_exited_target_control()-> void:
 		
 		
 func update_parent()-> void:
+	# This writes to the parent's 'visible', which the editor would serialize into
+	# the scene. Hiding nodes at edit time must never be a side effect of opening
+	# a scene, so this stays inert until the game runs.
+	if Engine.is_editor_hint(): return
+
 	var parent = get_parent()
 	
 	var must_show_parent := true

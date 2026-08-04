@@ -25,6 +25,11 @@ func _ready()-> void:
 		reset()
 	if trigger_on_ready:
 		target.ready.connect(_on_parent_ready)
+	# TODO: reset_on_shown is only ever acted on from
+	# _on_parent_visibility_changed, which is connected here only when
+	# trigger_on_shown is set. On its own the flag never fires at all, and
+	# alongside trigger_on_shown it is redundant because play() resets anyway, so
+	# it does nothing either way. Connect when either flag is set.
 	if trigger_on_shown:
 		target.visibility_changed.connect(_on_parent_visibility_changed)
 	
@@ -37,6 +42,8 @@ func _on_parent_ready()-> void:
 		
 		
 func _on_parent_visibility_changed()-> void:
+	# TODO: this fires on the parent being hidden as well as shown, so hiding the
+	# label writes it out too. Check target.visible first if that is not wanted.
 	if reset_on_shown:
 		reset()
 	if trigger_on_shown:
@@ -76,12 +83,16 @@ func play(time_s:float = NAN)-> void:
 		
 	reset()
 	var num_chars = target.get_total_character_count()
+	# TODO: time_s is worked out above and then never used, so the pace comes from
+	# total_time whatever play() was given. Should be time_s/float(num_chars).
 	var char_time = total_time/float(num_chars)
 	char_time = max(min_character_time, char_time)
 	for c in range(num_chars):
 		if click_player != null:
 			click_player.play()
 		target.visible_characters += 1
+		# TODO: this waits after the last character too, so the effect lasts
+		# num_chars*char_time rather than the total_time that was asked for.
 		await get_tree().create_timer(char_time).timeout
 		
 	

@@ -9,8 +9,12 @@ var _screens:Node
 
 
 func before_all()-> void:
+	# The action is bound to a real key because Viewport only dispatches
+	# InputEventKey/Shortcut/JoypadButton to shortcut_input — an InputEventAction
+	# is never routed there, so the tests have to push an actual key press.
 	if not InputMap.has_action(ACTION):
 		InputMap.add_action(ACTION)
+		InputMap.action_add_event(ACTION, _key_event())
 
 
 func after_all()-> void:
@@ -38,7 +42,6 @@ func _make_nav(
 	to_show:Array[Node],
 	hide_on_ready:bool = false,
 	show_on_ready:bool = false,
-	action_shortcut:String = "",
 )-> NavigationComponent:
 	var button := Button.new()
 	var nav := NavigationComponent.new()
@@ -46,17 +49,28 @@ func _make_nav(
 	nav.to_show = to_show
 	nav.hide_on_ready = hide_on_ready
 	nav.show_on_ready = show_on_ready
-	nav.action_shortcut = action_shortcut
 	button.add_child(nav)
 	add_child_autofree(button)
 	return nav
 
 
-func _action_event()-> InputEventAction:
-	var event := InputEventAction.new()
-	event.action = ACTION
+## The key press a player would actually make, bound to ACTION in before_all
+func _key_event()-> InputEventKey:
+	var event := InputEventKey.new()
+	event.keycode = KEY_F13
 	event.pressed = true
 	return event
+
+
+## The Shortcut resource a back button would carry. It holds an InputEventAction
+## rather than a key, so the binding lives in the InputMap and is remappable.
+func _make_shortcut()-> Shortcut:
+	var action := InputEventAction.new()
+	action.action = ACTION
+	action.pressed = true
+	var shortcut := Shortcut.new()
+	shortcut.events = [action]
+	return shortcut
 
 
 #region on ready
@@ -161,91 +175,76 @@ func test_pressing_the_parent_button_navigates():
 #endregion
 
 
-#region can_perform
+#region parent button shortcut
 
-func test_can_perform_in_the_source_state():
-	var nav := _make_nav([_make_screen("Source", true)], [_make_screen("Destination", false)])
+# Keyboard/gamepad navigation is delegated to BaseButton.shortcut rather than
+# handled here. These tests pin the engine behaviour this component relies on:
+# a shortcut only fires for a button that is visible in tree and enabled, which
+# is what lets every back button in a menu share one "ui_cancel" resource and
+# still have only the open screen react.
 
-	assert_true(nav.can_perform())
-
-
-func test_cannot_perform_when_destination_is_already_visible():
-	var nav := _make_nav([_make_screen("Source", true)], [_make_screen("Destination", true)])
-
-	assert_false(nav.can_perform())
-
-
-func test_cannot_perform_when_source_is_already_hidden():
-	var nav := _make_nav([_make_screen("Source", false)], [_make_screen("Destination", false)])
-
-	assert_false(nav.can_perform())
-
-
-func test_cannot_perform_when_one_of_several_sources_is_hidden():
-	var nav := _make_nav(
-		[_make_screen("SourceA", true), _make_screen("SourceB", false)],
-		[_make_screen("Destination", false)],
-	)
-
-	assert_false(nav.can_perform())
-
-
-func test_cannot_perform_before_ready():
-	var nav:NavigationComponent = autofree(NavigationComponent.new())
-	nav.to_hide = [_make_screen("Source", true)]
-	nav.to_show = [_make_screen("Destination", false)]
-
-	assert_false(nav.can_perform())
-
-#endregion
-
-
-#region action shortcut
-
-func test_shortcut_navigates_when_it_can_perform():
+func test_parent_button_shortcut_navigates():
 	var source := _make_screen("Source", true)
 	var destination := _make_screen("Destination", false)
-	var nav := _make_nav([source], [destination], false, false, ACTION)
+	var nav := _make_nav([source], [destination])
+	(nav.get_parent() as Button).shortcut = _make_shortcut()
 
-	nav._input(_action_event())
+	get_tree().root.push_input(_key_event())
 
-	assert_false(source.visible)
-	assert_true(destination.visible)
-
-
-func test_shortcut_does_nothing_when_it_cannot_perform():
-	# Already in the destination state, as the screen this navigation leads
-	# away from is not the one currently open
-	var source := _make_screen("Source", false)
-	var destination := _make_screen("Destination", true)
-	var nav := _make_nav([source], [destination], false, false, ACTION)
-	watch_signals(nav)
-
-	nav._input(_action_event())
-
-	assert_signal_emit_count(nav, "performed", 0)
+	assert_false(source.visible, "source screen should be hidden")
+	assert_true(destination.visible, "destination screen should be shown")
 
 
-func test_shortcut_ignores_other_actions():
+func test_shortcut_ignores_other_keys():
 	var source := _make_screen("Source", true)
 	var destination := _make_screen("Destination", false)
-	var nav := _make_nav([source], [destination], false, false, ACTION)
+	var nav := _make_nav([source], [destination])
+	(nav.get_parent() as Button).shortcut = _make_shortcut()
 
-	var event := InputEventAction.new()
-	event.action = "ui_accept"
+	# A real key press, but not the one bound to ACTION
+	var event := InputEventKey.new()
+	event.keycode = KEY_F14
 	event.pressed = true
-	nav._input(event)
+	get_tree().root.push_input(event)
 
 	assert_true(source.visible)
 	assert_false(destination.visible)
 
 
-func test_no_shortcut_means_events_are_ignored():
+func test_shortcut_does_nothing_when_the_button_is_hidden():
 	var source := _make_screen("Source", true)
 	var destination := _make_screen("Destination", false)
 	var nav := _make_nav([source], [destination])
+	var button := nav.get_parent() as Button
+	button.shortcut = _make_shortcut()
+	button.hide()
+	watch_signals(nav)
 
-	nav._input(_action_event())
+	get_tree().root.push_input(_key_event())
+
+	assert_signal_emit_count(nav, "performed", 0)
+
+
+func test_shortcut_does_nothing_when_the_button_is_disabled():
+	var source := _make_screen("Source", true)
+	var destination := _make_screen("Destination", false)
+	var nav := _make_nav([source], [destination])
+	var button := nav.get_parent() as Button
+	button.shortcut = _make_shortcut()
+	button.disabled = true
+	watch_signals(nav)
+
+	get_tree().root.push_input(_key_event())
+
+	assert_signal_emit_count(nav, "performed", 0)
+
+
+func test_no_shortcut_means_events_are_ignored():
+	var source := _make_screen("Source", true)
+	var destination := _make_screen("Destination", false)
+	_make_nav([source], [destination])
+
+	get_tree().root.push_input(_key_event())
 
 	assert_true(source.visible)
 	assert_false(destination.visible)

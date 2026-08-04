@@ -1,3 +1,4 @@
+@tool
 extends Node
 class_name GameResourceSyncer
 
@@ -36,6 +37,8 @@ func set_change_request_signal(new_value:String)-> void:
 
 
 func _apply_icon()-> void:
+	# Writes to the parent's icon, which the editor would serialize into the scene.
+	if Engine.is_editor_hint(): return
 	if icon_property == "": return
 	if resource == null: return
 	var parent:Node = get_parent()
@@ -89,6 +92,10 @@ func _on_resource_changed(changed_resource:GameResource, _new_value:float)-> voi
 	
 	
 func update_info()-> void:
+	# Current.Save is a static that only gets assigned once a run starts, so this
+	# would dereference null at edit time. It also writes to the parent.
+	if Engine.is_editor_hint(): return
+
 	var a = Current.Save.get_current_resource(resource)
 	get_parent().set(target_property, a)
 
