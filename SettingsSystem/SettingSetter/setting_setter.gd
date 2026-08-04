@@ -129,7 +129,7 @@ func _on_parent_button_pressed()-> void:
 	
 func _on_setting_changed(setting_name:String, _new_value:Variant)-> void:
 	if setting_name == target_setting.name:
-		await get_tree().process_frame # TODO: do this some way else
+		await get_tree().process_frame # TODO: do this some other way.
 		update_parent()
 		
 		
