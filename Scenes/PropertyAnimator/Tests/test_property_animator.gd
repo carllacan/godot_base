@@ -17,7 +17,7 @@ func _make_animator(opts:Dictionary = {})-> PropertyAnimator:
 	holder.add_child(parent)
 
 	var animator := PropertyAnimator.new()
-	animator.target = opts.get("target", null)
+	animator.target_override = opts.get("target", null)
 	animator.property = opts.get("property", "rotation")
 	animator.mode = opts.get("mode", PropertyAnimator.Mode.PERIODIC)
 	animator.period = opts.get("period", 1.0)
@@ -36,7 +36,7 @@ func _make_animator(opts:Dictionary = {})-> PropertyAnimator:
 
 
 func _value(animator:PropertyAnimator)-> Variant:
-	return animator.target.get_indexed(animator.property)
+	return animator.get_target().get_indexed(animator.property)
 
 
 #region ready
@@ -44,14 +44,14 @@ func _value(animator:PropertyAnimator)-> Variant:
 func test_the_target_defaults_to_the_parent():
 	var animator := _make_animator()
 
-	assert_eq(animator.target, animator.get_parent())
+	assert_eq(animator.get_target(), animator.get_parent())
 
 
 func test_an_explicit_target_is_kept():
 	var other:Node2D = add_child_autofree(Node2D.new())
 	var animator := _make_animator({"target": other})
 
-	assert_eq(animator.target, other)
+	assert_eq(animator.get_target(), other)
 
 
 func test_autostart_leaves_the_animator_playing():
@@ -242,7 +242,7 @@ func test_a_subproperty_can_be_animated():
 	animator.cycle_time = 0.5
 	animator.update_property()
 
-	assert_almost_eq(animator.target.position.x, 5.0, DELTA)
+	assert_almost_eq(animator.get_target().position.x, 5.0, DELTA)
 
 
 func test_the_animated_values_take_the_offset_into_account():
@@ -260,19 +260,19 @@ func test_the_animated_values_take_the_offset_into_account():
 func test_nothing_is_animated_without_a_property_name():
 	var animator := _make_animator({"property": ""})
 
-	animator.target.rotation = 3.0
+	animator.get_target().rotation = 3.0
 	animator.update_property()
 
-	assert_almost_eq(animator.target.rotation, 3.0, DELTA)
+	assert_almost_eq(animator.get_target().rotation, 3.0, DELTA)
 
 
 func test_nothing_is_animated_while_an_end_is_missing():
 	var animator := _make_animator({"max_value": null})
 
-	animator.target.rotation = 3.0
+	animator.get_target().rotation = 3.0
 	animator.update_property()
 
-	assert_almost_eq(animator.target.rotation, 3.0, DELTA)
+	assert_almost_eq(animator.get_target().rotation, 3.0, DELTA)
 
 #endregion
 
@@ -312,10 +312,10 @@ func test_stopping_rewinds_the_property_to_the_start_of_the_cycle():
 func test_stopping_an_animator_that_is_already_stopped_leaves_the_property_alone():
 	var animator := _make_animator({"autostart": false})
 
-	animator.target.rotation = 3.0
+	animator.get_target().rotation = 3.0
 	animator.stop()
 
-	assert_almost_eq(animator.target.rotation, 3.0, DELTA)
+	assert_almost_eq(animator.get_target().rotation, 3.0, DELTA)
 
 
 func test_resetting_rewinds_the_cycle_and_the_property():
@@ -453,11 +453,11 @@ func test_a_playing_animator_advances_and_updates_the_property():
 func test_a_stopped_animator_is_left_alone():
 	var animator := _make_animator({"autostart": false})
 
-	animator.target.rotation = 3.0
+	animator.get_target().rotation = 3.0
 	animator._physics_process(0.25)
 
 	assert_almost_eq(animator.cycle_time, 0.0, DELTA)
-	assert_almost_eq(animator.target.rotation, 3.0, DELTA)
+	assert_almost_eq(animator.get_target().rotation, 3.0, DELTA)
 
 
 func test_an_animator_finishing_its_cycle_keeps_advancing():
@@ -495,7 +495,7 @@ func test_the_animator_plays_again_once_the_pause_is_over():
 func test_an_invisible_target_is_not_animated():
 	var animator := _make_animator()
 
-	animator.target.visible = false
+	animator.get_target().visible = false
 	animator._physics_process(0.25)
 
 	assert_almost_eq(animator.cycle_time, 0.0, DELTA)
@@ -504,7 +504,7 @@ func test_an_invisible_target_is_not_animated():
 func test_a_target_hidden_by_an_ancestor_is_not_animated():
 	var animator := _make_animator()
 
-	animator.target.get_parent().visible = false
+	animator.get_target().get_parent().visible = false
 	animator._physics_process(0.25)
 
 	assert_almost_eq(animator.cycle_time, 0.0, DELTA)

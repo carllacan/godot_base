@@ -1,5 +1,5 @@
 @tool
-extends Node
+extends BaseComponent
 class_name PropertyAnimator
 
 signal finished_cycle
@@ -18,7 +18,6 @@ enum Mode {
 	RESTART,
 }
 
-@export var target:Node
 @export var property:String
 @export var mode:Mode
 @export var period:float = 1.0
@@ -31,7 +30,9 @@ enum Mode {
 @export var transform_to_degrees:bool = false : set = set_transform_to_degrees
 @export var invert_ends:bool = false : set = set_invert_ends
 @export_group("Debug")
-@export var verbose:bool = false
+## Keep animating while the scene is open in the editor, so the effect can be
+## previewed there. Specific to this component; most components have no business
+## running at edit time.
 @export var run_in_editor:bool = false
 
 
@@ -45,9 +46,6 @@ var actual_min:float
 
 
 func _ready()-> void:
-	if target == null:
-		target = get_parent()
-	
 	calculate_actual_values()
 	
 	#assert(property in target.get_property_list())
@@ -172,10 +170,9 @@ func update_property()-> void:
 			c = phase
 			value = lerp(actual_min, actual_max, c)
 	
-	target.set_indexed(property, value)
-	
-	if verbose:
-		print("%s->%s" % [cycle_time, value])
+	get_target().set_indexed(property, value)
+
+	p("%s->%s", [cycle_time, value])
 	
 	
 func advance_cycle(delta:float)-> void:
@@ -200,8 +197,10 @@ func _on_cycle_finished()-> void:
 func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return
 	if not run_in_editor and Engine.is_editor_hint(): return
-	if not target.visible: return
-	if not target.is_visible_in_tree(): return
+
+	var t := get_target()
+	if not t.visible: return
+	if not t.is_visible_in_tree(): return
 	
 	match state:
 		State.STOPPED:
