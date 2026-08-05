@@ -21,6 +21,11 @@ func _ready()-> void:
 	
 	# Start with default settings and load any changes over it
 	settings = DEFAULT_SETTINGS.duplicate()
+	# duplicate() hands over the very same values dictionary, so without this
+	# every change would also be written into the preloaded defaults. It cannot
+	# be duplicate(true) either: that would copy the SettingInfo keys too, and
+	# the lookups by resource would stop finding anything.
+	settings.values = DEFAULT_SETTINGS.values.duplicate()
 	setting_changed.connect(_on_setting_changed)
 	
 	print("Initializing settings...")
