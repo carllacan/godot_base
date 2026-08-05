@@ -29,6 +29,7 @@ func _make_animator(opts:Dictionary = {})-> PropertyAnimator:
 	animator.transform_to_degrees = opts.get("transform_to_degrees", false)
 	animator.invert_ends = opts.get("invert_ends", false)
 	animator.steps = opts.get("steps", 0)
+	animator.loop = opts.get("loop", true)
 
 	parent.add_child(animator)
 	add_child_autofree(holder)
@@ -678,5 +679,32 @@ func test_steps_also_quantize_a_vector_animation():
 	animator.update_property()
 
 	assert_almost_eq(_value(animator), Vector2(1, 10), Vector2(DELTA, DELTA))
+
+#endregion
+
+
+#region looping
+
+func test_an_animation_loops_by_default():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART, "period": 0.1})
+
+	animator.set_physics_process(true)
+	await wait_seconds(0.35)
+
+	assert_eq(animator.state, PropertyAnimator.State.PLAYING)
+
+
+## A one-shot has to leave the target where the animation took it. stop() would
+## rewind it to the start, which is the wrong end for something run once.
+func test_a_one_shot_holds_the_value_it_ended_on():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART, "period": 0.1, "loop": false})
+
+	animator.set_physics_process(true)
+	await wait_seconds(0.35)
+
+	assert_eq(animator.state, PropertyAnimator.State.STOPPED)
+	assert_almost_eq(_value(animator), 10.0, DELTA)
 
 #endregion

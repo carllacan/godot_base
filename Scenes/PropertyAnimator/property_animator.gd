@@ -23,6 +23,9 @@ enum Mode {
 @export var period:float = 1.0
 @export var pause_between_cycles:float = 0.0
 @export var autostart:bool = true
+## Whether the animation repeats. With this off it runs a single cycle and holds
+## the value it ended on, rather than snapping back to the start.
+@export var loop:bool = true
 ## Number of discrete values the animation is allowed to take. [code]0[/code]
 ## leaves it continuous.
 ##
@@ -200,7 +203,7 @@ func update_property()-> void:
 
 	# lerp is generic, so this is the same line whether the ends are floats,
 	# Vector2s, Vector3s or Colors.
-	var value:Variant = lerp(actual_min, actual_max, _quantize(weight))
+	var value:Variant = _refine_value(lerp(actual_min, actual_max, _quantize(weight)))
 
 	get_target().set_indexed(property, value)
 
@@ -214,12 +217,26 @@ func advance_cycle(delta:float)-> void:
 		finished_cycle.emit()
 		
 		
+## Last chance to adjust a value before it is written. Overridden by subclasses
+## driving a property that needs exact values, such as a whole-numbered one.
+func _refine_value(value:Variant)-> Variant:
+	return value
+
+
 func _on_cycle_finished()-> void:
 	match state:
 		State.WAITING_FOR_CYCLE_TO_STOP:
 			stop()
 			return
-			
+
+	if not loop:
+		# Holds the end of the cycle rather than resetting, so a one-shot leaves
+		# the target where the animation took it. stop() would rewind it.
+		state = State.STOPPED
+		cycle_time = period
+		update_property()
+		return
+
 	if pause_between_cycles != 0:
 		cycle_time = 0
 		intercycle_time = pause_between_cycles
