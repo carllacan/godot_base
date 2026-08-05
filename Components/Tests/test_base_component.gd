@@ -71,7 +71,7 @@ func test_an_explicit_target_wins_over_the_parent():
 	add_child_autofree(elsewhere)
 
 	var probe := _Probe.new()
-	probe.target = elsewhere
+	probe.target_override = elsewhere
 	_make(probe)
 
 	assert_eq(probe.get_target(), elsewhere)
