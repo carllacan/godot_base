@@ -135,9 +135,13 @@ func test_a_container_survives_a_save_and_load_round_trip():
 	# resource keyed lookups to keep working
 	var path:String = "user://test_settings_container_%d.tres" % Time.get_ticks_usec()
 	var quality_path:String = "user://test_setting_info_%d.tres" % Time.get_ticks_usec()
-	# Only settings saved as their own resource can be referenced by a container
-	# file, which is how the real ones (BaseSettings/*.tres) are set up
+	# Only settings that live in a file of their own get referenced by the
+	# container file instead of being copied into it, which is how the real ones
+	# (BaseSettings/*.tres) are set up. Writing the file is not enough for that:
+	# the resource in memory only starts belonging to the path, and answering
+	# load() calls for it, once take_over_path says so.
 	ResourceSaver.save(_quality, quality_path)
+	_quality.take_over_path(quality_path)
 	var container := _make_container()
 
 	ResourceSaver.save(container, path)
