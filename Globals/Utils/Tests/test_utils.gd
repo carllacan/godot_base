@@ -153,6 +153,18 @@ func test_staircase_large_step():
 	var result := Utils.staircase(4.0, 10.0, 5.0)
 	assert_eq(result, 0.0)
 
+
+func test_staircase_negative_input():
+	# floor(-1/3) * 2 = -1 * 2 = -2
+	var result := Utils.staircase(-1.0, 3.0, 2.0)
+	assert_eq(result, -2.0)
+
+
+func test_staircase_zero_step_width_returns_zero():
+	var result := Utils.staircase(7.0, 0.0, 2.0)
+	assert_push_error("step_width cannot be 0")
+	assert_eq(result, 0.0)
+
 #endregion
 
 
@@ -546,9 +558,160 @@ func test_rand_weighted_sorted_catalog_same_as_unsorted():
 
 #region get_layer_number
 
+const TEST_LAYER_SETTING := "layer_names/2d_physics/layer_7"
+
+
+## Names physics layer 7 for the duration of the callable, then restores it
+func _with_named_layer(layer_name:String, body:Callable)-> void:
+	var had_setting := ProjectSettings.has_setting(TEST_LAYER_SETTING)
+	var previous:Variant = ProjectSettings.get_setting(TEST_LAYER_SETTING) if had_setting else null
+
+	ProjectSettings.set_setting(TEST_LAYER_SETTING, layer_name)
+	body.call()
+
+	if had_setting:
+		ProjectSettings.set_setting(TEST_LAYER_SETTING, previous)
+	else:
+		ProjectSettings.clear(TEST_LAYER_SETTING)
+
+
 func test_get_layer_number_unknown_returns_minus_one():
 	var result := Utils.get_layer_number("__nonexistent_layer_xyz__")
 	assert_eq(result, -1)
+
+
+func test_get_layer_number_finds_named_layer():
+	_with_named_layer("TestLayerName", func():
+		assert_eq(Utils.get_layer_number("TestLayerName"), 7)
+	)
+
+
+func test_get_layer_number_is_case_insensitive():
+	_with_named_layer("TestLayerName", func():
+		assert_eq(Utils.get_layer_number("testlayername"), 7)
+	)
+
+#endregion
+
+
+#region rand_bool
+
+func test_rand_bool_zero_probability_never_true():
+	for i in range(100):
+		assert_false(Utils.rand_bool(0.0))
+
+
+func test_rand_bool_one_probability_always_true():
+	# randf() is inclusive of 1.0, so this can in principle fail, but only for
+	# one out of ~2^32 draws.
+	for i in range(100):
+		assert_true(Utils.rand_bool(1.0))
+
+
+func test_rand_bool_half_probability_produces_both_outcomes():
+	seed(12345)
+	var trues:int = 0
+	for i in range(200):
+		if Utils.rand_bool(0.5):
+			trues += 1
+	assert_between(trues, 1, 199,
+		"Expected a mix of outcomes at p=0.5, got %d trues out of 200" % trues)
+
+
+func test_rand_bool_probability_above_one_warns_and_returns_true():
+	var result := Utils.rand_bool(1.5)
+	assert_push_warning("not in [0,1]")
+	assert_true(result)
+
+
+func test_rand_bool_negative_probability_warns_and_returns_false():
+	var result := Utils.rand_bool(-0.5)
+	assert_push_warning("not in [0,1]")
+	assert_false(result)
+
+#endregion
+
+
+#region rand_sort
+
+func test_rand_sort_preserves_length():
+	var original := [1, 2, 3, 4, 5]
+	var result := Utils.rand_sort(original)
+	assert_eq(result.size(), original.size())
+
+
+func test_rand_sort_preserves_elements():
+	var original := [1, 2, 3, 4, 5]
+	var result := Utils.rand_sort(original)
+	var sorted_result := result.duplicate()
+	sorted_result.sort()
+	assert_eq(sorted_result, original)
+
+
+func test_rand_sort_does_not_modify_original():
+	var original := [1, 2, 3, 4, 5]
+	Utils.rand_sort(original)
+	assert_eq(original, [1, 2, 3, 4, 5])
+
+
+func test_rand_sort_empty_array():
+	var result := Utils.rand_sort([])
+	assert_eq(result, [])
+
+
+func test_rand_sort_single_element():
+	var result := Utils.rand_sort([42])
+	assert_eq(result, [42])
+
+
+func test_rand_sort_keeps_duplicates():
+	var result := Utils.rand_sort([1, 1, 2])
+	var sorted_result := result.duplicate()
+	sorted_result.sort()
+	assert_eq(sorted_result, [1, 1, 2])
+
+
+func test_rand_sort_eventually_produces_a_different_order():
+	seed(12345)
+	var original := [1, 2, 3, 4, 5, 6]
+	var shuffled := false
+	for i in range(20):
+		if Utils.rand_sort(original) != original:
+			shuffled = true
+			break
+	assert_true(shuffled, "20 sorts of a 6-element array all came back in order")
+
+#endregion
+
+
+#region format_without_zero_decimals
+
+func test_format_without_zero_decimals_whole_number_has_no_decimals():
+	assert_eq(Utils.format_without_zero_decimals(5.0), "5")
+
+
+func test_format_without_zero_decimals_keeps_two_decimals():
+	assert_eq(Utils.format_without_zero_decimals(5.25), "5.25")
+
+
+func test_format_without_zero_decimals_pads_to_two_decimals():
+	assert_eq(Utils.format_without_zero_decimals(5.5), "5.50")
+
+
+func test_format_without_zero_decimals_rounds_extra_decimals():
+	assert_eq(Utils.format_without_zero_decimals(5.256), "5.26")
+
+
+func test_format_without_zero_decimals_zero():
+	assert_eq(Utils.format_without_zero_decimals(0.0), "0")
+
+
+func test_format_without_zero_decimals_negative_whole():
+	assert_eq(Utils.format_without_zero_decimals(-5.0), "-5")
+
+
+func test_format_without_zero_decimals_negative_with_decimals():
+	assert_eq(Utils.format_without_zero_decimals(-5.25), "-5.25")
 
 #endregion
 
