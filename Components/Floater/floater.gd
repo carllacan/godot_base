@@ -1,6 +1,7 @@
-extends Node
+@tool
+extends BaseComponent
 class_name Floater
-## Makes parent move up or down
+## Makes its target move up or down
 
 enum TriggerType {
 	MANUAL,
@@ -59,37 +60,48 @@ func set_direction(value:float)-> void:
 	_apply_final_pos(Vector2.from_angle(deg_to_rad(direction)) * final_distance)
 
 
-func _ready()-> void:
-	var p = get_parent()
-	p.ready.connect(_on_parent_ready)
-	
-	# TODO: this check buys nothing: the connect below runs anyway and crashes on
-	# a parent without the signal. Either return after the error or drop the check.
-	if not p.has_signal("visibility_changed"):
-		push_error("Parent has no visibility_changed signal")
-
-	p.visibility_changed.connect(func(): if p.visible: _on_parent_shown())
-	
-	
 func _on_parent_shown()-> void:
 	if trigger == TriggerType.ON_SHOWN:
 		float_away()
-		
-		
+
+
 func _on_parent_ready()-> void:
+	# float_away() tweens the target and then frees this node, which at edit time
+	# would delete the component out of the scene being edited.
+	if Engine.is_editor_hint(): return
+
+	var t := get_target()
+
+	# TODO: this check buys nothing: the connect below runs anyway and crashes on
+	# a target without the signal. Either return after the error or drop the check.
+	if not t.has_signal("visibility_changed"):
+		push_error("Target has no visibility_changed signal")
+
+	t.visibility_changed.connect(func(): if t.visible: _on_parent_shown())
+
 	if trigger == TriggerType.ON_READY:
 		float_away()
-	
-	
+
+
+func _is_parent_valid()-> bool:
+	return get_target() is CanvasItem
+
+
+func _get_parent_requirement()-> String:
+	return "a CanvasItem"
+
+
 func float_away()-> void:
-	var p = get_parent()
+	if Engine.is_editor_hint(): return
+
+	var node := get_target()
 	var t = float_time_s
 	t *= 1.0+randf_range(-float_time_fluctuation, float_time_fluctuation)
-	var tw = p.create_tween()	
-	tw.tween_property(p, "modulate:a", final_alpha, t)
+	var tw = node.create_tween()
+	tw.tween_property(node, "modulate:a", final_alpha, t)
 	tw.set_parallel()
-	tw.tween_property(p, "position", _final_pos, t).as_relative()
-		
+	tw.tween_property(node, "position", _final_pos, t).as_relative()
+
 	await tw.finished
 
 	# TODO: this frees the floater, not the node it floated away. The faded out

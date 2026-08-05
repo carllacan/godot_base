@@ -1,4 +1,5 @@
-extends Node
+@tool
+extends BaseComponent
 class_name NavigationComponent
 ## Turns a [Button] into a menu-screen navigation link: pressing it hides one set
 ## of nodes and shows another.
@@ -65,30 +66,26 @@ signal performed
 ## component per menu whose destination is the screen that starts open.
 @export var show_on_ready:bool = false
 
-@export_group("Debug")
-## Print every hide/show this component performs to the console.
-@export var verbose:bool = false
-
-
 func _ready()-> void:
-	var parent = get_parent()
-	parent.ready.connect(_on_parent_ready)
-	
 	if null in to_hide or null in to_show:
 		push_error("Null references in '%s'" % get_path())
-	
-	if parent is Button:
-		parent.pressed.connect(_on_parent_button_pressed)
-	else:
-		push_error("Unexpected parent type")
-		
 
-func p(msg:String)-> void:
-	if not verbose: return
-	print("[Navigation] " + msg)
-	
-	
+
+func _is_parent_valid()-> bool:
+	return get_target() is Button
+
+
+func _get_parent_requirement()-> String:
+	return "a Button"
+
+
 func _on_parent_ready()-> void:
+	# hide_on_ready collapses every screen in the menu. At edit time the editor
+	# would serialize that, so opening a menu scene would silently hide half of it.
+	if Engine.is_editor_hint(): return
+
+	get_target().pressed.connect(_on_parent_button_pressed)
+
 	if hide_on_ready:
 		perform_hide()
 	if show_on_ready:
@@ -106,14 +103,18 @@ func perform_navigation()-> void:
 	
 	
 func perform_hide()-> void:
-	p("%s hiding" % get_parent().name)
+	if Engine.is_editor_hint(): return
+
+	p("%s hiding", [get_target().name])
 	for node in to_hide:
-		p("%s hides node %s" % [get_parent().name, node.name])
+		p("%s hides node %s", [get_target().name, node.name])
 		node.hide()
-		
-		
+
+
 func perform_show()-> void:
-	p("%s showing" % get_parent().name)
+	if Engine.is_editor_hint(): return
+
+	p("%s showing", [get_target().name])
 	for node in to_show:
-		p("%s shows node %s" % [get_parent().name, node.name])
+		p("%s shows node %s", [get_target().name, node.name])
 		node.show()

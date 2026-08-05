@@ -1,4 +1,5 @@
-extends Node
+@tool
+extends BaseComponent
 class_name OpenLink
 
 # TODO: make into an abstract component that listens to Condition Nodes
@@ -15,12 +16,20 @@ class_name OpenLink
 @export var overlay_id:String
 
 
-func _ready()-> void:
-	get_parent().ready.connect(_on_parent_ready)
-	
-	
 func _on_parent_ready()-> void:
-	get_parent().pressed.connect(_on_pressed)
+	# Pressing the button opens a browser or a store overlay, which has no
+	# business happening from the editor.
+	if Engine.is_editor_hint(): return
+
+	get_target().pressed.connect(_on_pressed)
+
+
+func _is_parent_valid()-> bool:
+	return get_target() is BaseButton
+
+
+func _get_parent_requirement()-> String:
+	return "a BaseButton"
 
 	
 func get_link()-> String:

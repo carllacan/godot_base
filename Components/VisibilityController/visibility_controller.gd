@@ -1,5 +1,5 @@
 @tool
-extends Node
+extends BaseComponent
 class_name VisibilityController
 
 ### This node will make its parent control become a setting controller
@@ -19,8 +19,6 @@ class_name VisibilityController
 @export var show_when_hovered:Array[Control] = []
 
 @export var force_hide:bool = false
-@export_category("Debug")
-@export var verbose:bool = false
 
 # Whether the control in "show_when_hovered" is hovered right now
 var target_hovered:bool = false
@@ -43,7 +41,6 @@ func _ready()-> void:
 		c.mouse_entered.connect(_on_mouse_entered_target_control)
 		c.mouse_exited.connect(_on_mouse_exited_target_control)
 	
-	get_parent().ready.connect(_on_parent_ready)
 	
 	
 func _on_parent_ready()-> void:
@@ -66,21 +63,21 @@ func update_parent()-> void:
 	# a scene, so this stays inert until the game runs.
 	if Engine.is_editor_hint(): return
 
-	var parent = get_parent()
+	var parent = get_target()
 	
 	var must_show_parent := true
 	
 	if Flags.WEB and hide_in_web:
 		must_show_parent = false
-		if verbose: print("Hiding %s because of WEB flag" % get_parent().name)
+		p("Hiding %s because of WEB flag", [get_target().name])
 	
 	if not Flags.WEB and hide_in_non_web:
 		must_show_parent = false
-		if verbose: print("Hiding %s because no WEB flag" % get_parent().name)
+		p("Hiding %s because no WEB flag", [get_target().name])
 		
 	if not Flags.DEMO and hide_in_full:
 		must_show_parent = false
-		if verbose: print("Hiding %s because of DEMO flag" % get_parent().name)
+		p("Hiding %s because of DEMO flag", [get_target().name])
 		
 	for setting in hide_if_settings:
 		var current_val = Settings.get_setting_value(setting)
@@ -88,40 +85,45 @@ func update_parent()-> void:
 		
 		if target_val == current_val:
 			must_show_parent = false
-			if verbose:
-				print("Setting '%s' meets condition, hiding parent of '%s'" %
-				[
-					setting.name, self.name
-				])
+			p("Setting '%s' meets condition, hiding the target of '%s'",
+				[setting.name, self.name])
 				
 	if hide_in_joypad and InputManager.is_joypad():
 		must_show_parent = false
-		if verbose: print("Hiding %s because of JOYPAD" % get_parent().name)
+		p("Hiding %s because of JOYPAD", [get_target().name])
 		
 	if hide_in_kbm and InputManager.is_kbm():
 		must_show_parent = false
-		if verbose: print("Hiding %s because of KBM" % get_parent().name)
+		p("Hiding %s because of KBM", [get_target().name])
 				
 	if not target_hovered and not show_when_hovered.is_empty():
 		must_show_parent = false
-		if verbose: print("Hiding %s because no target is hovered" % get_parent().name)
+		p("Hiding %s because no target is hovered", [get_target().name])
 				
 	if not is_target_focused() and not show_when_focused.is_empty():
 		must_show_parent = false
-		if verbose: print("Hiding %s because no target is focused" % get_parent().name)
+		p("Hiding %s because no target is focused", [get_target().name])
 		
 			
 	if force_hide:
 		must_show_parent = false
-		if verbose: print("Hiding %s just becase" % get_parent().name)
+		p("Hiding %s just becase", [get_target().name])
 				
 	if not is_nan(force_show_time_ms) and force_show_time_ms > 0:
 		must_show_parent = true
-		if verbose: print("Showing %s because forced show time" % get_parent().name)
+		p("Showing %s because forced show time", [get_target().name])
 				
 	parent.visible = must_show_parent
 			
 			
+func _is_parent_valid()-> bool:
+	return get_target() is CanvasItem
+
+
+func _get_parent_requirement()-> String:
+	return "a CanvasItem"
+
+
 func force_show_during(time_ms:float)-> void:
 	force_show_time_ms = time_ms
 	update_parent()

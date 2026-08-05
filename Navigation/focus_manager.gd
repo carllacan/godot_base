@@ -1,4 +1,5 @@
-extends Node
+@tool
+extends BaseComponent
 class_name FocusManager
 
 
@@ -14,23 +15,36 @@ var last_focused_control:Control
 
 
 func _ready()-> void:
-	get_parent().ready.connect(_on_parent_ready)
+	# InputManager is an autoload, so it does not exist at edit time.
+	if Engine.is_editor_hint(): return
+
 	InputManager.type_changed.connect(_on_input_type_changed)
-	
-	
+
+
 func _on_parent_ready()-> void:
-	var p = get_parent()
-	
-	p.visibility_changed.connect(_on_parent_visibility_changed)
-	p.get_viewport().gui_focus_changed.connect(_on_focus_changed)
-	
-	
+	# Grabbing or releasing focus at edit time would fight the editor's own
+	# focus handling, so nothing is wired up there.
+	if Engine.is_editor_hint(): return
+
+	var t := get_target()
+	t.visibility_changed.connect(_on_parent_visibility_changed)
+	t.get_viewport().gui_focus_changed.connect(_on_focus_changed)
+
+
+func _is_parent_valid()-> bool:
+	return get_target() is Control
+
+
+func _get_parent_requirement()-> String:
+	return "a Control"
+
+
 func _on_focus_changed(_receiver:Control)-> void:
-	if not get_parent().is_visible_in_tree(): return
-	
+	if not get_target().is_visible_in_tree(): return
+
 	if not focus_change_played_this_frame:
 		if sound_on_focus_change != null:
-			if get_parent().is_ancestor_of(_receiver):
+			if get_target().is_ancestor_of(_receiver):
 				sound_on_focus_change.play()
 				focus_change_played_this_frame = true
 				await get_tree().process_frame
@@ -61,17 +75,17 @@ func unfocus()-> void:
 func _on_input_type_changed(_new_type)-> void:
 	match InputManager.current_controller_type:
 		InputManager.ControllerTypes.KBM:
-			if unfocus_on_kbm and get_parent().is_visible_in_tree():
+			if unfocus_on_kbm and get_target().is_visible_in_tree():
 				unfocus()
 		InputManager.ControllerTypes.JOYPAD:
-			if focus_on_joypad and get_parent().is_visible_in_tree():
+			if focus_on_joypad and get_target().is_visible_in_tree():
 				focus()
-				
-				
+
+
 func _on_parent_visibility_changed()-> void:
-	var p = get_parent()
-	
-	if p.is_visible_in_tree(): # if was SHOWN
+	var t := get_target()
+
+	if t.is_visible_in_tree(): # if was SHOWN
 		focus()
 		focus_change_played_this_frame = true
 		await get_tree().process_frame

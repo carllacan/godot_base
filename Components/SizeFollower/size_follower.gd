@@ -1,5 +1,5 @@
 @tool
-extends Node
+extends BaseComponent
 class_name SizeFollower
 
 
@@ -7,10 +7,6 @@ class_name SizeFollower
 @export var follow_visibility:bool = true
 
 
-func _ready()-> void:
-	get_parent().ready.connect(_on_parent_ready)
-	
-	
 func _on_parent_ready()-> void:
 	if control_followed == null: return
 	
@@ -33,12 +29,21 @@ func _on_target_visibility_changed()-> void:
 	
 	
 func follow_size()-> void:
-	if get_parent() == null or not get_parent().is_node_ready(): return
-	
+	var t := get_target()
+	if t == null or not t.is_node_ready(): return
+
 	var new_size:Vector2 = control_followed.size
-		
-	get_parent().custom_minimum_size = new_size
-	get_parent().size = new_size
-	
+
+	t.custom_minimum_size = new_size
+	t.size = new_size
+
 	if follow_visibility:
-		get_parent().visible = control_followed.visible
+		t.visible = control_followed.visible
+
+
+func _is_parent_valid()-> bool:
+	return get_target() is Control
+
+
+func _get_parent_requirement()-> String:
+	return "a Control"

@@ -1,4 +1,5 @@
-extends Node
+@tool
+extends BaseComponent
 class_name FaderComponent
 
 enum States {
@@ -19,8 +20,6 @@ enum States {
 @export var fade_on_when_deactivated:bool = true
 # TODO: implement this
 @export var loop:bool = true
-@export_category("Debug")
-@export var verbose:bool = false
 
 
 var time_left:float = NAN
@@ -29,7 +28,10 @@ var original_alpha:float = NAN
 var is_active:bool = false : set = set_is_active
 
 
-func _ready()-> void:
+func _on_parent_ready()-> void:
+	# Drives the target's modulate, which the editor would serialize into the scene.
+	if Engine.is_editor_hint(): return
+
 	# TODO: activation happens before the initial state is applied, so set_is_active
 	# runs while the state is still _undef, tries to fade in and fails its own guard.
 	# Every autostarted fader prints a warning on ready because of this. Setting the
@@ -38,11 +40,13 @@ func _ready()-> void:
 		is_active = true
 	else:
 		is_active = false
-		
-	original_alpha = get_parent().modulate.a
+
+	# Captured here rather than at _ready: the target has run its own _ready by
+	# now, so this is the alpha it actually starts out with.
+	original_alpha = get_target().modulate.a
 	match initial_state:
 		States.INVISIBLE:
-			get_parent().modulate.a = 0.0
+			get_target().modulate.a = 0.0
 			start_invisible_period()
 		States.FADING_IN:
 			state = States.INVISIBLE
@@ -59,7 +63,7 @@ func set_is_active(new_value:bool)-> void:
 	is_active = new_value	
 	var changed = old_value != new_value
 	
-	if changed and verbose: print("Active: %s" % is_active)
+	if changed: p("Active: %s", [is_active])
 	
 	# TODO: fades cannot be interrupted. Deactivating while fading in (or activating
 	# while fading out) hits the guard in start_fading_out/start_fading_in, warns and
@@ -80,18 +84,26 @@ func set_state(new_value:States)-> void:
 	if changed:
 		match state:
 			States.INVISIBLE:
-				#get_parent().modulate.a = 0.0
-				if verbose: print("INVISIBLE")
+				#get_target().modulate.a = 0.0
+				p("INVISIBLE")
 			States.FADING_IN:
-				if verbose: print("FADING_IN")
+				p("FADING_IN")
 			States.VISIBLE:
-				#get_parent().modulate.a = original_alpha
-				if verbose: print("VISIBLE")
+				#get_target().modulate.a = original_alpha
+				p("VISIBLE")
 			States.FADING_OUT:
-				if verbose: print("FADING_OUT")
+				p("FADING_OUT")
 		
 	
-func start_fading_in()-> void:	
+func _is_parent_valid()-> bool:
+	return get_target() is CanvasItem
+
+
+func _get_parent_requirement()-> String:
+	return "a CanvasItem"
+
+
+func start_fading_in()-> void:
 	if state != States.INVISIBLE:
 		push_warning("Method 'start_appearing' can only be called in state INVISIBLE")
 		return
@@ -117,7 +129,8 @@ func start_invisible_period()-> void:
 	state = States.INVISIBLE
 		
 		
-func _process(delta:float)-> void:	
+func _process(delta:float)-> void:
+	if Engine.is_editor_hint(): return
 	if state == States._undef: return
 	
 	time_left -= delta
@@ -129,12 +142,12 @@ func _process(delta:float)-> void:
 		States.FADING_IN:
 			var q = 1.0-time_left/transition_time
 			var new_a = lerp(0.0, original_alpha, q)
-			get_parent().modulate.a = new_a
+			get_target().modulate.a = new_a
 			#if verbose:print("FADING_IN: %s" % new_a)
 		States.FADING_OUT:
 			var q = 1.0-time_left/transition_time
 			var new_a = lerp(original_alpha, 0.0, q)
-			get_parent().modulate.a = new_a
+			get_target().modulate.a = new_a
 			#if verbose:print("FADING_OUT: %s" % new_a)
 	
 	

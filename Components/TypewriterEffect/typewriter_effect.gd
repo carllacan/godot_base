@@ -1,5 +1,5 @@
 @tool
-extends Node
+extends BaseComponent
 class_name TypewriterEffect
 
 
@@ -19,22 +19,19 @@ class_name TypewriterEffect
 
 
 func _ready()-> void:
-	var target = get_parent()
-	
 	if reset_on_ready:
 		reset()
-	if trigger_on_ready:
-		target.ready.connect(_on_parent_ready)
+
+
+func _on_parent_ready()-> void:
 	# TODO: reset_on_shown is only ever acted on from
 	# _on_parent_visibility_changed, which is connected here only when
 	# trigger_on_shown is set. On its own the flag never fires at all, and
 	# alongside trigger_on_shown it is redundant because play() resets anyway, so
 	# it does nothing either way. Connect when either flag is set.
 	if trigger_on_shown:
-		target.visibility_changed.connect(_on_parent_visibility_changed)
-	
-	
-func _on_parent_ready()-> void:
+		get_target().visibility_changed.connect(_on_parent_visibility_changed)
+
 	if reset_on_ready:
 		reset()
 	if trigger_on_ready:
@@ -50,28 +47,29 @@ func _on_parent_visibility_changed()-> void:
 		play()
 		
 		
-func _get_configuration_warnings() -> PackedStringArray:
-	var warnings = []
-	if get_parent() is not RichTextLabel:
-		warnings.append("Parent should be a RichTextLabel")
-	return warnings
-	
-	
+func _is_parent_valid()-> bool:
+	return get_target() is RichTextLabel
+
+
+func _get_parent_requirement()-> String:
+	return "a RichTextLabel"
+
+
 func reset()-> void:
 	if not is_node_ready(): return
-	
-	var target = get_parent()
-	assert(target is RichTextLabel)
-	
-	target.visible_characters = 0
-	
+
+	var t := get_target()
+	assert(t is RichTextLabel)
+
+	t.visible_characters = 0
+
 
 func play(time_s:float = NAN)-> void:
 	if not is_node_ready(): return
-	
-	var target = get_parent()
-	assert(target is RichTextLabel)
-	
+
+	var t := get_target()
+	assert(t is RichTextLabel)
+
 	if is_nan(time_s):
 		time_s = total_time
 		
@@ -82,7 +80,7 @@ func play(time_s:float = NAN)-> void:
 		click_player = write_sound
 		
 	reset()
-	var num_chars = target.get_total_character_count()
+	var num_chars = t.get_total_character_count()
 	# TODO: time_s is worked out above and then never used, so the pace comes from
 	# total_time whatever play() was given. Should be time_s/float(num_chars).
 	var char_time = total_time/float(num_chars)
@@ -90,7 +88,7 @@ func play(time_s:float = NAN)-> void:
 	for c in range(num_chars):
 		if click_player != null:
 			click_player.play()
-		target.visible_characters += 1
+		t.visible_characters += 1
 		# TODO: this waits after the last character too, so the effect lasts
 		# num_chars*char_time rather than the total_time that was asked for.
 		await get_tree().create_timer(char_time).timeout

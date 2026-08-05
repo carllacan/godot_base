@@ -1,5 +1,5 @@
 @tool
-extends Node
+extends BaseComponent
 class_name GameResourceSyncer
 
 @export var resource:GameResource
@@ -41,9 +41,9 @@ func _apply_icon()-> void:
 	if Engine.is_editor_hint(): return
 	if icon_property == "": return
 	if resource == null: return
-	var parent:Node = get_parent()
-	var has_property:bool = parent.get_property_list().any(func(p:Dictionary)-> bool:
-		return p["name"] == icon_property)
+	var parent:Node = get_target()
+	var has_property:bool = parent.get_property_list().any(func(prop:Dictionary)-> bool:
+		return prop["name"] == icon_property)
 	if not has_property:
 		push_error("GameResourceSyncer: parent '%s' has no property '%s'" % [parent.name, icon_property])
 		return
@@ -51,10 +51,10 @@ func _apply_icon()-> void:
 
 
 func _check_target_property()-> void:
-	var parent:Node = get_parent()
+	var parent:Node = get_target()
 	if parent == null: return
-	var has_property:bool = parent.get_property_list().any(func(p:Dictionary)-> bool:
-		return p["name"] == target_property)
+	var has_property:bool = parent.get_property_list().any(func(prop:Dictionary)-> bool:
+		return prop["name"] == target_property)
 	if not has_property:
 		push_error("GameResourceSyncer: parent '%s' has no property '%s'" % [parent.name, target_property])
 
@@ -69,7 +69,7 @@ func _connect_state_signals()-> void:
 
 func _connect_change_request_signal()-> void:
 	if change_request_signal == "": return
-	var parent:Node = get_parent()
+	var parent:Node = get_target()
 	if parent == null: return
 	if not parent.has_signal(change_request_signal):
 		push_error("GameResourceSyncer: parent '%s' has no signal '%s'" % [parent.name, change_request_signal])
@@ -80,7 +80,7 @@ func _connect_change_request_signal()-> void:
 
 func _disconnect_change_request_signal()-> void:
 	if change_request_signal == "": return
-	var parent:Node = get_parent()
+	var parent:Node = get_target()
 	if parent == null: return
 	if parent.has_signal(change_request_signal) and parent.is_connected(change_request_signal, _on_change_requested):
 		parent.disconnect(change_request_signal, _on_change_requested)
@@ -97,7 +97,7 @@ func update_info()-> void:
 	if Engine.is_editor_hint(): return
 
 	var a = Current.Save.get_current_resource(resource)
-	get_parent().set(target_property, a)
+	get_target().set(target_property, a)
 
 
 func _on_change_requested(delta:float)-> void:

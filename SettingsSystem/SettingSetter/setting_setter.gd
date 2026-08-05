@@ -1,5 +1,5 @@
 @tool
-extends Node
+extends BaseComponent
 class_name SettingSetterComponent
 
 ### This node will make its parent control become a setting controller
@@ -21,37 +21,22 @@ class_name SettingSetterComponent
 @export var increase_actions:Array[String] = ["ui_accept", "ui_right"]
 @export var decrease_actions:Array[String] = ["ui_left"]
 
-@export_group("Debug")
-@export var verbose:bool = false
-
 var original_icon:Texture
 
 
 func _ready()-> void:
-	# Settings is an autoload, so it does not exist at edit time. This also sets
-	# the parent's toggle_mode, which the editor would serialize into the scene.
+	# Settings is an autoload, so it does not exist at edit time.
 	if Engine.is_editor_hint(): return
 
 	Settings.setting_changed.connect(_on_setting_changed)
-	
-	var parent = get_parent()
-	parent.ready.connect(_on_parent_ready)
-	parent.gui_input.connect(_on_parent_received_input)
-	
-	if parent is Button:
-		original_icon = parent.icon
-		parent.pressed.connect(_on_parent_button_pressed)	
-		if target_setting.is_bool():
-			parent.toggle_mode = true
-		else:
-			parent.toggle_mode = false
-	else:
-		push_error("Unexpected parent type")
-		
-		
-func p(msg:String)-> void:
-	if not verbose: return
-	print("[SettingSetter] " + msg)
+
+
+func _is_parent_valid()-> bool:
+	return get_target() is Button
+
+
+func _get_parent_requirement()-> String:
+	return "a Button"
 
 
 func _notification(what):
@@ -60,6 +45,17 @@ func _notification(what):
 	
 	
 func _on_parent_ready()-> void:
+	# Sets the target's toggle_mode, which the editor would serialize into the scene.
+	if Engine.is_editor_hint(): return
+
+	var t := get_target()
+	t.gui_input.connect(_on_parent_received_input)
+
+	if t is Button:
+		original_icon = t.icon
+		t.pressed.connect(_on_parent_button_pressed)
+		t.toggle_mode = target_setting.is_bool()
+
 	update_parent()
 	
 	
@@ -81,8 +77,8 @@ func _on_parent_received_input(event:InputEvent)-> void:
 		
 	# If the parent is focused right now we can listen to input actions
 	# (not sure if we need to check for focus, but we do it just in case)
-	var focused = get_parent().get_viewport().gui_get_focus_owner()		
-	if get_parent() == focused:
+	var focused = get_target().get_viewport().gui_get_focus_owner()		
+	if get_target() == focused:
 		for a in decrease_actions:
 			if event.is_action_pressed(a):
 				cycle_setting(-1)
@@ -121,9 +117,8 @@ func cycle_setting(steps:int = 1)-> void:
 	else:
 		next_idx = wrapi(current_idx + steps, 0, len(vals))
 
-	p("%s cycles '%s' from %s to %s" % [
-		get_parent().name, target_setting.name, str(current), str(vals[next_idx])
-	])
+	p("%s cycles '%s' from %s to %s",
+		[get_target().name, target_setting.name, str(current), str(vals[next_idx])])
 
 	Settings.set_setting_value_by_name(target_setting.name, vals[next_idx])
 		
@@ -145,15 +140,14 @@ func update_parent()-> void:
 	# Reached from _notification too, which does fire at edit time.
 	if Engine.is_editor_hint(): return
 
-	var parent = get_parent()
+	var parent = get_target()
 	
 	var n = target_setting.dname.to_upper()
 	var val = Settings.get_setting_value_by_name(target_setting.name)
 	
 	if not must_show_value(val):
-		p("%s shows '%s' as %s, which has no override" % [
-			get_parent().name, target_setting.name, str(val)
-		])
+		p("%s shows '%s' as %s, which has no override",
+			[get_target().name, target_setting.name, str(val)])
 
 	# Generate a representative string
 	var val_str:String
@@ -180,8 +174,6 @@ func update_parent()-> void:
 				parent.icon = icon_overrides[val]
 			else:
 				parent.icon = original_icon
-	else:
-		push_error("Unexpected parent type")
 		
 			
 			
