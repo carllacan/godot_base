@@ -28,6 +28,7 @@ func _make_animator(opts:Dictionary = {})-> PropertyAnimator:
 	animator.value_offset = opts.get("value_offset", null)
 	animator.transform_to_degrees = opts.get("transform_to_degrees", false)
 	animator.invert_ends = opts.get("invert_ends", false)
+	animator.steps = opts.get("steps", 0)
 
 	parent.add_child(animator)
 	add_child_autofree(holder)
@@ -151,12 +152,15 @@ func test_changing_the_offset_recalculates_the_actual_values():
 	assert_almost_eq(animator.actual_max, 15.0, DELTA)
 
 
+## The ends are Variant so the animator can drive vectors and colours, which
+## means "not calculated yet" reads as null rather than as a zero that cannot be
+## told apart from a legitimate one.
 func test_nothing_is_calculated_while_an_end_is_missing():
 	# An animator whose ends have not been filled in yet
 	var animator := _make_animator({"min_value": 5.0, "max_value": null})
 
-	assert_almost_eq(animator.actual_min, 0.0, DELTA)
-	assert_almost_eq(animator.actual_max, 0.0, DELTA)
+	assert_null(animator.actual_min)
+	assert_null(animator.actual_max)
 
 #endregion
 
@@ -518,5 +522,161 @@ func test_the_engine_drives_a_playing_animator():
 
 	assert_gt(animator.cycle_time, 0.0)
 	assert_gt(_value(animator), 0.0)
+
+#endregion
+
+
+#region animating things that are not numbers
+
+## The ends are Variant and the interpolation goes through the generic lerp, so
+## anything lerp understands can be animated, not just floats.
+func test_a_vector2_property_is_animated_between_its_ends():
+	var animator := _make_animator({
+		"property": "position",
+		"mode": PropertyAnimator.Mode.RESTART,
+		"min_value": Vector2(0, 0),
+		"max_value": Vector2(10, 20),
+	})
+
+	animator.cycle_time = 0.5
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), Vector2(5, 10), Vector2(DELTA, DELTA))
+
+
+func test_a_vector2_animation_reaches_its_maximum():
+	var animator := _make_animator({
+		"property": "position",
+		"mode": PropertyAnimator.Mode.RESTART,
+		"min_value": Vector2(0, 0),
+		"max_value": Vector2(10, 20),
+	})
+
+	animator.cycle_time = 1.0
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), Vector2(10, 20), Vector2(DELTA, DELTA))
+
+
+func test_a_color_property_is_animated_between_its_ends():
+	var animator := _make_animator({
+		"property": "modulate",
+		"mode": PropertyAnimator.Mode.RESTART,
+		"min_value": Color(0, 0, 0, 0),
+		"max_value": Color(1, 1, 1, 1),
+	})
+
+	animator.cycle_time = 0.5
+	animator.update_property()
+
+	# assert_almost_eq cannot take a Color: it compares with >=, which Color has
+	# no operator for.
+	assert_true(_value(animator).is_equal_approx(Color(0.5, 0.5, 0.5, 0.5)),
+		"got %s" % _value(animator))
+
+
+## deg_to_rad has no meaning for a vector, so the value is passed through rather
+## than being mangled by a conversion that does not apply to it. Flipped after
+## the animator is in the tree so exactly one recalculation happens, and so the
+## single error can be asserted against.
+func test_transform_to_degrees_leaves_a_vector_alone_and_complains():
+	var animator := _make_animator({
+		"property": "position",
+		"min_value": Vector2(0, 0),
+		"max_value": Vector2(90, 90),
+	})
+
+	animator.transform_to_degrees = true
+
+	assert_eq(animator.actual_max, Vector2(90, 90))
+	assert_push_error("only applies to numbers")
+
+#endregion
+
+
+#region steps
+
+func test_an_animation_is_continuous_by_default():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART, "steps": 0})
+
+	animator.cycle_time = 0.3
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), 3.0, DELTA)
+
+
+## With four steps over a range of 0..3 the animation should read out exactly
+## 0, 1, 2, 3 and nothing in between.
+func test_steps_restrict_the_animation_to_whole_values():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART,
+		"min_value": 0.0, "max_value": 3.0, "steps": 4})
+
+	var seen:Array[float] = []
+	for i in 100:
+		animator.cycle_time = i/100.0
+		animator.update_property()
+		var v:float = _value(animator)
+		if v not in seen: seen.append(v)
+
+	seen.sort()
+	assert_eq(seen, [0.0, 1.0, 2.0, 3.0] as Array[float])
+
+
+## What makes steps usable for a spritesheet: every step has to be on screen for
+## the same length of time, the last one included.
+func test_every_step_lasts_the_same_slice_of_the_period():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART,
+		"min_value": 0.0, "max_value": 3.0, "steps": 4})
+
+	var samples_per_step:Dictionary = {}
+	for i in 400:
+		animator.cycle_time = i/400.0
+		animator.update_property()
+		var v:float = _value(animator)
+		samples_per_step[v] = samples_per_step.get(v, 0) + 1
+
+	assert_eq(samples_per_step.size(), 4, "one bucket per step")
+	for step in samples_per_step:
+		assert_eq(samples_per_step[step], 100, "step %s lasts a quarter of the period" % step)
+
+
+## A weight of exactly 1 must land on the last step, not one past it.
+func test_the_end_of_the_period_lands_on_the_last_step():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART,
+		"min_value": 0.0, "max_value": 3.0, "steps": 4})
+
+	animator.cycle_time = 1.0
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), 3.0, DELTA)
+
+
+func test_a_single_step_holds_the_minimum():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART,
+		"min_value": 0.0, "max_value": 3.0, "steps": 1})
+
+	animator.cycle_time = 0.9
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), 0.0, DELTA)
+
+
+func test_steps_also_quantize_a_vector_animation():
+	var animator := _make_animator({
+		"property": "position",
+		"mode": PropertyAnimator.Mode.RESTART,
+		"min_value": Vector2(0, 0),
+		"max_value": Vector2(3, 30),
+		"steps": 4})
+
+	animator.cycle_time = 0.4
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), Vector2(1, 10), Vector2(DELTA, DELTA))
 
 #endregion

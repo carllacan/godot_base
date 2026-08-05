@@ -23,6 +23,14 @@ enum Mode {
 @export var period:float = 1.0
 @export var pause_between_cycles:float = 0.0
 @export var autostart:bool = true
+## Number of discrete values the animation is allowed to take. [code]0[/code]
+## leaves it continuous.
+##
+## With [constant Mode.RESTART] each step lasts exactly the same slice of the
+## period, so [code]steps[/code] equal to a spritesheet's frame count walks the
+## frames evenly. Under [constant Mode.PERIODIC] the steps are evenly spaced in
+## value rather than in time, because the sine that drives it is not linear.
+@export var steps:int = 0
 @export_group("Values")
 @export var min_value:Variant : set = set_min_value
 @export var max_value:Variant : set = set_max_value
@@ -40,8 +48,11 @@ var state:State = State.STOPPED
 var cycle_time:float = 0
 var intercycle_time:float = 0
 
-var actual_max:float
-var actual_min:float
+# Variant rather than float so the animator can drive Vector2, Vector3 and
+# Color properties as well as numbers. Everything between here and
+# update_property() goes through the generic lerp, which handles all of them.
+var actual_max:Variant
+var actual_min:Variant
 
 
 
@@ -102,19 +113,40 @@ func set_invert_ends(new_value:bool)-> void:
 func calculate_actual_values()-> void:
 	if min_value == null or max_value == null: return
 
-	actual_max = max_value if not transform_to_degrees else deg_to_rad(max_value)
-	actual_min = min_value if not transform_to_degrees else deg_to_rad(min_value)
-	
+	# deg_to_rad has no meaning for a vector or a colour, so the conversion is
+	# dropped rather than being applied to something it would mangle. Decided
+	# once here rather than per end, so one bad setup reports one error.
+	var as_degrees:bool = transform_to_degrees
+	if as_degrees and typeof(min_value) not in [TYPE_FLOAT, TYPE_INT]:
+		push_error("PropertyAnimator: transform_to_degrees only applies to numbers, not %s"
+			% type_string(typeof(min_value)))
+		as_degrees = false
+
+	actual_max = deg_to_rad(max_value) if as_degrees else max_value
+	actual_min = deg_to_rad(min_value) if as_degrees else min_value
+
 	if value_offset != null:
-		var offset_v  = value_offset if not transform_to_degrees else deg_to_rad(value_offset)
-		
+		var offset_v:Variant = deg_to_rad(value_offset) if as_degrees else value_offset
+
 		actual_max += offset_v
 		actual_min += offset_v
-		
+
 	if invert_ends:
-		var _a = actual_max
+		var _a:Variant = actual_max
 		actual_max = actual_min
 		actual_min = _a
+
+
+## Rounds [param weight] down to one of [member steps] evenly spaced values.
+## Returns it untouched while [member steps] is 0.
+func _quantize(weight:float)-> float:
+	if steps <= 0: return weight
+	if steps == 1: return 0.0
+
+	# The index is capped because a weight of exactly 1 would otherwise land on
+	# step number `steps`, one past the last one, and overshoot the maximum.
+	var index:float = min(floor(weight * steps), steps - 1)
+	return index / float(steps - 1)
 	
 
 func start()-> void:
@@ -157,19 +189,19 @@ func update_property()-> void:
 	if not is_node_ready(): return
 	if min_value == null or max_value == null or property == "": return
 	
-	var phase = cycle_time/period
-	var c:float
-	var value:float
-	
-	
+	var phase:float = cycle_time/period
+	var weight:float
+
 	match mode:
 		Mode.PERIODIC:
-			c = sin(2*PI*phase)
-			value = lerp(actual_min, actual_max, inverse_lerp(-1, 1, c))
+			weight = inverse_lerp(-1, 1, sin(2*PI*phase))
 		Mode.RESTART:
-			c = phase
-			value = lerp(actual_min, actual_max, c)
-	
+			weight = phase
+
+	# lerp is generic, so this is the same line whether the ends are floats,
+	# Vector2s, Vector3s or Colors.
+	var value:Variant = lerp(actual_min, actual_max, _quantize(weight))
+
 	get_target().set_indexed(property, value)
 
 	p("%s->%s", [cycle_time, value])
