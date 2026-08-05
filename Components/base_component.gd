@@ -26,9 +26,13 @@ class_name BaseComponent
 ## writes serialised into the scene the next time it is saved, silently replacing
 ## whatever the scene was authored with.
 
-## The node this component acts on. Leave empty to act on the parent, which is
-## the usual case. Read it through [method get_target], never directly.
-@export var target:Node
+## Points the component at a node other than its parent. Leave empty for the
+## usual case, where the parent is the target.
+##
+## Named an override rather than "target" on purpose: it holds only what the
+## scene explicitly set, so it is empty far more often than not. Everything that
+## wants the node being acted on calls [method get_target].
+@export var target_override:Node
 
 ## Whether the component does its work. What that means is up to each subclass;
 ## on its own this only drives the processing callbacks selected below.
@@ -47,8 +51,8 @@ class_name BaseComponent
 @export var verbose:bool = false
 
 
-## The node this component acts on: [member target] when one is set, the parent
-## otherwise.
+## The node this component acts on: [member target_override] when one is set,
+## the parent otherwise.
 ##
 ## Deliberately not cached. Measured on 4.7, [method Node.get_parent] costs about
 ## 38 ns more per call than reading a cached variable, and nothing here calls it
@@ -56,7 +60,7 @@ class_name BaseComponent
 ## roughly 7 us, or 0.05% of a 16 ms frame. Caching would buy none of that back
 ## and would go stale the first time anything reparented a component.
 func get_target()-> Node:
-	return target if target != null else get_parent()
+	return target_override if target_override != null else get_parent()
 
 
 ## Override to declare what this component may be attached to. Reported as an
