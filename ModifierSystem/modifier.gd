@@ -69,7 +69,7 @@ func apply(base_value)-> float:
 			
 			
 func get_value()-> float:
-	if apply_override:
+	if apply_override and Flags.DEBUG:
 		return override_value
 	else:
 		return value
