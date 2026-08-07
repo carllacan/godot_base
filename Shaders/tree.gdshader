@@ -18,6 +18,13 @@ group_uniforms;
 uniform vec4 background_color : source_color = vec4(0.0, 0.0, 0.0, 0.0);
 uniform float antialias_px : hint_range(0.0, 4.0) = 1.0;
 
+// Size of the rect being painted, in the same pixel units as `segments`.
+// Supplied by the script so the node can carry a 1x1 texture: deriving it from
+// TEXTURE_PIXEL_SIZE instead forces a full-size RGBA image to exist purely to
+// be measured, and this shader never samples TEXTURE at all. Left at zero it
+// falls back to the texture, so scenes predating the uniform still draw.
+uniform vec2 canvas_size = vec2(0.0);
+
 
 float dist_to_segment(vec2 p, vec2 a, vec2 b) {
 	vec2 ab = b - a;
@@ -31,8 +38,8 @@ float dist_to_segment(vec2 p, vec2 a, vec2 b) {
 
 
 void fragment() {
-	vec2 texture_size = 1.0 / TEXTURE_PIXEL_SIZE;
-	vec2 pixel = UV * texture_size - texture_size * 0.5;
+	vec2 rect_size = canvas_size.x > 0.0 ? canvas_size : 1.0 / TEXTURE_PIXEL_SIZE;
+	vec2 pixel = UV * rect_size - rect_size * 0.5;
 
 	float min_dist = 1.0e10;
 	for (int i = 0; i < line_count; i++) {
