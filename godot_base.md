@@ -6,16 +6,133 @@ GodotBase is a collection of reusable code, scenes, and resources designed to be
 
 ## Table of Contents
 
-1. [Core Philosophy](#core-philosophy)
-2. [Base Classes](#base-classes)
-3. [Settings System](#settings-system)
-4. [Modifier System](#modifier-system)
-5. [Components](#components)
-6. [Scene Utilities](#scene-utilities)
-7. [Autoloads](#autoloads)
-8. [Global Utilities](#global-utilities)
-9. [Integration (Steam, etc.)](#integration)
-10. [Configuration](#configuration)
+1. [Installation](#installation)
+2. [Core Philosophy](#core-philosophy)
+3. [Base Classes](#base-classes)
+4. [Settings System](#settings-system)
+5. [Modifier System](#modifier-system)
+6. [Components](#components)
+7. [Scene Utilities](#scene-utilities)
+8. [Autoloads](#autoloads)
+9. [Global Utilities](#global-utilities)
+10. [Integration (Steam, etc.)](#integration)
+11. [Configuration](#configuration)
+
+---
+
+## Installation
+
+GodotBase is consumed as a **git submodule**. The repository lives at `git@github.com:carllacan/godot_base.git`, and each project checks it out as a `GodotBase/` folder inside its Godot project root, so everything resolves as `res://GodotBase/...`.
+
+### How a submodule works
+
+The parent project does not store GodotBase's files. It stores a single **gitlink** entry — mode `160000` — recording one commit SHA:
+
+```
+$ git ls-files -s code/bingomental/GodotBase
+160000 756d283e3fbd552000c2cd1dffc0e8dc013aad7a 0   code/bingomental/GodotBase
+```
+
+Two files describe the setup:
+
+- **`.gitmodules`** — tracked and committed; holds the path and clone URL, and is what other clones read.
+- **`.git/config`** — local only; written by `git submodule init` from `.gitmodules`.
+
+Because the parent pins a *commit* rather than a branch, each project stays on the GodotBase revision it was last updated to. Projects that are no longer being worked on keep building against their pinned SHA and are unaffected by new pushes to GodotBase's `main`.
+
+### Adding GodotBase to a new project
+
+Run from the target project's git root. The path must sit next to that project's `project.godot`:
+
+```bash
+git submodule add git@github.com:carllacan/godot_base.git <path/to>/GodotBase
+git config --file .gitmodules submodule.<path/to>/GodotBase.branch main
+git add .gitmodules <path/to>/GodotBase
+git commit -m "Add GodotBase as submodule"
+```
+
+The `branch` setting is optional but recommended — without it, `git submodule update --remote` follows the remote HEAD rather than an explicitly named branch.
+
+> **Never embed a personal access token in the submodule URL.** `.gitmodules` is a tracked file: a token written there is committed and pushed for anyone with read access to the repository. Use the SSH URL above.
+
+### Godot-side setup
+
+Cloning the folder is not sufficient — the project must also register what it uses:
+
+1. **Autoloads.** Add the GodotBase singletons the project needs under *Project Settings → Autoload*, or directly in `project.godot`. For example, bingomental registers:
+
+   ```ini
+   [autoload]
+   Log="*res://GodotBase/GameplayLogger/gameplay_logger.gd"
+   SaveManager="*res://GodotBase/Autoloads/save_manager.gd"
+   SignalManager="*res://GodotBase/Autoloads/signal_manager.gd"
+   Pause="*res://GodotBase/Scenes/PauseController/pause_controller.gd"
+   ```
+
+   See [Autoloads](#autoloads) for the full list of what is available.
+
+2. **Settings resource.** Create `res://Parameters/godot_base_settings.tres` to override per-project defaults. See [Configuration](#configuration).
+
+GodotBase ships no `addons/` folder, so no editor plugin installation is required.
+
+### Cloning a project that already uses GodotBase
+
+A plain `git clone` leaves `GodotBase/` **empty** — the folder exists but has no contents, and the Godot project will fail to load. Either clone recursively:
+
+```bash
+git clone --recurse-submodules <project-repo>
+```
+
+or populate it afterwards:
+
+```bash
+git submodule update --init --recursive
+```
+
+This is the most common cause of a broken CI job on a project that uses GodotBase — build pipelines need the recursive checkout too.
+
+### Keeping the submodule in sync
+
+`git pull` in the parent updates the *pointer* only; it does not touch the `GodotBase/` working tree. After any `pull`, `checkout`, or branch switch you must run `git submodule update`, or you will be building against a stale GodotBase.
+
+Setting this once makes it automatic:
+
+```bash
+git config --global submodule.recurse true      # auto-update on pull/checkout
+git config --global diff.submodule log          # show GodotBase commits in diffs
+git config --global status.submodulesummary 1   # show submodule changes in git status
+```
+
+To pull the latest GodotBase into a project:
+
+```bash
+git submodule update --remote <path/to>/GodotBase
+git add <path/to>/GodotBase
+git commit -m "Bump GodotBase"
+```
+
+The second commit is required — updating the submodule's working tree changes the pinned SHA, which is a change in the parent repository that must be committed like any other.
+
+### Making changes to GodotBase
+
+Changes flow in **two steps**, and skipping either one causes a predictable failure:
+
+```bash
+# 1. Commit and push inside the submodule
+cd <path/to>/GodotBase
+git checkout main          # see the detached HEAD note below
+git commit -am "..."
+git push
+
+# 2. Commit the updated pointer in the parent project
+cd -
+git add <path/to>/GodotBase
+git commit -m "Bump GodotBase"
+```
+
+Forgetting step 2 leaves the parent pointing at the old revision. Forgetting step 1 pushes a pointer to a commit nobody else can fetch, which breaks every other clone. `git push --recurse-submodules=on-demand` from the parent guards against the latter.
+
+**Detached HEAD is normal.** `git submodule update` checks out a bare SHA, not a branch. Always `git checkout main` inside `GodotBase/` before committing, or the work will be stranded on an unreferenced commit.
 
 ---
 
