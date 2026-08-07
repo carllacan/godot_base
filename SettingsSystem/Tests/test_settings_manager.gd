@@ -381,6 +381,8 @@ func test_the_default_language_follows_the_system_one():
 	var expected:String = Integration.get_current_language()
 	if expected == "":
 		expected = OS.get_locale_language()
+	expected = TranslationServer.standardize_locale(expected)   # compare like for like
+
 
 	manager._on_setting_changed(GodotBase.settings.language_setting.name, "default")
 
