@@ -223,8 +223,6 @@ func start_opening()-> void:
 	
 func close()-> void:
 	state = State.CLOSING
-	#hide()
-	#closed.emit()
 	
 	
 func _on_finished_closing()-> void:

@@ -107,4 +107,4 @@ func float_away()-> void:
 	# TODO: this frees the floater, not the node it floated away. The faded out
 	# parent stays in the tree, and neither FloatingLabel nor CoinsToast frees
 	# itself, so they pile up invisible nodes.
-	queue_free()
+	get_parent().queue_free()
