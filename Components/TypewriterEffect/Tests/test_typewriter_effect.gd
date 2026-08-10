@@ -81,8 +81,7 @@ func test_a_typewriter_under_a_rich_text_label_has_nothing_to_complain_about():
 	assert_true(typewriter._get_configuration_warnings().is_empty())
 
 
-## The wording comes from BaseComponent now, built out of _is_parent_valid and
-## _get_parent_requirement, so it names both what was expected and what it got.
+## The wording comes from BaseComponent now, off the back of _is_parent_valid.
 func test_a_typewriter_under_anything_else_complains():
 	var parent := Node.new()
 	var typewriter:TypewriterEffect = SCENE.instantiate()
@@ -91,7 +90,6 @@ func test_a_typewriter_under_anything_else_complains():
 
 	var warnings := typewriter._get_configuration_warnings()
 	assert_eq(warnings.size(), 1)
-	assert_string_contains(warnings[0], "a RichTextLabel", "names the requirement")
 	assert_string_contains(warnings[0], "Node", "names what it actually got")
 	assert_push_error("cannot be attached to a Node")
 

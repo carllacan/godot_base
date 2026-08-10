@@ -232,7 +232,7 @@ func test_a_runner_under_anything_else_complains():
 
 	var warnings := runner._get_configuration_warnings()
 	assert_eq(warnings.size(), 1)
-	assert_string_contains(warnings[0], "a Sprite2D")
+	assert_string_contains(warnings[0], "cannot be attached to a Node2D")
 	assert_push_error("cannot be attached to a Node2D")
 
 #endregion

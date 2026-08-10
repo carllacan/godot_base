@@ -43,7 +43,3 @@ func follow_size()-> void:
 
 func _is_parent_valid()-> bool:
 	return get_target() is Control
-
-
-func _get_parent_requirement()-> String:
-	return "a Control"

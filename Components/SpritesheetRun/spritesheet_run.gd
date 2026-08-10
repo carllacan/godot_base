@@ -46,10 +46,6 @@ func _is_parent_valid()-> bool:
 	return get_target() is Sprite2D
 
 
-func _get_parent_requirement()-> String:
-	return "a Sprite2D"
-
-
 func set_frame_start(value:int)-> void:
 	frame_start = value
 	if is_node_ready() and not Engine.is_editor_hint():

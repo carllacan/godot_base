@@ -33,8 +33,11 @@ class _PickyProbe extends BaseComponent:
 	func _is_parent_valid()-> bool:
 		return get_parent() is Button
 
-	func _get_parent_requirement()-> String:
-		return "a Button"
+
+## As _PickyProbe, but wording its own complaint instead of taking the default.
+class _WordyProbe extends _PickyProbe:
+	func _get_invalid_parent_message()-> String:
+		return "a WordyProbe belongs under a Button"
 
 
 ## Counts its processing callbacks so the enabled flags can be observed.
@@ -195,14 +198,23 @@ func test_an_invalid_parent_is_reported_as_a_configuration_warning():
 	assert_push_error("cannot be attached to a Label")
 
 
-func test_the_warning_says_what_the_parent_should_have_been():
+func test_the_warning_says_what_the_parent_actually_is():
 	var probe := _PickyProbe.new()
 	_make(probe, Label.new())
 
 	var warning:String = probe._get_configuration_warnings()[0]
-	assert_string_contains(warning, "a Button", "names the requirement")
 	assert_string_contains(warning, "Label", "names what it actually got")
 	assert_push_error("cannot be attached to a Label")
+
+
+## A component that can say something more useful than "not this parent" replaces
+## the whole message, rather than feeding a fragment to the base class.
+func test_a_component_can_word_its_own_complaint():
+	var probe := _WordyProbe.new()
+	_make(probe, Label.new())
+
+	assert_eq(probe._get_configuration_warnings()[0], "a WordyProbe belongs under a Button")
+	assert_push_error("a WordyProbe belongs under a Button")
 
 
 ## The editor gets a configuration warning; a running game gets an error, since
@@ -211,7 +223,7 @@ func test_an_invalid_parent_is_also_an_error_at_runtime():
 	var probe := _PickyProbe.new()
 	_make(probe, Label.new())
 
-	assert_push_error("cannot be attached to a Label, it must be a child of a Button")
+	assert_push_error("cannot be attached to a Label")
 
 
 func test_a_component_with_no_parent_produces_no_warning():

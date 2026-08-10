@@ -75,10 +75,6 @@ func _is_parent_valid()-> bool:
 	return get_target() is Button
 
 
-func _get_parent_requirement()-> String:
-	return "a Button"
-
-
 func _on_parent_ready()-> void:
 	# hide_on_ready collapses every screen in the menu. At edit time the editor
 	# would serialize that, so opening a menu scene would silently hide half of it.

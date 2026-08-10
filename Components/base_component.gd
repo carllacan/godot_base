@@ -69,12 +69,6 @@ func _is_parent_valid()-> bool:
 	return true
 
 
-## Override to describe a valid parent, e.g. [code]"a Button"[/code], so the
-## error and the configuration warning can say something useful.
-func _get_parent_requirement()-> String:
-	return ""
-
-
 ## Called once the target has finished its own [method Node._ready]. Connections
 ## to the target's signals belong here.
 func _on_parent_ready()-> void:
@@ -159,11 +153,11 @@ func _get_configuration_warnings()-> PackedStringArray:
 	return warnings
 
 
+## The wording of both the runtime error and the configuration warning. Override
+## it to say more than that the parent is wrong.
 func _get_invalid_parent_message()-> String:
-	var requirement:String = _get_parent_requirement()
-	var tail:String = "" if requirement == "" else ", it must be a child of %s" % requirement
-	return "%s cannot be attached to a %s%s" % [
-		_get_component_name(), get_parent().get_class(), tail
+	return "%s cannot be attached to a %s" % [
+		_get_component_name(), get_parent().get_class()
 	]
 
 

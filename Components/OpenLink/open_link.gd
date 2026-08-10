@@ -27,10 +27,6 @@ func _on_parent_ready()-> void:
 func _is_parent_valid()-> bool:
 	return get_target() is BaseButton
 
-
-func _get_parent_requirement()-> String:
-	return "a BaseButton"
-
 	
 func get_link()-> String:
 	for feature in link_if_feature.keys():

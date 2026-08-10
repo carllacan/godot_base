@@ -51,10 +51,6 @@ func _is_parent_valid()-> bool:
 	return get_target() is RichTextLabel
 
 
-func _get_parent_requirement()-> String:
-	return "a RichTextLabel"
-
-
 func reset()-> void:
 	if not is_node_ready(): return
 

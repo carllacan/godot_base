@@ -120,10 +120,6 @@ func _is_parent_valid()-> bool:
 	return get_target() is CanvasItem
 
 
-func _get_parent_requirement()-> String:
-	return "a CanvasItem"
-
-
 func force_show_during(time_ms:float)-> void:
 	force_show_time_ms = time_ms
 	update_parent()

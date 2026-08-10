@@ -35,10 +35,6 @@ func _is_parent_valid()-> bool:
 	return get_target() is Button
 
 
-func _get_parent_requirement()-> String:
-	return "a Button"
-
-
 func _notification(what):
 	if what == NOTIFICATION_TRANSLATION_CHANGED:
 		update_parent()

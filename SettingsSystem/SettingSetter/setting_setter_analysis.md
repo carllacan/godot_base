@@ -6,8 +6,8 @@ demonstrated by the test suite as it stands, so changing them means updating tha
 too.
 
 The refactor already absorbed the parent-validation problems this review originally
-raised: `_is_parent_valid` / `_get_parent_requirement` report a bad parent both at
-runtime and in the editor, and the target wiring moved to `_on_parent_ready`. What
+raised: `_is_parent_valid` reports a bad parent both at runtime and in the editor,
+and the target wiring moved to `_on_parent_ready`. What
 follows is what is left, in the order it is worth fixing.
 
 ## 1. Two scenes still set a property that no longer exists

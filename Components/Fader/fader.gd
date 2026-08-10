@@ -99,10 +99,6 @@ func _is_parent_valid()-> bool:
 	return get_target() is CanvasItem
 
 
-func _get_parent_requirement()-> String:
-	return "a CanvasItem"
-
-
 func start_fading_in()-> void:
 	if state != States.INVISIBLE:
 		push_warning("Method 'start_appearing' can only be called in state INVISIBLE")

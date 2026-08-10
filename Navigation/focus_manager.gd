@@ -35,10 +35,6 @@ func _is_parent_valid()-> bool:
 	return get_target() is Control
 
 
-func _get_parent_requirement()-> String:
-	return "a Control"
-
-
 func _on_focus_changed(_receiver:Control)-> void:
 	if not get_target().is_visible_in_tree(): return
 
