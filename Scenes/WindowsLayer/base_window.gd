@@ -154,10 +154,18 @@ func set_text(value:String)-> void:
 	
 func update_default_info()-> void:
 	if not is_node_ready(): return
-	if title != "":
-		%DefaultTitle.text = tr(title)
-	if text != "":
-		%DefaultText.text = tr(text)
+	if title == "":
+		%DefaultTitle.text = ""
+		%DefaultTitle.hide()
+	else:
+		%DefaultTitle.text = title
+		%DefaultTitle.show()
+	if text == "":
+		%DefaultText.text = ""
+		%DefaultText.hide()
+	else:
+		%DefaultText.text = text
+		%DefaultText.show()
 	
 	
 func _on_no_pressed()-> void:
