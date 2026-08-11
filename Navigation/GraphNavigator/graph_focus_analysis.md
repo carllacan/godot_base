@@ -100,7 +100,15 @@ Fix: `_elements = elements.duplicate()`.
 
 ## Improvements
 
-### Positions are corners, not centres
+### ~~Positions are corners, not centres~~ — done 2026-08-11
+
+Fixed as described below. The prediction that no existing test would break held:
+every element in the suite was zero-sized, so centres and corners coincided
+throughout. Two tests were added that place sized elements and fail against the
+old corner behaviour —
+`test_a_control_is_a_neighbour_by_its_centre_not_its_corner` and
+`test_the_nearest_element_is_measured_from_its_centre` — along with a `_rect`
+helper for building them.
 
 `graph_focus.gd:121-126`. `Control.global_position` is the top-left of the
 control's rect. For a row of buttons of differing heights, or a wide button beside
@@ -115,7 +123,29 @@ Test: `test_node2d_elements_are_placed_by_their_global_position` and the grid
 coordinates in most other tests assume corners, but every test places
 zero-sized controls, so centres and corners coincide and nothing would break.
 
-### `build_graph` does 4n² position lookups
+### ~~`build_graph` does 4n² position lookups~~ — done 2026-08-11
+
+Rewritten as a single pass: positions are read once into a parallel array, then
+each pair is visited once with all four directions settled in that visit.
+`_find_nearest_in_direction` is gone, and the `directions` array is now the
+`DIRECTIONS` const.
+
+Measured against the old implementation on a grid of sized Controls, with the
+scoring and the centre-of-rect positions held identical so only the loop
+structure differed:
+
+```
+n= 50   old   4.28 ms   new   1.39 ms   3.1x
+n=100   old  16.42 ms   new   5.31 ms   3.1x
+n=200   old  65.39 ms   new  20.80 ms   3.1x
+n=400   old 257.63 ms   new  80.65 ms   3.2x
+```
+
+Both are still quadratic — the pair count never changed and the ratio is flat
+across n. What went away is the constant factor: three quarters of the transform
+reads. The upgrades tree is ~35 buttons, so this is a fraction of a millisecond
+either way there; it matters if a screen ever gets large enough for the old
+version's 16ms at n=100 to land inside a frame.
 
 `graph_focus.gd:58-64`. `_find_nearest_in_direction` walks every element and
 re-reads every global position once per direction, and re-reads `from`'s position
@@ -129,7 +159,9 @@ purchase — which is exactly the case the header example describes.
 While there: the `directions` array at `graph_focus.gd:56` is rebuilt on every
 call and can be a `const`.
 
-### No `clear()`
+### ~~No `clear()`~~ — done 2026-08-11
+
+Added, and `build_graph` now calls it instead of touching `_graph` directly.
 
 The only way to empty the graph is `build_graph([])`. A screen being closed has
 nothing better to call.
@@ -144,12 +176,14 @@ exactly 0 would divide by zero. Keep it.
 
 ## What the tests cover
 
-`Tests/test_graph_focus.gd`, 35 tests in four regions:
+`Tests/test_graph_focus.gd`, 40 tests in four regions:
 
 - **build_graph** — neighbours in all four directions, per-element links, isolated
   elements, the visibility check skipping over a hidden element to reach the next
-  one, rebuilding forgetting the old links, and elements left out for having no
-  2D position or for having been freed (each with its warning asserted).
+  one, rebuilding forgetting the old links, elements left out for having no
+  2D position or for having been freed (each with its warning asserted), and
+  `clear` emptying the graph, tolerating an unbuilt one, and being rebuildable
+  after.
 - **get_neighbor** — null for a null element, an element never added, an unbuilt
   graph, an empty direction; a freed neighbour is not handed back; and directions
   snapping to their dominant axis, with a perfect diagonal going horizontal.
@@ -157,11 +191,12 @@ exactly 0 would divide by zero. Keep it.
   aligned candidates, but an aligned element at 100px beats an off-axis one at
   67px; a perpendicular element is not a neighbour; a corner element is reachable
   both sideways and down at the default 0.3 threshold and not at 0.9; two elements
-  on the same spot can never reach each other.
-- **get_nearest_to** — nearest wins, the visibility check is honoured, `Node2D`
-  and `Control` are both positioned, freed elements are skipped, elements outside
-  the graph are never returned, and mutating the caller's array after the build
-  changes nothing.
+  on the same spot can never reach each other; and a tall Control is reachable by
+  its centre when its corner would be outside the cone.
+- **get_nearest_to** — nearest wins and is measured from rect centres, the
+  visibility check is honoured, `Node2D` and `Control` are both positioned, freed
+  elements are skipped, elements outside the graph are never returned, and
+  mutating the caller's array after the build changes nothing.
 
 Run with:
 

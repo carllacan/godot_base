@@ -4,9 +4,14 @@ extends GutTest
 ## nothing, so every test builds a graph by hand and asks it questions.
 ##
 ## The elements are bare Controls placed at known positions and put in the tree,
-## because the graph is built from global_position and a Control outside the
-## tree has no global transform. They are laid out on a coarse grid so the
+## because the graph is built from their global transform, which a Control
+## outside the tree does not have. They are laid out on a coarse grid so the
 ## expected neighbour is obvious from the coordinates alone.
+##
+## Most of them are left at zero size, where the centre of a Control's rect and
+## its top-left corner coincide and the grid coordinate is the position either
+## way. The tests that care about the difference build their elements with
+## [method _rect].
 
 
 var _focus:GraphFocus
@@ -23,6 +28,15 @@ func _at(x:float, y:float)-> Control:
 	var control := Control.new()
 	control.position = Vector2(x, y)
 	_elements.add_child(control)
+	return control
+
+
+## An element with a size, for the cases where the centre of its rect and its
+## top-left corner are far enough apart to change the answer. x and y are still
+## the corner, the same as _at.
+func _rect(x:float, y:float, w:float, h:float)-> Control:
+	var control := _at(x, y)
+	control.size = Vector2(w, h)
 	return control
 
 
@@ -146,6 +160,34 @@ func test_an_element_freed_before_the_build_is_left_out():
 	_focus.build_graph([a, gone])
 
 	assert_null(_focus.get_neighbor(a, Vector2.RIGHT))
+
+
+func test_clearing_leaves_nothing_navigable():
+	var a := _at(0, 0)
+	var b := _at(100, 0)
+	_focus.build_graph([a, b])
+
+	_focus.clear()
+
+	assert_null(_focus.get_neighbor(a, Vector2.RIGHT))
+	assert_null(_focus.get_nearest_to(Vector2.ZERO))
+
+
+func test_clearing_an_unbuilt_graph_is_harmless():
+	_focus.clear()
+
+	assert_null(_focus.get_nearest_to(Vector2.ZERO))
+
+
+func test_a_cleared_graph_can_be_built_again():
+	var a := _at(0, 0)
+	var b := _at(100, 0)
+	_focus.build_graph([a, b])
+	_focus.clear()
+
+	_focus.build_graph([a, b])
+
+	assert_eq(_focus.get_neighbor(a, Vector2.RIGHT), b)
 
 
 func test_an_element_freed_before_the_build_is_reported():
@@ -309,6 +351,18 @@ func test_raising_the_direction_threshold_narrows_the_cone():
 	assert_null(_focus.get_neighbor(a, Vector2.RIGHT))
 
 
+# Controls are navigated by the centre of their rect, not by their top-left
+# corner, so a tall neighbour is reachable sideways: the part of it the player is
+# looking at is straight ahead even though its corner is far off the axis.
+func test_a_control_is_a_neighbour_by_its_centre_not_its_corner():
+	var origin := _rect(0, 0, 20, 20)       # centre (10, 10)
+	var tall := _rect(100, -480, 20, 1000)  # centre (110, 20), corner 78° off-axis
+
+	_focus.build_graph([origin, tall])
+
+	assert_eq(_focus.get_neighbor(origin, Vector2.RIGHT), tall)
+
+
 # Two elements on the same spot have no direction between them, so one stacked
 # on top of another can never be reached by moving.
 func test_an_element_on_the_same_spot_is_never_a_neighbour():
@@ -366,6 +420,17 @@ func test_the_search_skips_elements_that_were_left_out_of_the_graph():
 	_focus.build_graph([hidden, shown], _hiding([hidden]))
 
 	assert_eq(_focus.get_nearest_to(Vector2.ZERO), shown)
+
+
+func test_the_nearest_element_is_measured_from_its_centre():
+	var wide := _rect(0, 0, 400, 20)    # centre (200, 10)
+	var small := _rect(250, 0, 20, 20)  # centre (260, 10)
+
+	_focus.build_graph([wide, small])
+
+	# Measured from the corners the small one would win instead: 70px from the
+	# point, against the wide one's 180px.
+	assert_eq(_focus.get_nearest_to(Vector2(180, 10)), wide)
 
 
 func test_a_freed_element_is_never_the_nearest():
