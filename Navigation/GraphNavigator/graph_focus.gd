@@ -32,53 +32,82 @@ class_name GraphFocus
 			
 
 # Internal graph: maps Node -> {Vector2 direction: Node neighbor}
+# Its keys are the whole set of navigable elements: nothing outside them can be
+# reached by any query.
 var _graph: Dictionary = {}
-
-# Elements used to build the graph
-var _elements: Array = []
 
 ## Minimum dot product to consider a neighbor in a direction (0.3 = ~72 degree cone)
 @export var direction_threshold: float = 0.3
 
 
+## Rebuilds the graph from [param elements]. Anything that fails
+## [param visibility_check], has no 2D position, or has been freed is left out
+## entirely, and so is unreachable through [method get_neighbor] and
+## [method get_nearest_to] alike.
 func build_graph(elements: Array, visibility_check: Callable = Callable()) -> void:
-	_elements = elements
 	_graph.clear()
 
-	var visible_elements: Array = []
-	for el in elements:
-		if visibility_check.is_valid():
-			if visibility_check.call(el):
-				visible_elements.append(el)
-		else:
-			visible_elements.append(el)
+	var navigable: Array = []
+	for i in elements.size():
+		var el = elements[i]
+		# A freed element has to be caught before anything else touches it: `is`
+		# against a previously freed instance raises rather than returning false.
+		if not is_instance_valid(el):
+			push_warning("GraphFocus: element %d was freed, leaving it out of the graph." % i)
+			continue
+		if not _has_2d_position(el):
+			push_warning(
+				"GraphFocus: '%s' is neither a Node2D nor a Control, so it has no position. Leaving it out of the graph." \
+				% el
+			)
+			continue
+		if visibility_check.is_valid() and not visibility_check.call(el):
+			continue
+		navigable.append(el)
 
 	var directions := [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]
 
-	for el in visible_elements:
+	for el in navigable:
 		var neighbors: Dictionary = {}
 		for dir in directions:
-			var neighbor = _find_nearest_in_direction(el, dir, visible_elements)
+			var neighbor = _find_nearest_in_direction(el, dir, navigable)
 			if neighbor != null:
 				neighbors[dir] = neighbor
 		_graph[el] = neighbors
 
 
+## The element reached by moving in [param direction] from [param from].
+## [param direction] is snapped to the nearest cardinal, so a raw stick vector
+## can be passed straight in; a perfect diagonal resolves horizontally.
 func get_neighbor(from: Node, direction: Vector2) -> Node:
-	if from == null or not _graph.has(from):
+	if not is_instance_valid(from) or not _graph.has(from):
 		return null
+
+	var cardinal := _snap_to_cardinal(direction)
+	if cardinal == Vector2.ZERO:
+		return null
+
 	var neighbors = _graph[from]
-	if neighbors.has(direction):
-		return neighbors[direction]
-	return null
+	if not neighbors.has(cardinal):
+		return null
+
+	# An element can be freed between the rebuild and this query, so a stale
+	# neighbour is dropped quietly rather than handed back to be focused.
+	var neighbor = neighbors[cardinal]
+	if not is_instance_valid(neighbor):
+		return null
+	return neighbor
 
 
+## The navigable element closest to [param pos]. [param visibility_check] is an
+## extra filter on top of the graph, not a replacement for the one used to build
+## it: an element left out of the graph is never returned.
 func get_nearest_to(pos: Vector2, visibility_check: Callable = Callable()) -> Node:
 	var best: Node = null
 	var best_dist := INF
 
-	for el in _elements:
-		if not el is Node2D and not el is Control:
+	for el in _graph:
+		if not is_instance_valid(el):
 			continue
 		if visibility_check.is_valid() and not visibility_check.call(el):
 			continue
@@ -124,3 +153,19 @@ func _get_element_position(el: Node) -> Vector2:
 	elif el is Control:
 		return (el as Control).global_position
 	return Vector2.ZERO
+
+
+## Whether an element has a position the graph can reason about. Anything else
+## would sit at the origin and pull real elements towards a phantom neighbour.
+func _has_2d_position(el) -> bool:
+	return el is Node2D or el is Control
+
+
+## Snaps an arbitrary direction to the nearest cardinal. A perfect diagonal has
+## no nearest cardinal, so the horizontal axis wins by convention.
+func _snap_to_cardinal(direction: Vector2) -> Vector2:
+	if direction == Vector2.ZERO:
+		return Vector2.ZERO
+	if absf(direction.x) >= absf(direction.y):
+		return Vector2.RIGHT if direction.x > 0.0 else Vector2.LEFT
+	return Vector2.DOWN if direction.y > 0.0 else Vector2.UP

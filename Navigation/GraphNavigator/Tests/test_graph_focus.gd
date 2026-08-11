@@ -115,6 +115,47 @@ func test_rebuilding_replaces_the_old_graph():
 
 	assert_null(_focus.get_neighbor(a, Vector2.RIGHT))
 
+
+# A node that is neither a Node2D nor a Control has no position to navigate by.
+# Letting it in would park it at the origin, where it would sit between real
+# elements as a neighbour nobody can see.
+func test_an_element_without_a_2d_position_is_left_out():
+	var placeless:Node = autofree(Node.new())
+	var a := _at(0, 0)
+	var b := _at(500, 0)
+
+	_focus.build_graph([placeless, a, b])
+
+	assert_eq(_focus.get_neighbor(a, Vector2.RIGHT), b)
+	assert_eq(_focus.get_nearest_to(Vector2.ZERO), a)
+
+
+func test_an_element_without_a_2d_position_is_reported():
+	var placeless:Node = autofree(Node.new())
+
+	_focus.build_graph([placeless])
+
+	assert_push_warning("is neither a Node2D nor a Control")
+
+
+func test_an_element_freed_before_the_build_is_left_out():
+	var a := _at(0, 0)
+	var gone := _at(100, 0)
+
+	gone.free()
+	_focus.build_graph([a, gone])
+
+	assert_null(_focus.get_neighbor(a, Vector2.RIGHT))
+
+
+func test_an_element_freed_before_the_build_is_reported():
+	var gone := _at(100, 0)
+
+	gone.free()
+	_focus.build_graph([gone])
+
+	assert_push_warning("was freed")
+
 #endregion
 
 
@@ -150,15 +191,65 @@ func test_nothing_is_returned_for_a_direction_with_no_neighbour():
 	assert_null(_focus.get_neighbor(a, Vector2.LEFT))
 
 
-# Only the four cardinal directions are stored, so a caller feeding a raw stick
-# vector straight in gets nothing. Directions have to be snapped first.
-func test_a_diagonal_direction_finds_nothing():
+# Only the four cardinal directions are stored, but the lookup snaps to them, so
+# a caller can feed a raw stick vector straight in.
+func test_an_off_axis_direction_snaps_to_its_dominant_axis():
 	var a := _at(0, 0)
-	var b := _at(100, 100)
+	var right := _at(100, 0)
+	var below := _at(0, 100)
 
-	_focus.build_graph([a, b])
+	_focus.build_graph([a, right, below])
 
-	assert_null(_focus.get_neighbor(a, Vector2(1, 1).normalized()))
+	assert_eq(_focus.get_neighbor(a, Vector2(0.9, 0.4)), right)
+	assert_eq(_focus.get_neighbor(a, Vector2(0.4, 0.9)), below)
+
+
+# A perfect diagonal has no dominant axis. Something has to win, and it is the
+# horizontal one.
+func test_a_perfect_diagonal_resolves_horizontally():
+	var a := _at(0, 0)
+	var right := _at(100, 0)
+	var below := _at(0, 100)
+
+	_focus.build_graph([a, right, below])
+
+	assert_eq(_focus.get_neighbor(a, Vector2(1, 1).normalized()), right)
+
+
+func test_a_short_direction_still_navigates():
+	var a := _at(0, 0)
+	var right := _at(100, 0)
+
+	_focus.build_graph([a, right])
+
+	assert_eq(_focus.get_neighbor(a, Vector2(0.01, 0)), right)
+
+
+func test_an_empty_direction_finds_nothing():
+	var a := _at(0, 0)
+	var right := _at(100, 0)
+
+	_focus.build_graph([a, right])
+
+	assert_null(_focus.get_neighbor(a, Vector2.ZERO))
+
+
+# An element can be freed between a rebuild and the next input event, and the
+# graph still holds the reference. Handing it back would be handing the caller
+# something to crash on.
+func test_a_freed_neighbour_is_not_returned():
+	var a := _at(0, 0)
+	var right := _at(100, 0)
+	_focus.build_graph([a, right])
+
+	right.free()
+
+	assert_null(_focus.get_neighbor(a, Vector2.RIGHT))
+
+
+# There is deliberately no test for passing a *freed* element as `from`: the
+# `Node` type on the parameter makes the engine reject the call before the body
+# runs, with a "previously freed" error no guard here can pre-empt.
 
 #endregion
 
@@ -266,25 +357,40 @@ func test_nothing_is_nearest_when_every_element_is_filtered_out():
 	assert_null(_focus.get_nearest_to(Vector2.ZERO, _hiding([a])))
 
 
-# The search runs over the whole element list, not over the graph, so an element
-# left out of the graph is still a candidate here. Callers have to pass the same
-# visibility check to both calls or they can land the focus on a hidden element.
-func test_the_search_covers_elements_that_were_left_out_of_the_graph():
+# The search runs over the graph, so an element left out of it is not a
+# candidate: focus can never land somewhere the next d-pad press would fall off.
+func test_the_search_skips_elements_that_were_left_out_of_the_graph():
 	var hidden := _at(10, 0)
 	var shown := _at(500, 0)
 
 	_focus.build_graph([hidden, shown], _hiding([hidden]))
 
-	assert_eq(_focus.get_nearest_to(Vector2.ZERO), hidden)
+	assert_eq(_focus.get_nearest_to(Vector2.ZERO), shown)
 
 
-func test_elements_without_a_position_are_ignored():
-	var placeless:Node = autofree(Node.new())
-	var control := _at(500, 0)
+func test_a_freed_element_is_never_the_nearest():
+	var near := _at(10, 0)
+	var far := _at(500, 0)
+	_focus.build_graph([near, far])
 
-	_focus.build_graph([placeless, control])
+	near.free()
 
-	assert_eq(_focus.get_nearest_to(Vector2.ZERO), control)
+	assert_eq(_focus.get_nearest_to(Vector2.ZERO), far)
+
+
+# The graph is a snapshot taken at build time. The caller usually passes its own
+# live control list, and mutating that afterwards must not change what is
+# navigable until the next rebuild.
+func test_mutating_the_element_list_after_the_build_changes_nothing():
+	var a := _at(0, 0)
+	var b := _at(100, 0)
+	var elements := [a]
+	_focus.build_graph(elements)
+
+	elements.append(b)
+
+	assert_null(_focus.get_neighbor(a, Vector2.RIGHT))
+	assert_eq(_focus.get_nearest_to(Vector2(100, 0)), a)
 
 
 func test_node2d_elements_are_placed_by_their_global_position():

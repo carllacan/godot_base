@@ -17,7 +17,20 @@ edges: the lookup key is too strict for the input it documents, freed nodes are
 never guarded against, and `get_nearest_to` searches a different set of elements
 than `build_graph` builds from.
 
-## Bugs
+## Bugs — all fixed 2026-08-11
+
+Every item below was fixed before the component got its first caller, and the
+tests named in each one were updated to match. The section is kept as the record
+of why the code looks the way it does. The **Improvements** section further down
+is still open.
+
+One thing did not survive contact with the engine. Item 2 wanted a guard against
+a freed element being passed to `get_neighbor` as `from`; the `Node` type on that
+parameter makes Godot reject the call at the argument boundary, before any guard
+in the body could run. Widening the parameter to untyped would buy a silent
+`null` in exchange for the type hint, which is a bad trade — a "previously freed"
+error is far easier to diagnose than navigation quietly stopping. The dangerous
+half of item 2, *returning* a freed node, is guarded.
 
 ### 1. `get_neighbor` only matches exact cardinal vectors
 
@@ -131,21 +144,24 @@ exactly 0 would divide by zero. Keep it.
 
 ## What the tests cover
 
-`Tests/test_graph_focus.gd`, 26 tests in four regions:
+`Tests/test_graph_focus.gd`, 35 tests in four regions:
 
 - **build_graph** — neighbours in all four directions, per-element links, isolated
   elements, the visibility check skipping over a hidden element to reach the next
-  one, and rebuilding forgetting the old links.
+  one, rebuilding forgetting the old links, and elements left out for having no
+  2D position or for having been freed (each with its warning asserted).
 - **get_neighbor** — null for a null element, an element never added, an unbuilt
-  graph, an empty direction, and the diagonal case from item 1.
+  graph, an empty direction; a freed neighbour is not handed back; and directions
+  snapping to their dominant axis, with a perfect diagonal going horizontal.
 - **choosing between candidates** — the `dist / dot` score: closest wins among
   aligned candidates, but an aligned element at 100px beats an off-axis one at
   67px; a perpendicular element is not a neighbour; a corner element is reachable
   both sideways and down at the default 0.3 threshold and not at 0.9; two elements
   on the same spot can never reach each other.
 - **get_nearest_to** — nearest wins, the visibility check is honoured, `Node2D`
-  and `Control` are both positioned, elements with no position are skipped, and
-  the mismatch from item 3.
+  and `Control` are both positioned, freed elements are skipped, elements outside
+  the graph are never returned, and mutating the caller's array after the build
+  changes nothing.
 
 Run with:
 
