@@ -153,15 +153,31 @@ func _scan_dir(current_path: String, result: Dictionary) -> void:
 							if typeof(item) == TYPE_STRING and item != "":
 								if not result.has(item):
 									result[item] = []
-								result[item].append("#: %s:%s[%s]" % [path, prop.name, str(key)])
-								#print("%s[%s]" % [prop.name, str(key)])
+								result[item].append("#: %s:%s[%s]" % [path, prop.name, _dict_key_label(key)])
 
 		elif dir.current_is_dir():
 			if not file_name in EXCLUDED_DIRS:
 				_scan_dir(path, result)
 		file_name = dir.get_next()
 	dir.list_dir_end()
-	
+
+
+# --- Name a Dictionary key for the "#:" reference comment of its value ---
+# str() on a Resource ends in its object id, which is different on every run:
+# using it would make each regenerated .pot differ from the last one on those
+# lines alone, for no change in the strings themselves.
+func _dict_key_label(key: Variant) -> String:
+	if key is Resource:
+		var res: Resource = key
+		if not res.resource_path.is_empty():
+			return res.resource_path
+		if not res.resource_name.is_empty():
+			return res.resource_name
+		# A built-in resource with neither: its class is all that identifies it,
+		# and a vague reference beats one that churns.
+		return res.get_class()
+	return str(key)
+
 
 # --- Generate a .pot file from Dictionary with comments ---
 func generate_pot_file(entries: Dictionary, pot_path: String)-> bool:
@@ -174,10 +190,47 @@ func generate_pot_file(entries: Dictionary, pot_path: String)-> bool:
 		# Write all comment lines
 		for comment in entries[msgid]:
 			f.store_line(comment)
-		f.store_line('msgid "%s"' % msgid.replace('"', '\\"'))
-		f.store_line('msgstr ""\n')
+		_store_po_string(f, "msgid", msgid)
+		f.store_line('msgstr ""')
+		f.store_line("")
 	f.close()
 	return true
+
+
+# --- Write a keyword and its string as a .pot entry ---
+# A string spanning several lines is written the way gettext tools (and Godot's
+# own POT generator) write it: an empty first line, then one line per newline
+# terminated chunk. Writing the newline raw instead would end the quoted string
+# mid-entry and produce a .pot no translation tool can read.
+func _store_po_string(f: FileAccess, keyword: String, text: String) -> void:
+	var chunks := text.split("\n")
+	if chunks.size() == 1:
+		f.store_line('%s "%s"' % [keyword, _po_escape(text)])
+		return
+
+	f.store_line('%s ""' % keyword)
+	for i in chunks.size():
+		var chunk: String = chunks[i]
+		if i < chunks.size() - 1:
+			# The newline split() consumed, kept as part of the message.
+			chunk += "\n"
+		elif chunk == "":
+			# Text ending in a newline: the last chunk is empty and the newline
+			# already went out with the previous one.
+			continue
+		f.store_line('"%s"' % _po_escape(chunk))
+
+
+# --- Escape a string so it survives inside the quotes of a .pot entry ---
+# Backslashes are escaped first: doing it last would escape the backslashes that
+# the other replacements introduce, turning "\n" into a literal backslash-n.
+func _po_escape(text: String) -> String:
+	return (text
+		.replace("\\", "\\\\")
+		.replace('"', '\\"')
+		.replace("\n", "\\n")
+		.replace("\t", "\\t")
+		.replace("\r", "\\r"))
 
 				
 func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String)-> bool:
@@ -207,11 +260,24 @@ func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String)-> 
 	f_out.store_line('')
 
 	# write entries
-	for msgid in entries.keys():
-		for c in entries[msgid]["comments"]:
+	for key in entries.keys():
+		var entry: Dictionary = entries[key]
+		for c in entry["comments"]:
 			f_out.store_line(c)
-		f_out.store_line(msgid)
-		f_out.store_line(entries[msgid]["msgstr"])
+		for l in entry["msgctxt"]:
+			f_out.store_line(l)
+		for l in entry["msgid"]:
+			f_out.store_line(l)
+		# A plural message needs one msgstr per plural form. Two are enough for a
+		# template: the translation tool expands them to however many forms the
+		# target language has.
+		if entry["msgid_plural"].is_empty():
+			f_out.store_line('msgstr ""')
+		else:
+			for l in entry["msgid_plural"]:
+				f_out.store_line(l)
+			f_out.store_line('msgstr[0] ""')
+			f_out.store_line('msgstr[1] ""')
 		f_out.store_line("")
 
 	f_out.close()
@@ -219,6 +285,14 @@ func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String)-> 
 	return true
 
 
+# --- Read a .pot into `entries`, keyed by the identity of each message ---
+# That identity is the msgctxt plus the msgid: gettext treats "to improve" with
+# context "[price] to improve [a stamp's deadtime]" and "to improve" with
+# context "[price] to improve [a stamp's mark bonus]" as two separate messages,
+# and collapsing them would leave one of the two untranslated in game.
+#
+# Only the keys of a message are kept. Every msgstr is dropped and rewritten
+# empty, because the output is a template.
 func _load_pot_into_dict(path: String, entries: Dictionary) -> bool:
 	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
@@ -227,38 +301,98 @@ func _load_pot_into_dict(path: String, entries: Dictionary) -> bool:
 	var lines = f.get_as_text().split("\n")
 	f.close()
 
-	var current_comments: Array = []
-	var current_msgid: String = ""
-	var collecting_msgid := false
-	var collecting_msgstr := false
+	# The lines of the entry being read, gathered and then split into fields once
+	# the entry ends.
+	var block: Array = []
+	var after_msgstr := false
 
-	for line in lines:
-		if line.begins_with("#:"):
-			current_comments.append(line)
-		elif line.begins_with("msgid "):
-			# start new msgid block
-			current_msgid = line.substr(6).strip_edges()
-			collecting_msgid = true
-			collecting_msgstr = false
-		elif line.begins_with("msgstr "):
-			# finish msgid, store it
-			collecting_msgid = false
-			collecting_msgstr = true
-			var msgid_key = "msgid " + current_msgid
-			if not entries.has(msgid_key):
-				entries[msgid_key] = {"comments": [], "msgstr": 'msgstr ""'}
-			entries[msgid_key]["comments"] += current_comments
-			current_comments.clear()
-		elif collecting_msgid and line.begins_with("\""):
-			# continuation of msgid
-			current_msgid += "\n" + line
-		elif collecting_msgstr and line.begins_with("\""):
-			# continuation of msgstr → ignored (we keep empty msgstrs)
-			pass
-		elif line.strip_edges() == "":
-			# reset
-			collecting_msgid = false
-			collecting_msgstr = false
-			current_comments.clear()
+	for raw_line in lines:
+		# Trailing \r, so a file with CRLF endings does not leave one inside
+		# every string.
+		var line := raw_line.rstrip("\r")
+		if line.strip_edges() == "":
+			_store_pot_entry(entries, block)
+			block = []
+			after_msgstr = false
+			continue
+		# Entries are separated by a blank line, but start a new one anyway if a
+		# file skips it: anything that can open an entry, seen once the previous
+		# entry has reached its msgstr, belongs to the next one.
+		if after_msgstr and (line.begins_with("#")
+				or line.begins_with("msgctxt ") or line.begins_with("msgid ")):
+			_store_pot_entry(entries, block)
+			block = []
+			after_msgstr = false
+		if line.begins_with("msgstr"):
+			after_msgstr = true
+		block.append(line)
 
+	# The last entry of a file need not be followed by a blank line.
+	_store_pot_entry(entries, block)
 	return true
+
+
+func _store_pot_entry(entries: Dictionary, block: Array) -> void:
+	var comments: Array = []
+	var msgctxt: Array = []
+	var msgid: Array = []
+	var msgid_plural: Array = []
+	# Which keyword the following "..." lines continue, if any. A long string is
+	# split over several lines in a .pot, and each of msgctxt/msgid/msgid_plural
+	# can be split that way.
+	var continues := ""
+
+	for line in block:
+		if line.begins_with("#:"):
+			comments.append(line)
+		elif line.begins_with("#"):
+			# Other comments (translator notes, flags, the file header) are not
+			# ours to carry over.
+			pass
+		elif line.begins_with("msgctxt "):
+			msgctxt = [line]
+			continues = "msgctxt"
+		elif line.begins_with("msgid_plural "):
+			msgid_plural = [line]
+			continues = "msgid_plural"
+		elif line.begins_with("msgid "):
+			msgid = [line]
+			continues = "msgid"
+		elif line.begins_with("msgstr"):
+			# Both "msgstr " and the "msgstr[0]" of a plural message: the keys of
+			# this entry are complete.
+			continues = ""
+		elif line.begins_with("\""):
+			match continues:
+				"msgctxt":
+					msgctxt.append(line)
+				"msgid":
+					msgid.append(line)
+				"msgid_plural":
+					msgid_plural.append(line)
+
+	if msgid.is_empty():
+		return
+	# The metadata header of a .pot is the entry with an empty msgid and no
+	# context. merge_pot_files() writes its own, so drop it.
+	if msgctxt.is_empty() and msgid.size() == 1 and msgid[0].strip_edges() == 'msgid ""':
+		return
+
+	# A msgctxt continuation line always starts with a quote and a msgid line
+	# never does, so joining them with a newline cannot make two different
+	# messages share a key.
+	var key := "\n".join(msgctxt) + "\n" + "\n".join(msgid)
+	if not entries.has(key):
+		entries[key] = {
+			"comments": [],
+			"msgctxt": msgctxt,
+			"msgid": msgid,
+			"msgid_plural": msgid_plural,
+		}
+	elif entries[key]["msgid_plural"].is_empty():
+		# The same message can be written both with and without a plural form.
+		# Keep the plural, so translators get every form they need to fill in.
+		entries[key]["msgid_plural"] = msgid_plural
+	for c in comments:
+		if not c in entries[key]["comments"]:
+			entries[key]["comments"].append(c)
