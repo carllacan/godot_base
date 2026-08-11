@@ -1,4 +1,40 @@
 @tool
+## Collects translatable strings that live inside .tres resources and merges them
+## with the .pot the editor generates from scenes and scripts.
+##
+## Godot's built-in POT generation only scans the files listed in
+## Project Settings > Localization > POT Generation, and it does not look at the
+## String properties of custom resources. Any text authored in a .tres (item
+## names, descriptions, tooltips, ...) would therefore never reach the
+## translators. This script walks every .tres under res://, pulls out every
+## non-empty String property (including strings inside Array and Dictionary
+## properties), writes them to a temporary .pot, and merges that with the
+## editor-generated .pot into a single template.
+##
+## Each extracted string gets a "#:" reference comment pointing at the resource
+## path and property it came from, e.g. "#: res://Foo/bar.tres:display_name" or
+## "#: res://Foo/bar.tres:lines[2]". Duplicated strings are collapsed into one
+## entry that carries all of its references. All msgstr entries are left empty:
+## this produces a template, never a translation.
+##
+## Usage:
+##   1. In Project Settings > Localization > POT Generation, list the scenes and
+##      scripts holding translatable text and press "Generate POT", saving it to
+##      GODOT_POT ("res://locales/auto_template.pot").
+##   2. Open this file in the script editor and run it with
+##      File > Run (Ctrl+Shift+X). It is an EditorScript, so it only runs from
+##      the editor and is never part of the exported game.
+##   3. The merged template is written to MERGED_POT
+##      ("res://locales/complete_template.pot"). Feed that file to the
+##      translation tool (Poedit, msgmerge, ...) to create or update the .po
+##      files, and add the resulting translations in
+##      Project Settings > Localization > Translations.
+##
+## Re-run it after adding or editing text anywhere; it overwrites TRES_POT and
+## MERGED_POT from scratch every time. If the project is not set up yet (missing
+## locales folder, empty POT generation list, missing GODOT_POT) the script
+## aborts with a warning explaining what to fix instead of writing a partial
+## template.
 extends EditorScript
 class_name TranslateTresFiles
 
@@ -6,11 +42,51 @@ const GODOT_POT := "res://locales/auto_template.pot"   # Godot-generated .pot
 const TRES_POT := "res://locales/tres_template.pot"     # Temp .pot for .tres strings
 const MERGED_POT := "res://locales/complete_template.pot" # Final merged .pot
 
+## Project setting holding the files the editor scans when generating GODOT_POT.
+const POT_FILES_SETTING := "internationalization/locale/translations_pot_files"
+
 func _run():
+	# Without this the run still "succeeds", writing a merged .pot missing every
+	# string that lives outside a .tres.
+	if not check_setup():
+		return
+
 	var tres_entries = extract_all_tres_strings("res://")
-	generate_pot_file(tres_entries, TRES_POT)
-	merge_pot_files(GODOT_POT, TRES_POT, MERGED_POT)
+	if not generate_pot_file(tres_entries, TRES_POT):
+		return
+	if not merge_pot_files(GODOT_POT, TRES_POT, MERGED_POT):
+		return
 	print("✅ Strings extracted and merged into: %s" % MERGED_POT)
+
+
+# --- Verify the project is set up for translation before doing any work ---
+# Returns false (after explaining what is missing) if it is not.
+func check_setup()-> bool:
+	var locales_dir := GODOT_POT.get_base_dir()
+	if not DirAccess.dir_exists_absolute(locales_dir):
+		var err := DirAccess.make_dir_recursive_absolute(locales_dir)
+		if err != OK:
+			push_error("Could not create %s (error %d)" % [locales_dir, err])
+			return false
+		print("Created missing folder: %s" % locales_dir)
+
+	var pot_files:PackedStringArray = ProjectSettings.get_setting(POT_FILES_SETTING, PackedStringArray())
+	if pot_files.is_empty():
+		push_warning(
+			"POT generation is not configured: '%s' is empty. " % POT_FILES_SETTING
+			+ "Open Project > Project Settings > Localization > POT Generation, "
+			+ "add the scenes and scripts holding translatable text, then generate "
+			+ "the .pot into '%s'." % GODOT_POT)
+		return false
+
+	if not FileAccess.file_exists(GODOT_POT):
+		push_warning(
+			"'%s' does not exist yet, so only .tres strings would be collected. " % GODOT_POT
+			+ "Open Project > Project Settings > Localization > POT Generation and "
+			+ "press 'Generate POT', saving it to that exact path.")
+		return false
+
+	return true
 
 # --- Recursively extract all string properties from .tres files ---
 # Returns a Dictionary: key = string, value = array of comment lines
@@ -82,11 +158,12 @@ func _scan_dir(current_path: String, result: Dictionary) -> void:
 	
 
 # --- Generate a .pot file from Dictionary with comments ---
-func generate_pot_file(entries: Dictionary, pot_path: String):
+func generate_pot_file(entries: Dictionary, pot_path: String)-> bool:
 	var f = FileAccess.open(pot_path, FileAccess.WRITE)
 	if f == null:
-		push_error("Cannot write .pot file: %s" % FileAccess.get_open_error())
-		return
+		push_error("Cannot write .pot file '%s': error %d" % [
+			pot_path, FileAccess.get_open_error()])
+		return false
 	for msgid in entries.keys():
 		# Write all comment lines
 		for comment in entries[msgid]:
@@ -94,67 +171,17 @@ func generate_pot_file(entries: Dictionary, pot_path: String):
 		f.store_line('msgid "%s"' % msgid.replace('"', '\\"'))
 		f.store_line('msgstr ""\n')
 	f.close()
+	return true
 
-# --- Merge two .pot files using msgcat (deduplicates automatically) ---
-#func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String):
-	#var args = [
-		#ProjectSettings.globalize_path(godot_pot), 
-		#ProjectSettings.globalize_path(tres_pot), 
-		#"--use-first",  "-o",  
-		#ProjectSettings.globalize_path(merged_pot)
-		#]
-	#var output = []
-	#var err = OS.execute("msgcat", args, output, true) # blocking execution
-	#if err != 0:
-		#print("⚠️ msgcat not found or failed. Using tres_pot only as fallback.")
-		#print("Output: " )
-		#for e in output: print(e)
-		## fallback: just copy tres_pot
-		#var tres_pot_file = FileAccess.open(tres_pot, FileAccess.READ)
-		#if tres_pot_file != null:
-			#var contents = tres_pot_file.get_as_text()
-			#tres_pot_file.close()
-			#var merged_pot_file = FileAccess.open(merged_pot, FileAccess.WRITE)
-			#if merged_pot_file != null:
-				#merged_pot_file.store_string(contents)
-				#merged_pot_file.close()
-
-
-	# helper to load pot into dictionary
-func load_pot(path: String):
-	var entries := {}
-	var f := FileAccess.open(path, FileAccess.READ)
-	if f == null:
-		push_error("Cannot open: %s" % path)
-		return
-	var lines = f.get_as_text().split("\n")
-	f.close()
-
-	var current_comments = []
-	var current_msgid = null
-	for line in lines:
-		if line.begins_with("#:"):
-			current_comments.append(line)
-		elif line.begins_with("msgid "):
-			current_msgid = line
-			if not entries.has(current_msgid):
-				entries[current_msgid] = {"comments": [], "msgstr": 'msgstr ""'}
-			entries[current_msgid]["comments"] += current_comments
-			current_comments.clear()
-		elif line.begins_with("msgstr "):
-			# ignore, we always keep empty msgstr
-			pass
-		elif line.strip_edges() == "":
-			current_comments.clear()
-	return entries
 				
-				
-func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String):
+func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String)-> bool:
 	var entries := {}
 
 	# load both pots
-	_load_pot_into_dict(godot_pot, entries)
-	_load_pot_into_dict(tres_pot, entries)
+	if not _load_pot_into_dict(godot_pot, entries):
+		return false
+	if not _load_pot_into_dict(tres_pot, entries):
+		return false
 
 	# ensure output directory exists
 	var out_dir := merged_pot.get_base_dir()
@@ -165,7 +192,7 @@ func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String):
 	var f_out := FileAccess.open(merged_pot, FileAccess.WRITE)
 	if f_out == null:
 		push_error("Cannot write merged pot: %s" % merged_pot)
-		return
+		return false
 
 	# minimal header
 	f_out.store_line('# Merged POT file')
@@ -183,13 +210,14 @@ func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String):
 
 	f_out.close()
 	print("✅ Merged POT written to: %s" % merged_pot)
+	return true
 
 
-func _load_pot_into_dict(path: String, entries: Dictionary) -> void:
+func _load_pot_into_dict(path: String, entries: Dictionary) -> bool:
 	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
-		push_error("Cannot open: %s" % path)
-		return
+		push_error("Cannot open '%s': error %d" % [path, FileAccess.get_open_error()])
+		return false
 	var lines = f.get_as_text().split("\n")
 	f.close()
 
@@ -226,3 +254,5 @@ func _load_pot_into_dict(path: String, entries: Dictionary) -> void:
 			collecting_msgid = false
 			collecting_msgstr = false
 			current_comments.clear()
+
+	return true
