@@ -16,6 +16,10 @@ const WAIT_TIME:float = 0.4
 ## the game's scenes. The exports are set before the parent enters the tree, so
 ## the floater is configured by the time it reacts to anything, like a scene
 ## loading its properties.
+##
+## free_parent_at_end is off here, against the component's own default, so that
+## the parent is still around to be looked at once the float is over. The tests
+## that are about the freeing itself set it explicitly.
 func _make_floater(opts:Dictionary = {})-> Floater:
 	var parent := Node2D.new()
 	parent.visible = opts.get("visible", true)
@@ -30,6 +34,7 @@ func _make_floater(opts:Dictionary = {})-> Floater:
 	floater.float_time_s = opts.get("float_time_s", FLOAT_TIME)
 	floater.float_time_fluctuation = opts.get("float_time_fluctuation", 0.0)
 	floater.trigger = opts.get("trigger", Floater.TriggerType.MANUAL)
+	floater.free_parent_at_end = opts.get("free_parent_at_end", false)
 
 	parent.add_child(floater)
 	add_child_autofree(parent)

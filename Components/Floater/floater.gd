@@ -25,6 +25,9 @@ var _final_pos:Vector2 = Vector2(0, -50)
 ## How much randomness will be added to the float time
 @export_range(0, 1.0) var float_time_fluctuation:float = 0
 @export var trigger:TriggerType = TriggerType.ON_READY
+## Whether to free the parent after the animation is done
+@export var free_parent_at_end:bool = true
+
 
 ## Calculate position the target will float to.
 func _apply_final_pos(value:Vector2)-> void:
@@ -100,7 +103,7 @@ func float_away()-> void:
 
 	await tw.finished
 
-	# TODO: this frees the floater, not the node it floated away. The faded out
-	# parent stays in the tree, and neither FloatingLabel nor CoinsToast frees
-	# itself, so they pile up invisible nodes.
-	get_parent().queue_free()
+	if free_parent_at_end:
+		get_parent().queue_free()
+	else:
+		queue_free()
