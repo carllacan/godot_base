@@ -1,16 +1,81 @@
 @tool
 extends BaseComponent
 class_name FocusManager
+## Gives one screen's worth of [Control]s their keyboard/gamepad focus: focuses
+## the screen when it is shown, releases the focus when it is hidden, and
+## remembers where the focus was so reopening the screen returns to it.
+##
+## Add this as a [b]direct child of the [Control] that is the screen[/b] — the
+## panel or container the whole menu hangs off, not an individual button. From
+## there it watches three things and calls [method focus] / [method unfocus]:
+## [br][br]
+## - the target's [signal CanvasItem.visibility_changed]: shown focuses,
+##   hidden unfocuses. This is the main entry point, and it is what makes a
+##   [NavigationComponent] menu move the focus along with the visible screen —
+##   see that class about why it hides before it shows.
+## [br]
+## - [code]InputManager.type_changed[/code], under [member focus_on_joypad] and
+##   [member unfocus_on_kbm], so picking up a gamepad puts a focus highlight on
+##   screen and touching the mouse takes it away again. Both are off by default
+##   and both only fire on a screen that is currently visible, so every closed
+##   screen ignores the change.
+## [br]
+## - the viewport's [signal Viewport.gui_focus_changed], to play
+##   [member sound_on_focus_change] when the focus lands on something inside the
+##   target. At most one click per frame, so a menu that moves the focus twice
+##   in one frame does not stack two sounds.
+## [br][br]
+## [codeblock]
+## PauseWindow            (Control)
+##  |- FocusManager       first_focus = [NodePath("../Buttons/Resume")]
+##  |                     sound_on_focus_change = [NodePath("../FocusSound")]
+##  |- FocusSound         (AudioStreamPlayer)
+##  |- Buttons
+##      |- Resume
+##      |- Settings
+##      |- Quit
+## [/codeblock]
+## Nothing needs to call this: showing and hiding the screen is enough. Both
+## [method focus] and [method unfocus] are public for the cases that are not
+## about visibility — a modal that hands the focus back to the screen underneath,
+## say.
+## [br][br]
+## [b]Note:[/b] a screen that is already visible when its scene loads never gets
+## a [signal CanvasItem.visibility_changed], so it starts unfocused until
+## something shows it again or the controller type changes.
+## [br][br]
+## [b]Note:[/b] this needs the [code]InputManager[/code] autoload, which does not
+## exist at edit time, so everything here is inert in the editor.
 
-
+## The [Control] focused when the screen opens. Leave it empty to open the screen
+## with nothing focused. It should be a descendant of the target with a
+## [member Control.focus_mode] that allows focus, or [method Control.grab_focus]
+## warns and nothing happens.
 @export var first_focus:Control
+## If [code]true[/code], reopening the screen returns the focus to whatever held
+## it when the screen closed, instead of going back to [member first_focus].
+## Turn it off for screens that should always open on the same control.
 @export var persist_focus:bool = true
+## If [code]true[/code], switching to a gamepad focuses this screen while it is
+## visible. Set it on the screen that should own the focus when the player picks
+## up a controller — if two visible screens both set it, the last one to react
+## wins.
 @export var focus_on_joypad:bool = false
+## If [code]true[/code], switching to mouse or keyboard clears the focus on this
+## screen while it is visible, so no stale focus highlight is left sitting under
+## the cursor.
 @export var unfocus_on_kbm:bool = false
 @export_group("Focus change")
+## Played whenever the focus moves onto a control inside the target, at most once
+## per frame. Leave it empty for a silent screen.
 @export var sound_on_focus_change:AudioStreamPlayer
 
+## Guards [member sound_on_focus_change] against playing several times in a
+## frame. Cleared one process frame after it is raised.
 var focus_change_played_this_frame:bool = false
+## Where [member persist_focus] keeps the focus between closing and reopening the
+## screen. Whatever held the focus at the moment of the last [method unfocus],
+## which is [code]null[/code] if that was nothing.
 var last_focused_control:Control
 
 
