@@ -6,7 +6,8 @@
 ## Project Settings > Localization > POT Generation, and it does not look at the
 ## String properties of custom resources. Any text authored in a .tres (item
 ## names, descriptions, tooltips, ...) would therefore never reach the
-## translators. This script walks every .tres under res://, pulls out every
+## translators. This script walks every .tres under res:// (skipping addons/,
+## which holds third party resources), pulls out every
 ## non-empty String property (including strings inside Array and Dictionary
 ## properties), writes them to a temporary .pot, and merges that with the
 ## editor-generated .pot into a single template.
@@ -44,6 +45,10 @@ const MERGED_POT := "res://locales/complete_template.pot" # Final merged .pot
 
 ## Project setting holding the files the editor scans when generating GODOT_POT.
 const POT_FILES_SETTING := "internationalization/locale/translations_pot_files"
+
+## Folder names skipped while walking res://. Third party code shipped in
+## addons/ carries its own strings, which are not ours to translate.
+const EXCLUDED_DIRS := ["addons"]
 
 func _run():
 	# Without this the run still "succeeds", writing a merged .pot missing every
@@ -152,7 +157,8 @@ func _scan_dir(current_path: String, result: Dictionary) -> void:
 								#print("%s[%s]" % [prop.name, str(key)])
 
 		elif dir.current_is_dir():
-			_scan_dir(path, result)
+			if not file_name in EXCLUDED_DIRS:
+				_scan_dir(path, result)
 		file_name = dir.get_next()
 	dir.list_dir_end()
 	
