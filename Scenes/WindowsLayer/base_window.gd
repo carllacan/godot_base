@@ -1,3 +1,4 @@
+@tool
 class_name BaseWindow
 extends Control
 const BASE_SCENE = preload("res://GodotBase/Scenes/WindowsLayer/base_window.tscn")
@@ -66,6 +67,9 @@ func _ready()-> void:
 		
 		
 	update_default_info()
+	
+	if Engine.is_editor_hint(): return
+	
 	if has_growing_animation():
 		pivot_offset = get_rect().size*0.5
 		
