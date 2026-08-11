@@ -41,8 +41,8 @@ func _make_floater(opts:Dictionary = {})-> Floater:
 	return floater
 
 
-## The parent is the node that floats, and the floater frees itself on the way
-## out, so tests hold on to the parent before letting a float run.
+## The parent is the node that floats, and one of the two is freed on the way
+## out, so tests hold on to it before letting a float run.
 func _parent_of(floater:Floater)-> Node2D:
 	return floater.get_parent()
 
@@ -226,6 +226,11 @@ func test_the_float_is_still_going_partway_through():
 	assert_between(parent.modulate.a, 0.02, 0.98, "should be on its way out")
 
 
+#endregion
+
+
+#region what is left once the float is over
+
 func test_the_floater_frees_itself_once_the_float_is_over():
 	var floater := _make_floater()
 
@@ -236,13 +241,38 @@ func test_the_floater_frees_itself_once_the_float_is_over():
 
 
 func test_the_floater_leaves_its_parent_behind():
-	var floater := _make_floater()
+	var floater := _make_floater({"free_parent_at_end": false})
 	var parent := _parent_of(floater)
 
 	await floater.float_away()
 	await wait_process_frames(1)
 
 	assert_not_freed(parent, "parent")
+
+
+## The component's own default, and how it is used in the game's scenes: what
+## floated away is done with, and goes out with the floater instead of lingering
+## in the tree faded out.
+func test_a_floater_that_frees_its_parent_takes_it_with_it():
+	var floater := _make_floater({"free_parent_at_end": true})
+	var parent := _parent_of(floater)
+
+	await floater.float_away()
+	await wait_process_frames(1)
+
+	assert_freed(parent, "parent")
+	assert_freed(floater, "floater")
+
+
+func test_a_triggered_float_frees_the_parent_too():
+	var floater := _make_floater({
+		"trigger": Floater.TriggerType.ON_READY, "free_parent_at_end": true
+	})
+	var parent := _parent_of(floater)
+
+	await wait_seconds(WAIT_TIME)
+
+	assert_freed(parent, "parent")
 
 #endregion
 
