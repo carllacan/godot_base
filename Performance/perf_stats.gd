@@ -359,6 +359,17 @@ func _resolve_target()-> void:
 	_set_target(found if found != null else get_viewport())
 
 
+## The viewport marked with BaseGroups.PERF_TARGET, or null when nothing is
+## marked. Static so the toggles resolve the same viewport the stats measure,
+## without either having to depend on the other being registered.
+static func find_marked_viewport(tree:SceneTree)-> Viewport:
+	for node in tree.get_nodes_in_group(BaseGroups.PERF_TARGET):
+		var viewport:Viewport = node as Viewport
+		if viewport == null: viewport = node.get_viewport()
+		if viewport != null: return viewport
+	return null
+
+
 func _find_marked_viewport()-> Viewport:
 	var marked:Array[Node] = get_tree().get_nodes_in_group(BaseGroups.PERF_TARGET)
 
@@ -368,12 +379,7 @@ func _find_marked_viewport()-> Viewport:
 			"Measuring the first, which may not be the one you meant.") % [
 			marked.size(), BaseGroups.PERF_TARGET])
 
-	for node in marked:
-		var viewport:Viewport = node as Viewport
-		if viewport == null: viewport = node.get_viewport()
-		if viewport != null: return viewport
-
-	return null
+	return find_marked_viewport(get_tree())
 
 
 func _set_target(viewport:Viewport)-> void:
