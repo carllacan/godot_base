@@ -730,3 +730,50 @@ func test_write_local_file_creates_file_with_correct_content():
 	assert_eq(read_back, data)
 
 #endregion
+
+
+#region get_all_subnodes
+
+func test_get_all_subnodes_returns_document_order():
+	## Callers pick "the first light" out of this, so sibling order is part of
+	## the contract, not an implementation detail.
+	var root := Node.new()
+	root.name = "Root"
+	var first := Node.new()
+	first.name = "First"
+	var second := Node.new()
+	second.name = "Second"
+	var nested := Node.new()
+	nested.name = "Nested"
+
+	root.add_child(first)
+	first.add_child(nested)
+	root.add_child(second)
+
+	var names:Array[String] = []
+	for node in Utils.get_all_subnodes(root):
+		names.append(node.name)
+
+	assert_eq(names, ["Root", "First", "Nested", "Second"] as Array[String],
+		"parents before children, siblings in scene order")
+	root.free()
+
+
+func test_get_all_subnodes_handles_null():
+	assert_eq(Utils.get_all_subnodes(null).size(), 0)
+
+
+func test_get_all_subnodes_of_type_matches_subclasses():
+	var root := Node3D.new()
+	var omni := OmniLight3D.new()
+	var plain := Node3D.new()
+	root.add_child(omni)
+	root.add_child(plain)
+
+	var found := Utils.get_all_subnodes_of_type(root, "Light3D")
+
+	assert_eq(found.size(), 1, "is_class matches the subclass")
+	assert_eq(found[0], omni)
+	root.free()
+
+#endregion

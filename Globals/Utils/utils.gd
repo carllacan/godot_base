@@ -426,8 +426,40 @@ static func format_number_compact(value: float,
 
 static func format_without_zero_decimals(amount:float)-> String:
 	var has_decimals = (amount != floor(amount))
-	
+
 	if has_decimals:
 		return "%0.2f" % amount
 	else:
 		return str(int(floor(amount)))
+
+
+## Every node at or under `root`, including `root` itself, in document order --
+## each node before its children, siblings in scene order. Iterative rather than
+## recursive so a deep scene cannot blow the stack.
+##
+## The order is part of the contract: callers pick "the first light", "the first
+## camera" and so on out of the result, and a walk that quietly reversed
+## siblings would hand them a different node than the one they meant. Children
+## are pushed in reverse precisely so they pop back off in order.
+static func get_all_subnodes(root:Node)-> Array[Node]:
+	var out:Array[Node] = []
+	if root == null: return out
+
+	var pending:Array[Node] = [root]
+	while not pending.is_empty():
+		var node:Node = pending.pop_back()
+		out.append(node)
+
+		var children:Array[Node] = node.get_children()
+		for i in range(children.size() - 1, -1, -1):
+			pending.append(children[i])
+	return out
+
+
+## Every node at or under `root` that is of the given class, by the same walk.
+## `type` is matched with `is_class`, so "Light3D" also finds OmniLight3D.
+static func get_all_subnodes_of_type(root:Node, type:String)-> Array[Node]:
+	var out:Array[Node] = []
+	for node in get_all_subnodes(root):
+		if node.is_class(type): out.append(node)
+	return out
