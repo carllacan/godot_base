@@ -2,30 +2,118 @@
 
 [ext_resource type="Script" uid="uid://cebwjbgyubkhg" path="res://GodotBase/Scenes/DebugInfo/debug_info.gd" id="1_wb4s0"]
 
-[node name="DebugInfo" type="CanvasLayer" unique_id=653722054]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wb4s0"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.4, 0.4, 0.4, 0.78431374)
+
+[node name="DebugInfo" type="CanvasLayer" unique_id=412960063]
+layer = 100
 script = ExtResource("1_wb4s0")
 
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=619285079]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=867932820]
 offset_right = 40.0
 offset_bottom = 40.0
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
-[node name="GridContainer" type="GridContainer" parent="MarginContainer" unique_id=411096933]
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer" unique_id=65877482]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_wb4s0")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer" unique_id=2081107090]
+layout_mode = 2
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/PanelContainer/VBoxContainer" unique_id=1361850247]
 layout_mode = 2
 columns = 2
 
-[node name="VersionHeader" type="Label" parent="MarginContainer/GridContainer" unique_id=426534267]
+[node name="VersionHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/GridContainer" unique_id=1589503830]
 layout_mode = 2
 text = "Version:"
 
-[node name="VersionValue" type="Label" parent="MarginContainer/GridContainer" unique_id=99808428]
+[node name="VersionValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/GridContainer" unique_id=825973662]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="FpsHeader" type="Label" parent="MarginContainer/GridContainer" unique_id=180699990]
+[node name="FpsHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/GridContainer" unique_id=1178821705]
 layout_mode = 2
 text = "FPS:"
 
-[node name="FpsValue" type="Label" parent="MarginContainer/GridContainer" unique_id=43241179]
+[node name="FpsValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/GridContainer" unique_id=1863052944]
 unique_name_in_owner = true
 layout_mode = 2
 text = "xxx"
+
+[node name="PerfGrid" type="GridContainer" parent="MarginContainer/PanelContainer/VBoxContainer" unique_id=2130034409]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="FrameHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=1749459088]
+layout_mode = 2
+text = "Frame:"
+
+[node name="FrameValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=114732968]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="PercentileHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=542325586]
+layout_mode = 2
+text = "p50/95/99:"
+
+[node name="PercentileValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=1936845958]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="WorstPeakHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=1437616755]
+layout_mode = 2
+text = "Worst/Peak:"
+
+[node name="WorstPeakValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=117157182]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HitchesHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=2002266589]
+layout_mode = 2
+text = "Hitches:"
+
+[node name="HitchesValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=1630653412]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="RenderTimeHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=219222129]
+layout_mode = 2
+text = "Render cpu/gpu:"
+
+[node name="RenderTimeValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=225794674]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DrawsHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=1446145934]
+layout_mode = 2
+text = "Draw calls:"
+
+[node name="DrawsValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=555300541]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="CompilesHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=453811570]
+layout_mode = 2
+text = "Pipeline compiles:"
+
+[node name="CompilesValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=1074001503]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TargetHeader" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=1063497819]
+layout_mode = 2
+text = "Measuring:"
+
+[node name="TargetValue" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer/PerfGrid" unique_id=147654722]
+unique_name_in_owner = true
+layout_mode = 2

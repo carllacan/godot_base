@@ -43,6 +43,20 @@ static var settings:GodotBase : get = get_settings
 @export var language_setting:SettingInfo = preload(
 	"res://GodotBase/SettingsSystem/BaseSettings/language.tres")
 	
+@export_group("Debug", "debug")
+## Whether debug elements start visible instead of waiting for the
+## debug_toggle_info action. In practice this is what makes the DebugInfo
+## readout show from the moment the game launches; it applies to everything in
+## the BaseGroups.DEBUG_ELEMENTS group, and the action still toggles it off and
+## on afterwards. Only has any effect when Flags.DEBUG is set.
+@export var debug_show_elements_on_launch:bool = false
+
+@export_group("Performance", "perf")
+## Whether the PerfStats autoload should add a DebugInfo readout to the tree
+## when the project has not instantiated one itself. Turn this off if the
+## project places its own DebugInfo somewhere specific.
+@export var perf_auto_add_debug_info:bool = true
+
 @export_group("MovieMaker", "movie_maker")
 # Final width of the result
 @export var movie_maker_width:int = 616

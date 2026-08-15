@@ -16,6 +16,19 @@ var timer:Timer
 
 func _ready()-> void:
 	get_tree().node_added.connect(_on_node_added_to_tree)
+
+	# Autoloads inherit their process mode from the root, which is PAUSABLE
+	# (verified on 4.7: an INHERIT node under root stops dead when the tree is
+	# paused). Without this the debug toggle silently stops working whenever a
+	# pause menu or a modal window is open -- which is often exactly when you
+	# want to look at the readout.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	# Set before the await, so debug elements created later in startup (the
+	# DebugInfo readout PerfStats adds, for one) read the right value in their
+	# own _ready rather than starting hidden and waiting for a toggle.
+	show_debug_elements = GodotBase.settings.debug_show_elements_on_launch
+
 	#timer = Timer.new()
 	#timer.wait_time = CHECKING_PERIOD_S
 	#timer.timeout.connect(_on_timer_elapsed)
