@@ -100,7 +100,13 @@ func sync_file(local_path:String,
 				
 	if not Settings.get_setting_value_by_name("steam_cloud_enabled"):
 		return
-		
+
+	# Without cloud storage there is no remote side to compare against, and
+	# every save would otherwise report itself as missing from the remote and
+	# "upload" into a no-op.
+	if not is_cloud_available():
+		return
+
 	var remote_path = local_to_remote_filepath(local_path)
 
 	var local_bytes := PackedByteArray()
@@ -153,6 +159,13 @@ func local_to_remote_filepath(local_path:String)-> String:
 	return local_path.get_file()
 	
 	
+## Whether the platform's cloud storage is configured and usable right now.
+## Platforms that have cloud storage answer this after checking at startup; the
+## base controller has none, so nothing syncs.
+func is_cloud_available()-> bool:
+	return false
+
+
 func write_remote_file(_local_path:String, _bytes:PackedByteArray)-> void:
 	pass
 	

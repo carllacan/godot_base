@@ -4,7 +4,12 @@ extends BaseIntegrationController
 
 var info:SteamIntegrationInfo
 
- 
+## Whether Steam Cloud can actually be written to. Set by validate_cloud() at
+## startup so that a misconfigured app reports once, instead of every save
+## pushing a warning from write_remote_file().
+var cloud_available:bool = false
+
+
 func _ready()-> void:
 	if not Flags.STEAM:
 		return
@@ -32,7 +37,8 @@ func initialize()-> void:
 		return
 
 	validate_achievements()
-		
+	validate_cloud()
+
 
 #region Steam
 
@@ -95,6 +101,57 @@ func validate_app_id()-> bool:
 	return true
 
 
+## Checks that Steam Cloud is usable before the first save tries to sync, and
+## records the answer in cloud_available.
+##
+## Steamworks exposes no call that says "Cloud is unconfigured for this app",
+## so this infers it from the quota: an app whose Cloud byte/file quota has not
+## been set in Steamworks reports a total quota of 0, and every fileWrite then
+## fails as over-quota, which is the repeating warning this is meant to catch.
+## The two isCloudEnabled* calls cover the other reasons writes get rejected,
+## both of which are the player's choice rather than a configuration mistake.
+##
+## Returns false if Cloud is unusable for any of those reasons.
+func validate_cloud()-> bool:
+	cloud_available = false
+
+	# Both toggles have to be on: the account-wide one in Steam's settings, and
+	# the per-game one in the game's properties.
+	if not Steam.isCloudEnabledForAccount():
+		push_warning("Steam Cloud is disabled account-wide; saves will not sync")
+		return false
+
+	if not Steam.isCloudEnabledForApp():
+		push_warning("Steam Cloud is disabled for app %d; saves will not sync" % get_steam_app_id())
+		return false
+
+	# getQuota() reports {total_bytes, available_bytes}. Missing keys mean the
+	# Remote Storage interface was not there to answer, which GodotSteam also
+	# logs on its own, so there is nothing to conclude about the quota itself.
+	var quota:Dictionary = Steam.getQuota()
+	if not quota.has("total_bytes"):
+		push_error("Steam Cloud quota unavailable for app %d (got %s)" % [
+			get_steam_app_id(), quota])
+		return false
+
+	var total_bytes:int = quota["total_bytes"]
+	if total_bytes <= 0:
+		push_error(("App %d has a Steam Cloud quota of %d bytes. Configure the " +
+			"Cloud byte and file quotas in Steamworks, or saves will fail to upload.") % [
+			get_steam_app_id(), total_bytes])
+		return false
+
+	print("Steam Cloud available: %d of %d bytes free" % [
+		quota.get("available_bytes", -1), total_bytes])
+
+	cloud_available = true
+	return true
+
+
+func is_cloud_available()-> bool:
+	return cloud_available
+
+
 ## Compares the achievement names declared in the info resource against the ones
 ## actually configured in Steamworks for this app, reporting both directions.
 ## Returns false if anything the game can grant is missing from Steamworks.
@@ -127,12 +184,12 @@ func validate_achievements()-> bool:
 			push_warning("Achievement '%s' is configured in Steamworks but is missing from %s" % [
 				ach_name, SteamIntegrationInfo.DEFAULT_PATH])
 
-	print("* Steamworks Achievement verification failed *")
-	print("* Achievements present in Steamworks: (%d)" % swachs)
-	for ach_name in configured:
-		print("\t" + ach_name)
+	if not valid:
+		print("* Steamworks Achievement verification failed *")
+		print("* Achievements present in Steamworks: (%d)" % swachs)
+		for ach_name in configured:
+			print("\t" + ach_name)
 	
-
 	return valid
 
 
@@ -274,12 +331,9 @@ func get_current_language()-> String:
 
 
 func upload_save(filepath:String)-> void:
-	if not Steam.isCloudEnabledForAccount():
+	if not cloud_available:
 		return
-		
-	if not Steam.isCloudEnabledForAccount():
-		return
-		
+
 	if not FileAccess.file_exists(filepath):
 		return
 
@@ -330,12 +384,20 @@ func download_save(filepath:String) -> bool:
 
 	
 func write_remote_file(filename, bytes)-> void:
+	# validate_cloud() already said why, at startup; repeating it per save only
+	# buries the one message that explains the problem.
+	if not cloud_available:
+		return
+
 	var success = Steam.fileWrite(filename, bytes)
 	if not success:
 		push_warning("Couldn't write file %s (%d bytes) to remote cloud" % [filename, len(bytes)])
-	
+
 
 func read_remote_file(filename:String) -> PackedByteArray:
+	if not cloud_available:
+		return PackedByteArray()
+
 	if not Steam.fileExists(filename):
 		return PackedByteArray()
 
