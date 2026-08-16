@@ -11,7 +11,7 @@ class_name VisibilityController
 @export var hide_in_full:bool = false
 @export var hide_in_kbm:bool = false
 @export var hide_in_joypad:bool = false
-
+@export var hide_if_not_steam:bool = false
 
 @export var hide_if_settings:Dictionary[SettingInfo, Variant] = {}
 
@@ -95,6 +95,11 @@ func update_parent()-> void:
 	if hide_in_kbm and InputManager.is_kbm():
 		must_show_parent = false
 		p("Hiding %s because of KBM", [get_target().name])
+				
+	if hide_if_not_steam and not Flags.STEAM:
+		must_show_parent = false
+		p("Hiding %s because noSteam", [get_target().name])
+		
 				
 	if not target_hovered and not show_when_hovered.is_empty():
 		must_show_parent = false
