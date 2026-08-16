@@ -1,42 +1,71 @@
 extends BaseIntegrationController
-class_name SteamIntegrationController
+#class_name SteamIntegrationController
 
-const STEAM_APP_ID := 3695440
-const STEAM_APP_DEMO_ID := 3736220
-	
+
+var info:SteamIntegrationInfo
+
  
 func _ready()-> void:
+	if not Flags.STEAM:
+		return
+				
 	initialize()	
 	
 		
 func initialize()-> void:	
-	if Flags.STEAM:
-		initialize_steam()
+	if not Flags.STEAM:
+		return
+		
+	var p = SteamIntegrationInfo.DEFAULT_PATH
+	if not ResourceLoader.exists(p):
+		push_error("Integration info not found at %s" % p)
+		return
+	info = load(p)
+	if info == null:
+		push_error("Could not load integration info at %s" % p)
+		return
+
+	if not validate_app_id():
+		return
+
+	if not initialize_steam():
+		return
+
+	validate_achievements()
 		
 
 #region Steam
 
+## Gets the Steam app ID of the app that is currently running
 func get_steam_app_id()-> int:	
-	if not Flags.STEAM:
-		return -1
+	if not Flags.STEAM:	return -1
+	if info == null: return -1
+	
 	if Flags.DEMO:
-		return STEAM_APP_DEMO_ID
+		return info.demo_id
 	else:
-		return STEAM_APP_ID
+		return info.full_game_id
 		
+		
+## Gets the Steam app ID of the full app, regardless of what is currently running
 func get_fullgame_steam_app_id()-> int:
-	return STEAM_APP_ID
+	if not Flags.STEAM:	return -1
+	if info == null: return -1
+	
+	return info.full_game_id
 		
 	
-func initialize_steam()-> void:
+## Starts up the Steam API. Returns false if it could not be initialized, in
+## which case the game is also asked to shut down.
+func initialize_steam()-> bool:
 	var initialize_response: Dictionary = Steam.steamInitEx(get_steam_app_id(), true)
 	print("Did Steam initialize?: %s " % initialize_response)
-	
+
 	if initialize_response['status'] > Steam.STEAM_API_INIT_RESULT_OK:
 		print("Failed to initialize Steam, shutting down: %s" % initialize_response)
 		get_tree().quit()
-		return
-	
+		return false
+
 	Steam.overlay_toggled.connect(_on_overlay_toggled)
 	Steam.user_stats_received.connect(
 		func(game_id: int, result: int, user_id: int): 
@@ -46,12 +75,65 @@ func initialize_steam()-> void:
 			)
 	Steam.requestUserStats(get_steam_app_id())
 	
-	#Clear achievements
+	# Clear achievements, if configured to do so
 	if BuildConfig.Default.clear_achievements_at_start:
-		#for i in Steam.getNumAchievements():
-			#var ach_name = Steam.getAchievementName(i)
-			#Steam.clearAchievement(ach_name)	
 		Steam.resetAllStats(true)
+
+	return true
+
+
+## Checks that an app ID was actually configured before we hand it to Steam.
+## The IDs in SteamIntegrationInfo default to -1, so a project that forgets to
+## fill in the resource would otherwise call steamInitEx(-1).
+func validate_app_id()-> bool:
+	var app_id := get_steam_app_id()
+	if app_id <= 0:
+		push_error("No valid Steam app ID configured in %s (got %d)" % [
+			SteamIntegrationInfo.DEFAULT_PATH, app_id])
+		return false
+
+	return true
+
+
+## Compares the achievement names declared in the info resource against the ones
+## actually configured in Steamworks for this app, reporting both directions.
+## Returns false if anything the game can grant is missing from Steamworks.
+##
+## Only achievements can be checked this way: Steamworks can enumerate them, but
+## it exposes no equivalent for user stats. getStatInt/getStatFloat return 0 for
+## an unknown stat exactly as they do for one that is genuinely zero, so
+## stat_names cannot be verified without writing to them.
+func validate_achievements()-> bool:
+	if info == null:
+		return false
+
+	var swachs = Steam.getNumAchievements()
+	var configured:Array[String] = []
+	for i in swachs:
+		configured.append(Steam.getAchievementName(i))
+
+	if configured.is_empty():
+		push_warning("App %d has no achievements configured in Steamworks" % get_steam_app_id())
+
+	var valid := true
+	for ach_name in info.achievement_names:
+		if ach_name not in configured:
+			push_error("Achievement '%s' is declared in %s but is not configured in Steamworks" % [
+				ach_name, SteamIntegrationInfo.DEFAULT_PATH])
+			valid = false
+
+	for ach_name in configured:
+		if ach_name not in info.achievement_names:
+			push_warning("Achievement '%s' is configured in Steamworks but is missing from %s" % [
+				ach_name, SteamIntegrationInfo.DEFAULT_PATH])
+
+	print("* Steamworks Achievement verification failed *")
+	print("* Achievements present in Steamworks: (%d)" % swachs)
+	for ach_name in configured:
+		print("\t" + ach_name)
+	
+
+	return valid
 
 
 #endregion
@@ -63,6 +145,12 @@ func _on_overlay_toggled(active: bool, _user_initiated: bool, _app_id: int):
 	
 func mark_achievement_as_completed(ach_name:String)-> void:
 	if not Flags.STEAM:
+		return
+	if info == null:
+		return
+
+	if ach_name not in info.achievement_names:
+		push_error("Achievement %s not found" % ach_name)
 		return
 				
 	#print("Marking ach '%s' as completed..." % ach_name)
@@ -94,12 +182,26 @@ func open_overlay(page_id:String)-> void:
 func get_float_statistic(stat_name:String)-> float:
 	if not Flags.STEAM:
 		return NAN
+	if info == null:
+		return NAN
+
+	if stat_name not in info.stat_names:
+		push_error("Stat %s not found" % stat_name)
+		return NAN
+		
 	return Steam.getStatFloat(stat_name)
 		
 	
-func set_statistic(stat_name:String, new_value:Variant)-> void:	
+func set_statistic(stat_name:String, new_value:Variant)-> void:
 	if not Flags.STEAM:
-		return	
+		return
+	if info == null:
+		return
+
+	if stat_name not in info.stat_names:
+		push_error("Stat %s not found" % stat_name)
+		return
+		
 	assert(not is_nan(new_value))
 	if new_value is int:
 		var success = Steam.setStatInt(stat_name, int(new_value))
@@ -118,10 +220,18 @@ func set_statistic(stat_name:String, new_value:Variant)-> void:
 		return
 	
 	
-func change_statistic(stat_name:String, change:Variant)-> void:		
+func change_statistic(stat_name:String, change:Variant)-> void:
 	if not Flags.STEAM:
-		return 
+		return
+	if info == null:
+		return
+
+	if stat_name not in info.stat_names:
+		push_error("Stat %s not found" % stat_name)
+		return
+		
 	assert(not is_nan(change))
+	
 	if change is int:
 		var old_value = Steam.getStatInt(stat_name)
 		var new_value = old_value + change
