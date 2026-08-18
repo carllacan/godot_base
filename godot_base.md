@@ -702,7 +702,94 @@ Debug command binding and visualization toggles.
 
 **File**: `GodotBase/Autoloads/movie_maker.gd`
 
-GIF/WebP recording for promotional material.
+GIF/WebP recording for promotional material. Captures the viewport to a PNG
+sequence while you play, then encodes it with `ffmpeg` and (optionally)
+`magick`.
+
+This is **not** the same thing as Godot's built-in Movie Maker mode, and it does
+not replace it. The built-in mode is *offline* rendering: it records from the end
+of the splash screen until the engine quits, at a fixed fake delta, and the game
+is not playable at normal speed while it runs. MovieMaker records a **live,
+interactive session** that you start and stop with a hotkey, and it produces an
+animated GIF/WebP, which the engine has no writer for. Use the built-in mode for
+trailer-quality footage with audio; use this for "clip the thing that just
+happened into a GIF".
+
+**Setup**:
+
+1. Register the autoload in the project (it is not added automatically):
+   `MovieMaker="*res://GodotBase/Autoloads/movie_maker.gd"`
+2. Define the three input actions listed below in the Input Map.
+3. Have `ffmpeg` on `PATH` (and `magick` if GIF optimization is enabled).
+
+The autoload frees itself on `_ready()` unless `Flags.DEBUG` is set, so it only
+exists in the editor and in debug builds.
+
+**Controls** (default bindings in projects that use it):
+
+| Action | Binding | Effect |
+|--------|---------|--------|
+| `movie_maker_toggle_recording` | Ctrl+Shift+R | Start recording / stop and encode |
+| `movie_maker_toggle_recording_pause` | Ctrl+Shift+H | Pause / resume |
+| `movie_maker_cancel_recording` | Ctrl+Shift+X | Stop and discard the frames |
+
+Paused time is excluded from the recording, so the segments before and after a
+pause splice together seamlessly.
+
+**Scripted usage**:
+
+```gdscript
+MovieMaker.start()
+MovieMaker.pause()
+MovieMaker.unpause()
+await MovieMaker.stop()       # encodes; await if you need the file afterwards
+MovieMaker.stop(true)         # discard instead of encoding
+```
+
+`stop()` is a coroutine: it joins the frame-writer threads before encoding, and
+the state stays `CONVERTING` until the encode finishes, so the hotkeys are inert
+in the meantime. Awaiting it is only necessary if you need to touch the output
+file yourself.
+
+**Output**: timestamped `<datetime>_recording.gif` (and `.webp`) in
+`user://recording/output/`. The working files in `user://recording/` — the PNG
+sequence, `palette.png`, and the intermediate `capture.mp4` — are deleted
+afterwards, including when an ffmpeg step fails, so a failed encode loses the
+take.
+
+**Selecting what is captured**:
+
+- The recorded region is a **centered crop**, not a scaled-down full frame.
+  MovieMaker grabs a `width/zoom` × `height/zoom` rectangle from the middle of
+  the viewport and resizes it to exactly `width` × `height`. Frame the shot by
+  sizing the game window and adjusting `movie_maker_zoom`; values below 1.0
+  capture more area, above 1.0 capture less.
+- It records the root window viewport by default. Assign `MovieMaker.viewport`
+  before calling `start()` to record a specific `SubViewport` instead.
+
+**Settings** (in `res://Parameters/godot_base_settings.tres`, see
+[Configuration](#configuration)):
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `movie_maker_width` / `movie_maker_height` | 616 / 320 | Exact output size |
+| `movie_maker_zoom` | 1.0 | Scales the captured rectangle |
+| `movie_maker_frame_skip_factor` | 2 | Capture 1 of every N physics ticks |
+| `movie_maker_make_gif` | true | Encode a GIF |
+| `movie_maker_optimize_gif` | true | Post-process the GIF with ImageMagick |
+| `movie_maker_gif_fuzz` | 3 | ImageMagick `-fuzz` percentage |
+| `movie_maker_make_webp` | false | Also encode an animated WebP |
+
+**Limitations**:
+
+- No audio. Use the built-in Movie Maker mode if you need a soundtrack.
+- Capture happens in `_physics_process`, and the output framerate is derived from
+  wall-clock time (`frames / elapsed`), so a laggy capture yields a lower-fps
+  file that still plays back at real-time speed rather than a stuttering one.
+- One `Thread` is spawned per captured frame and kept until `stop()`. Fine for
+  short clips; a multi-minute recording creates thousands of them.
+- Capturing and PNG-encoding every other frame costs real performance, so the
+  recorded session runs slower than normal play.
 
 ---
 
