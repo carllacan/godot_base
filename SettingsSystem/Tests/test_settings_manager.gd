@@ -60,6 +60,15 @@ func _make_setting_info(setting_name:String, type:Variant.Type)-> SettingInfo:
 	return setting
 
 
+## The "default" language asks the Integration autoload what the platform is set
+## to, and on a build the steam feature is on for that question reaches the
+## Steam API. With Steam closed the API was never initialized and every call
+## pushes an engine error, which GUT counts as a failure of whatever test was
+## running, so the tests that would ask are skipped instead.
+func _steam_is_unreachable()-> bool:
+	return Flags.STEAM and not Steam.isSteamRunning()
+
+
 ## A manager holding the three test settings. It is not in the tree, so
 ## _on_setting_changed is not connected and writing to it has no side effects
 ## beyond the settings file.
@@ -377,6 +386,9 @@ func test_changing_the_language_switches_the_locale():
 
 
 func test_the_default_language_follows_the_system_one():
+	if _steam_is_unreachable():
+		pending("Steam is not running, so asking it for the language only errors")
+		return
 	var manager := _make_manager()
 	var expected:String = Integration.get_current_language()
 	if expected == "":
