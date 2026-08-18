@@ -22,6 +22,16 @@ const SAVE_DIR_ARG:String = "--save-dir"
 ## saving_default_filename the same way SAVE_DIR_ARG overrides the directory:
 ##
 ##   godot -- --save-file=experiment.tres
+##
+## An absolute value names one file outright and the save directory is left out
+## of it, so a run can be pointed straight at a state that lives somewhere else:
+##
+##   godot -- --save-file=/tmp/clip3.tres
+##   godot -- --save-file=res://AssetCreation/TrailerMakers/Trailer1/state.tres
+##
+## Note the run saves back to wherever it was told to load from. Point one at a
+## file worth keeping and set disable_saving on the build config, or it will be
+## overwritten with whatever the run left behind.
 const SAVE_FILE_ARG:String = "--save-file"
 
 
@@ -147,7 +157,18 @@ static func get_default_run()-> BaseGameState:
 ## way. Both parts are optional, because half the callers here are static and
 ## have no state to ask — they get the command line's answer, or the default.
 static func get_run_filepath(filename:String = "", dir:String = "")-> String:
-	return get_save_dir(dir).path_join(get_save_filename(filename))
+	return _resolve_save_path(get_save_dir(dir), get_save_filename(filename))
+
+
+## Puts a save directory and filename together, unless the filename is already
+## absolute, in which case it stands on its own and the directory has nothing to
+## add. Without this, path_join would glue an absolute filename onto the save
+## directory and produce a path that exists nowhere.
+static func _resolve_save_path(save_dir:String, filename:String)-> String:
+	if filename.is_absolute_path():
+		return filename
+
+	return save_dir.path_join(filename)
 
 
 ## The directory saves live in. The command line wins over [param dir] (a state's
@@ -424,8 +445,9 @@ func overwrite_user_save() -> void:
 	# editor, which would ignore force_demo and give the wrong destination path.
 	var is_demo := BuildConfig.Default.force_flag(
 			OS.has_feature("demo"), BuildConfig.Default.force_demo)
-	var dest_virtual:String = get_save_dir(saving_default_dir, is_demo) \
-			.path_join(get_save_filename(saving_default_filename))
+	var dest_virtual:String = _resolve_save_path(
+			get_save_dir(saving_default_dir, is_demo),
+			get_save_filename(saving_default_filename))
 
 	# The destination can sit outside user://, so create it as an absolute path.
 	DirAccess.make_dir_recursive_absolute(dest_virtual.get_base_dir())
