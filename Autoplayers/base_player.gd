@@ -20,6 +20,14 @@ signal finished(reason:String)
 ## Turn it off for a run whose log should hold gameplay and nothing else.
 @export var log_decisions:bool = true
 
+## Whether the fake pointer is drawn while this player is at the controls.
+##
+## It exists to make a run followable by eye, which is what a run being watched
+## for bugs needs and what footage of the game does not: nothing points at a card
+## when a person plays. Turning it off only hides it — move_to() and click() stay
+## harmless, so a strategy does not have to know whether anyone can see it.
+@export var show_cursor:bool = true
+
 @export_group("Ending conditions")
 ## Seconds of play after which the player stops. Zero, or less, plays forever.
 ##

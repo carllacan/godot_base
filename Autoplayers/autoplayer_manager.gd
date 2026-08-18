@@ -67,6 +67,7 @@ func _ready()-> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	cursor = AutoplayerCursor.new()
+	cursor.visible = player.show_cursor
 	add_child(cursor)
 
 	player.finished.connect(_on_player_finished)
