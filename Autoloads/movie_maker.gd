@@ -62,7 +62,17 @@ func unpause():
 func stop(discard:bool = false):
 	if state not in [State.RECORDING, State.PAUSED]:
 		push_warning("Can't stop if not recording")
-	
+
+	# Set before the first await so a second toggle press while we are encoding
+	# can't start a new recording on top of this one.
+	state = State.CONVERTING
+
+	# The writer threads must be joined before anything else touches the frame
+	# files: otherwise ffmpeg encodes a half-written sequence, and
+	# clear_existing_frames() deletes frames from under the threads still
+	# writing them.
+	await await_pending_writes()
+
 	if discard:
 		print("Recording CANCELED, clearing existing frames")
 	else:
@@ -70,8 +80,17 @@ func stop(discard:bool = false):
 		finalize_recording()
 	clear_existing_frames()
 	print("🛑 Recording stopped")
-	
+
 	state = State.STOPPED
+
+
+func await_pending_writes()-> void:
+	print("Waiting for frames to be saved...")
+	while threads.any(func(th:Thread): return th.is_alive()):
+		await get_tree().process_frame
+	for th in threads: th.wait_to_finish()
+	threads.clear()
+	print("Frames saved.")
 
 
 func _physics_process(_delta):
@@ -144,15 +163,9 @@ func initialize_recording()-> void:
 	threads = []
 	
 
+## Encodes the frames already on disk. Callers must have awaited
+## await_pending_writes() first.
 func finalize_recording() -> void:
-	state = State.CONVERTING
-	
-	print("Waiting for frames to be saved...")
-	while threads.any(func(th:Thread): return th.is_alive()): 
-		await get_tree().process_frame
-	for th in threads: th.wait_to_finish()
-	print("Frames saved.")
-	
 	var spf = recorded_time/frame
 	var fps:float = ceil(1.0/spf)
 	print("Trying to generate a GIF of %ds at '%s' FPS" % [recorded_time, fps])
