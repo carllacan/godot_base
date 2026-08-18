@@ -4,6 +4,17 @@ class_name BaseBuildConfig
 
 const EDITOR_CONFIG_PATH:String = "res://Data/Dev/editor_build_config.tres"
 
+## Command line switch that picks the build configuration outright, overriding
+## the editor/release choice below. Takes a res:// path or an absolute one,
+## written either way round, after the `--` that separates user arguments:
+##
+##   godot -- --build-config=res://AssetCreation/TrailerMakers/clip.tres
+##   godot -- --build-config /home/me/configs/clip.tres
+##
+## This is what lets one launch be configured from outside without editing a
+## resource the editor also uses: a recording, a repro, a batch run.
+const BUILD_CONFIG_ARG:String = "--build-config"
+
 enum ForceActions
 {
 	None,
@@ -56,6 +67,9 @@ func force_flag(original_value:bool, force_value:ForceActions)-> bool:
 static var _cached_default_build:BaseBuildConfig = null
 static func get_default_build()-> BaseBuildConfig:
 	if _cached_default_build == null:
+		_cached_default_build = _load_config_from_cmdline()
+
+	if _cached_default_build == null:
 		if OS.has_feature("editor"):
 			var editor_build = get_editor_config()
 			
@@ -75,6 +89,29 @@ static func get_default_build()-> BaseBuildConfig:
 		if _cached_default_build == null:
 			push_error("No build configuration found")
 	return _cached_default_build
+
+
+## The configuration named on the command line, or null when none was asked for.
+##
+## A path that cannot be loaded is reported rather than ignored, and null is
+## returned so the usual editor/release choice still gives the run something to
+## boot with: a launch that was meant to be configured and quietly was not is
+## worse to debug than one that says so and carries on.
+static func _load_config_from_cmdline()-> BaseBuildConfig:
+	var path:String = CommandLineManager.get_value(BUILD_CONFIG_ARG)
+	if path.is_empty(): return null
+
+	if not ResourceLoader.exists(path) and not FileAccess.file_exists(path):
+		push_error("No build configuration found at %s" % path)
+		return null
+
+	var resource:Resource = ResourceLoader.load(path)
+	if resource is not BaseBuildConfig:
+		push_error("%s does not hold a build configuration" % path)
+		return null
+
+	print("Using the build configuration at %s" % path)
+	return resource as BaseBuildConfig
 	
 	
 static func get_editor_config()-> BuildConfig:
