@@ -193,6 +193,8 @@ func _apply_cmdline_overrides() -> void:
 	if CommandLineManager.has_flag("--straight-to-playing"):
 		BuildConfig.Default.skip_splash_screen = true
 		BuildConfig.Default.skip_main_menu = true
-		BuildConfig.Default.force_new_game = true
+		var force_save = CommandLineManager.get_value(BaseGameState.SAVE_FILE_ARG)
+		if force_save == "":
+			BuildConfig.Default.force_new_game = true
 
 #endregion
