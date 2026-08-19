@@ -29,7 +29,7 @@ func log(title: String, text: String = "", parameters: Dictionary = {}) -> GameE
 ## Falls back to top-level logging if no events exist yet.
 func log_subevent(event: GameEvent) -> GameEvent:
 	if events.is_empty():
-		push_warning("GameLog: log_subevent called with no parent events — logging as top-level.")
+		push_warning("EventLog: log_subevent called with no parent events — logging as top-level.")
 		return log_event(event)
 	var parent: GameEvent = events.back()
 	parent.subevents.append(event)
