@@ -30,11 +30,6 @@ func get_current_language()-> String:
 	return ""
 
 
-func upload_save(_filepath:String)-> void:
-	pass
-
-
-
 class DefaultSyncCriterion:
 	## A default sync criterion that parses both files as Godot custom Resources
 	## and decides using a property both of them are assumed to have.
@@ -85,7 +80,6 @@ class DefaultSyncCriterion:
 			return null
 
 		return res.get(property_name)
-
 
 
 ## Downloads a file from the remote cloud and compares it with its local version.

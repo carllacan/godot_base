@@ -328,63 +328,8 @@ func get_current_language()-> String:
 			return "es_ES"
 	return ""
 
-
-func upload_save(filepath:String)-> void:
-	if not cloud_available:
-		return
-
-	if not FileAccess.file_exists(filepath):
-		return
-
-	var file := FileAccess.open(filepath, FileAccess.READ)
-	if file == null:
-		return
-
-	# .tres is text, but we upload raw bytes
-	var data := file.get_buffer(file.get_length())
-	file.close()
-
-	var cloud_filename := filepath.get_file()
-
-	var success := Steam.fileWrite(cloud_filename, data)
-	if not success:
-		push_error("Failed to upload save to Steam Cloud: " + cloud_filename)
-
-
-func download_save(filepath:String) -> bool:
-	var cloud_filename := filepath.get_file()
-
-	if not Steam.fileExists(cloud_filename):
-		return false
-
-	var size := Steam.getFileSize(cloud_filename)
-	if size <= 0:
-		return false
-
-	var result := Steam.fileRead(cloud_filename, size)
-
-	var bytes: PackedByteArray
-	if result is Dictionary:
-		if not result.has("data"):
-			return false
-		bytes = result["data"]
-
-	if bytes.is_empty():
-		return false
-
-	var file := FileAccess.open(filepath, FileAccess.WRITE)
-	if file == null:
-		return false
-
-	file.store_buffer(bytes)
-	file.close()
-
-	return true
-
 	
-func write_remote_file(filename, bytes)-> void:
-	# validate_cloud() already said why, at startup; repeating it per save only
-	# buries the one message that explains the problem.
+func write_remote_file(filename:String, bytes:PackedByteArray)-> void:
 	if not cloud_available:
 		return
 
