@@ -14,10 +14,12 @@ static var CURRENT:DebugInfo
 ## and puts a percentile sort plus a pile of label formatting on every frame of
 ## the thing being measured. Ten times a second reads better and costs less.
 const UPDATE_PERIOD_S:float = 0.1
+## Compile rows and custom monitors share one row dictionary, so the compile
+## keys are namespaced -- otherwise a monitor named "mesh" or "draw" would
+## quietly take over a compilation row.
+const COMPILE_ROW_PREFIX:String = "compiles/"
 
 var _until_update:float = 0.0
-## One value label per pipeline compilation category, built at runtime.
-var _compile_rows:Dictionary[String, Label] = {}
 
 var header_labels:Dictionary[String, Label] = {}
 var value_labels:Dictionary[String, Label] = {}
@@ -34,15 +36,16 @@ func _ready()-> void:
 	# cleanest test of whether a frame costs what it costs on the CPU or the
 	# GPU, and a menu being open is no reason to stop reporting.
 	process_mode = Node.PROCESS_MODE_ALWAYS
-
+	
+	_build_compile_rows()
+	_build_custom_monitor_rows()
 
 	# Nothing here is interactive, and a readout that swallows clicks makes the
 	# game under it untestable wherever the panel happens to sit.
 	_ignore_mouse(self)
-	
-	_build_compile_rows()
-	_build_custom_monitor_rows()
+
 	PerfStats.monitor_added.connect(_insert_entry)
+	PerfStats.monitor_removed.connect(_remove_entry)
 
 	initialize_values()
 
@@ -54,10 +57,8 @@ func _build_compile_rows()-> void:
 	var insert_at:int = %CompilesValue.get_index() + 1
 
 	for key in PerformanceStats.PIPELINE_MONITORS:
-		_insert_entry(key, insert_at, "    %s" % key)
+		_insert_entry(COMPILE_ROW_PREFIX + key, insert_at, "    %s" % key)
 		insert_at += 2
-
-		_compile_rows[key] = value_labels[key]
 		
 		
 func _build_custom_monitor_rows()-> void:
@@ -65,14 +66,20 @@ func _build_custom_monitor_rows()-> void:
 		_insert_entry(m)
 		
 		
-func _insert_entry(data_name:String, insert_at:int = -1, 
+func _insert_entry(data_name:String, insert_at:int = -1,
 				header_text:String = "")-> void:
 	var header := Label.new()
 	if header_text == "":
 		header.text = data_name
 	else:
 		header.text = header_text
+
 	var value := Label.new()
+
+	# _ignore_mouse() runs once at _ready() and cannot reach rows a monitor adds
+	# later, so these carry the same rule themselves.
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	value.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	%PerfGrid.add_child(header)
 	%PerfGrid.add_child(value)
@@ -82,7 +89,18 @@ func _insert_entry(data_name:String, insert_at:int = -1,
 	
 	header_labels[data_name] = header
 	value_labels[data_name] = value
-	
+
+
+## Drops a row again. Custom monitors come and go with the scenes that register
+## them, and a row left behind would sit there showing its last reading forever.
+func _remove_entry(data_name:String)-> void:
+	if not value_labels.has(data_name): return
+
+	header_labels[data_name].queue_free()
+	value_labels[data_name].queue_free()
+	header_labels.erase(data_name)
+	value_labels.erase(data_name)
+
 
 func _ignore_mouse(node:Node)-> void:
 	if node is Control:
@@ -119,17 +137,23 @@ func update_values()-> void:
 	else:
 		%RenderTimeValue.text = "waiting for first reading"
 
+	# Update Pipeline compilations
 	var compiles:Dictionary = PerfStats.pipeline_compilations()
 	var total:int = 0
 	for key in compiles:
 		total += compiles[key]
-		if _compile_rows.has(key):
-			_compile_rows[key].text = "%d" % compiles[key]
+		var row:String = COMPILE_ROW_PREFIX + key
+		if value_labels.has(row):
+			value_labels[row].text = "%d" % compiles[key]
 	%CompilesValue.text = "%d" % total
-	
-	# Custom monitors
+
+	# Custom monitors. get_value() returns null for a monitor whose getter has
+	# died since the last prune, which is a row about to be removed rather than a
+	# reading of zero.
 	for m in PerfStats.custom_monitors:
-		value_labels[m].text = "%2.2f" % PerfStats.get_value(m)
+		if not value_labels.has(m): continue
+		var value:Variant = PerfStats.get_value(m)
+		value_labels[m].text = "--" if value == null else "%2.2f" % value
 
 
 func _physics_process(delta: float) -> void:

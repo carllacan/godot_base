@@ -44,6 +44,10 @@ const RENDER_TIME_SETTLE_FRAMES:int = 10
 ## viewport. The marked viewport usually does not exist yet when this first
 ## looks, so the search has to keep going -- but not every frame.
 const TARGET_RECHECK_FRAMES:int = 30
+## How often to check custom monitors for a getter whose object has been freed.
+## Cheap, but there is no reason to do it every frame: a dead monitor costs
+## nothing until something reads it.
+const MONITOR_PRUNE_FRAMES:int = 30
 
 ## Monitors worth a per-frame snapshot, as label -> Performance.Monitor.
 const MONITORS:Dictionary[String, int] = {
@@ -69,6 +73,7 @@ const PIPELINE_MONITORS:Dictionary[String, int] = {
 }
 
 signal monitor_added(monitor_name:String)
+signal monitor_removed(monitor_name:String)
 
 ## Smoothed frame time, for a readout a human can actually read.
 var frame_ms:float = 16.0
@@ -83,7 +88,19 @@ var hitches:int = 0
 ## back to the root viewport.
 var target_viewport:Viewport
 
-var custom_monitors:Array[String] = []
+## Monitors registered through add_custom_monitor(), as name -> getter.
+##
+## The getter is kept because Performance will not hand a registered callable
+## back, and spotting a monitor whose object has been freed means looking at it.
+var custom_monitors:Dictionary[String, Callable] = {}
+## Owners declared at registration, as name -> instance id. Only the getters
+## Callable.is_valid() cannot see through need one, so most monitors are absent
+## from here -- check has() before reading.
+##
+## Ids rather than the objects themselves: a Dictionary holds a strong reference,
+## so a RefCounted owner parked in one would be kept alive by the very registry
+## meant to notice it dying, and would never be pruned.
+var custom_monitor_owner_ids:Dictionary[String, int] = {}
 
 var _samples:PackedFloat32Array = PackedFloat32Array()
 var _write:int = 0
@@ -104,6 +121,8 @@ var _warned_multiple_targets:bool = false
 ## True while measuring the root viewport only because nothing is marked.
 var _using_fallback:bool = true
 var _recheck_in:int = 0
+
+var _prune_in:int = MONITOR_PRUNE_FRAMES
 
 ## Set once nothing has compiled for SETTLE_QUIET_FRAMES: startup is over.
 var _settled:bool = false
@@ -140,22 +159,104 @@ func _add_debug_info_if_absent()-> void:
 	add_child(DEBUG_INFO_SCENE.instantiate())
 
 
-func add_custom_monitor(monitor_name:String, getter:Callable, arguments: Array = [], 
-		type:Performance.MonitorType = Performance.MonitorType.MONITOR_TYPE_QUANTITY
+## Registers a monitor, readable through get_value() and shown as a row by
+## DebugInfo.
+##
+## Re-registering a name replaces the getter rather than being ignored. The
+## registration is global and outlives whatever node made it, so a scene rebuild
+## arrives here with a fresh getter for a name whose old getter is holding a
+## freed object. Keeping the old one is how you get a monitor that prints an
+## engine error on every read for the rest of the session.
+##
+## Pass monitor_owner only for a getter whose death Callable.is_valid() cannot
+## see -- see _prune_dead_monitors(). A getter that captures self, or a bound
+## method, is already covered and needs nothing.
+func add_custom_monitor(monitor_name:String, getter:Callable, arguments:Array = [],
+		type:Performance.MonitorType = Performance.MonitorType.MONITOR_TYPE_QUANTITY,
+		monitor_owner:Object = null
 		)-> void:
-	if monitor_name in custom_monitors: return
-	
+	if not Flags.DEBUG: return
+
+	# Performance is process-global while custom_monitors belongs to this
+	# instance, so the engine -- not the dictionary -- is what decides whether a
+	# name is already taken. Adding a duplicate is an engine error, not a no-op.
+	if Performance.has_custom_monitor(monitor_name):
+		Performance.remove_custom_monitor(monitor_name)
+		custom_monitor_owner_ids.erase(monitor_name)
+
 	Performance.add_custom_monitor(monitor_name, getter, arguments, type)
-	custom_monitors.append(monitor_name)
-	monitor_added.emit(monitor_name)
-	
-	
-func get_value(monitor_name:String)-> float:
-	if not monitor_name in custom_monitors: return NAN
-	
+
+	var is_new:bool = not custom_monitors.has(monitor_name)
+	custom_monitors[monitor_name] = getter
+
+	if monitor_owner != null:
+		custom_monitor_owner_ids[monitor_name] = monitor_owner.get_instance_id()
+
+	if is_new: monitor_added.emit(monitor_name)
+
+
+## Unregisters a monitor and drops its readout row. Worth calling from the
+## _exit_tree() of whatever owns the getter, though _prune_dead_monitors()
+## catches most of the ones that do not.
+func remove_custom_monitor(monitor_name:String)-> void:
+	if not custom_monitors.has(monitor_name): return
+
+	custom_monitors.erase(monitor_name)
+	custom_monitor_owner_ids.erase(monitor_name)
+
+	if Performance.has_custom_monitor(monitor_name):
+		Performance.remove_custom_monitor(monitor_name)
+
+	monitor_removed.emit(monitor_name)
+
+
+## Current value of a custom monitor, or null when there is no such monitor or
+## its getter has died since the last prune.
+func get_value(monitor_name:String)-> Variant:
+	if not custom_monitors.has(monitor_name): return null
+	# Pruning is periodic, so a getter can die between sweeps. Reading a dead one
+	# prints an engine error and returns null anyway -- this just skips the noise.
+	if not custom_monitors[monitor_name].is_valid(): return null
+
 	return Performance.get_custom_monitor(monitor_name)
-	
-	
+
+
+## Drops monitors whose getter no longer has a live object behind it.
+##
+## Callable.is_valid() catches a lambda that captured self, and a bound method --
+## which is what a monitor registered from a node looks like. It cannot catch a
+## lambda that captured only a local: that callable's object is the GDScript
+## itself, which never dies. A getter like `func(): return thing.count()` over a
+## local `thing` is invisible to it, and has to declare a monitor_owner at
+## registration or be removed by hand.
+func _prune_dead_monitors()-> void:
+	_prune_in = MONITOR_PRUNE_FRAMES
+
+	var dead:Array[String] = []
+	for monitor_name in custom_monitors:
+		if _is_monitor_dead(monitor_name):
+			dead.append(monitor_name)
+
+	# Collected first: remove_custom_monitor() erases from the dictionary being
+	# iterated here, and emits a signal whose handlers may touch it as well.
+	for monitor_name in dead:
+		remove_custom_monitor(monitor_name)
+
+
+func _is_monitor_dead(monitor_name:String)-> bool:
+	if not custom_monitors[monitor_name].is_valid():
+		return true
+
+	# Most monitors declare no owner, and reading a key a Dictionary does not
+	# have is an error that aborts the caller rather than returning null.
+	if custom_monitor_owner_ids.has(monitor_name):
+		var monitor_owner = instance_from_id(custom_monitor_owner_ids[monitor_name])
+		if not is_instance_valid(monitor_owner):
+			return true
+
+	return false
+
+
 func _exit_tree()-> void:
 	_stop_measuring()
 
@@ -183,6 +284,9 @@ func _process(delta:float)-> void:
 	_update_pipeline_deltas()
 	_update_render_time_liveness()
 	if not _settled: _update_settling()
+
+	_prune_in -= 1
+	if _prune_in <= 0: _prune_dead_monitors()
 
 
 func _record(ms:float)-> void:
