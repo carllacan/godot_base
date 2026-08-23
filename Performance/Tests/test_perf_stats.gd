@@ -240,3 +240,192 @@ func test_uses_a_marked_subviewport_over_the_root()-> void:
 	assert_true(stats._measured_rid.is_valid())
 
 	GodotBase.settings.perf_auto_add_debug_info = was_auto
+
+
+## Custom monitors need no _ready() either -- no ring buffer, no viewport -- but
+## unlike the statistics they are not self-contained: Performance registers them
+## process-wide, so a monitor left behind by one test is still there for the
+## next one and for every other script in the run. Hence the name prefix and the
+## sweep in after_each.
+const MONITOR_PREFIX:String = "test_perf_stats/"
+
+
+## Stands in for the node a monitor is normally registered from. make_getter()
+## captures self, which is the shape Callable.is_valid() can see through.
+class MonitorOwner extends Node:
+	var items:Array[int] = [1, 2, 3, 4]
+
+	func make_getter()-> Callable:
+		return func(): return len(items)
+
+
+func after_each()-> void:
+	for monitor_name in Performance.get_custom_monitor_names():
+		if String(monitor_name).begins_with(MONITOR_PREFIX):
+			Performance.remove_custom_monitor(monitor_name)
+
+
+func _make_stats()-> PerformanceStats:
+	var stats := PerformanceStats.new()
+	autofree(stats)
+	return stats
+
+
+func test_a_registered_monitor_reads_and_announces_itself()-> void:
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+	var owner_node := MonitorOwner.new()
+	autofree(owner_node)
+	watch_signals(stats)
+
+	stats.add_custom_monitor(monitor_name, owner_node.make_getter())
+
+	assert_has(stats.custom_monitors, monitor_name, "tracked here")
+	assert_true(Performance.has_custom_monitor(monitor_name),
+		"and registered with the engine")
+	assert_eq(float(stats.get_value(monitor_name)), 4.0, "reads the getter")
+	assert_signal_emitted_with_parameters(
+		stats, "monitor_added", [monitor_name])
+
+
+func test_re_registering_replaces_the_getter_rather_than_being_ignored()-> void:
+	## The prestige-reset case. BaseMainScene frees the game scene and builds a
+	## new one, so the same monitor name arrives again with a fresh getter while
+	## the old getter is still holding the freed node. Skipping that second
+	## registration is what leaves a monitor erroring on every read for the rest
+	## of the session.
+	##
+	## Both owners are deliberately kept alive. Freeing the first one would make
+	## this pass whether or not the getter is replaced: the second node tends to
+	## land on the freed one's address, and a lambda that captured self follows
+	## the address rather than the identity -- so the dead getter starts
+	## answering for the new node and reads correctly by accident.
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+
+	var first := MonitorOwner.new()
+	autofree(first)
+	stats.add_custom_monitor(monitor_name, first.make_getter())
+	assert_eq(float(stats.get_value(monitor_name)), 4.0, "reads the first getter")
+
+	watch_signals(stats)
+	var second := MonitorOwner.new()
+	autofree(second)
+	second.items = [1, 2]
+	stats.add_custom_monitor(monitor_name, second.make_getter())
+
+	assert_eq(float(stats.get_value(monitor_name)), 2.0,
+		"the second registration replaced the getter instead of being ignored")
+	assert_signal_not_emitted(stats, "monitor_added",
+		"the row already exists, so no second one is announced")
+
+
+func test_a_getter_whose_node_died_is_pruned()-> void:
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+	var owner_node := MonitorOwner.new()
+	stats.add_custom_monitor(monitor_name, owner_node.make_getter())
+
+	watch_signals(stats)
+	owner_node.free()
+	stats._prune_dead_monitors()
+
+	assert_does_not_have(stats.custom_monitors, monitor_name, "dropped here")
+	assert_false(Performance.has_custom_monitor(monitor_name),
+		"and unregistered from the engine, not just forgotten")
+	assert_signal_emitted_with_parameters(
+		stats, "monitor_removed", [monitor_name])
+
+
+func test_a_healthy_monitor_without_an_owner_survives_pruning()-> void:
+	## Most monitors declare no owner, so the owner lookup has to check for the
+	## key before reading it -- a missing-key read is an error that aborts the
+	## caller rather than returning null.
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+	var owner_node := MonitorOwner.new()
+	autofree(owner_node)
+	stats.add_custom_monitor(monitor_name, owner_node.make_getter())
+	assert_false(stats.custom_monitor_owner_ids.has(monitor_name),
+		"no owner was declared, so the lookup has nothing to find")
+
+	stats._prune_dead_monitors()
+
+	assert_has(stats.custom_monitors, monitor_name, "a live monitor is kept")
+
+
+func test_a_declared_owner_catches_what_the_callable_cannot()-> void:
+	## The case the owner registry exists for. A getter that captures only a
+	## local has the GDScript itself as its object, and that never dies, so
+	## Callable.is_valid() stays true however long ago the node was freed.
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "detached"
+	var owner_node := MonitorOwner.new()
+	stats.add_custom_monitor(monitor_name,
+		func(): return len(owner_node.items), [],
+		Performance.MonitorType.MONITOR_TYPE_QUANTITY, owner_node)
+
+	owner_node.free()
+	assert_true(stats.custom_monitors[monitor_name].is_valid(),
+		"is_valid() cannot see this death, which is why the owner is recorded")
+
+	stats._prune_dead_monitors()
+
+	assert_does_not_have(stats.custom_monitors, monitor_name,
+		"the declared owner is what catches it")
+
+
+func test_an_owner_is_kept_by_id_so_a_refcounted_one_can_still_die()-> void:
+	## A Dictionary holds a strong reference, so storing the object itself would
+	## mean a RefCounted owner is kept alive by the very registry meant to notice
+	## it dying, and would never be pruned.
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "refcounted"
+	var owner_ref := RefCounted.new()
+	stats.add_custom_monitor(monitor_name, func(): return 1.0, [],
+		Performance.MonitorType.MONITOR_TYPE_QUANTITY, owner_ref)
+
+	var owner_id:int = owner_ref.get_instance_id()
+	owner_ref = null
+	assert_false(is_instance_valid(instance_from_id(owner_id)),
+		"the registry is not what is keeping the owner alive")
+
+	stats._prune_dead_monitors()
+
+	assert_does_not_have(stats.custom_monitors, monitor_name)
+
+
+func test_get_value_is_null_while_a_dead_getter_waits_for_the_next_prune()-> void:
+	## Pruning is periodic, so the readout can ask for a value in the window
+	## between a node dying and the sweep noticing.
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+	var owner_node := MonitorOwner.new()
+	stats.add_custom_monitor(monitor_name, owner_node.make_getter())
+
+	owner_node.free()
+
+	assert_null(stats.get_value(monitor_name),
+		"no reading rather than a zero, and no engine error")
+
+
+func test_get_value_is_null_for_an_unknown_monitor()-> void:
+	var stats := _make_stats()
+	assert_null(stats.get_value(MONITOR_PREFIX + "never_registered"))
+
+
+func test_removing_a_monitor_unregisters_and_announces_it()-> void:
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+	var owner_node := MonitorOwner.new()
+	autofree(owner_node)
+	stats.add_custom_monitor(monitor_name, owner_node.make_getter())
+
+	watch_signals(stats)
+	stats.remove_custom_monitor(monitor_name)
+
+	assert_does_not_have(stats.custom_monitors, monitor_name)
+	assert_false(Performance.has_custom_monitor(monitor_name))
+	assert_signal_emitted_with_parameters(
+		stats, "monitor_removed", [monitor_name])
+	assert_null(stats.get_value(monitor_name), "and no longer readable")
