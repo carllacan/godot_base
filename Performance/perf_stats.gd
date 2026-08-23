@@ -68,6 +68,8 @@ const PIPELINE_MONITORS:Dictionary[String, int] = {
 	"specialization": Performance.PIPELINE_COMPILATIONS_SPECIALIZATION,
 }
 
+signal monitor_added(monitor_name:String)
+
 ## Smoothed frame time, for a readout a human can actually read.
 var frame_ms:float = 16.0
 ## Longest frame in the last WORST_WINDOW_S seconds.
@@ -80,6 +82,8 @@ var hitches:int = 0
 ## The viewport being measured. Resolved from BaseGroups.PERF_TARGET, falling
 ## back to the root viewport.
 var target_viewport:Viewport
+
+var custom_monitors:Array[String] = []
 
 var _samples:PackedFloat32Array = PackedFloat32Array()
 var _write:int = 0
@@ -136,6 +140,22 @@ func _add_debug_info_if_absent()-> void:
 	add_child(DEBUG_INFO_SCENE.instantiate())
 
 
+func add_custom_monitor(monitor_name:String, getter:Callable, arguments: Array = [], 
+		type:Performance.MonitorType = Performance.MonitorType.MONITOR_TYPE_QUANTITY
+		)-> void:
+	if monitor_name in custom_monitors: return
+	
+	Performance.add_custom_monitor(monitor_name, getter, arguments, type)
+	custom_monitors.append(monitor_name)
+	monitor_added.emit(monitor_name)
+	
+	
+func get_value(monitor_name:String)-> float:
+	if not monitor_name in custom_monitors: return NAN
+	
+	return Performance.get_custom_monitor(monitor_name)
+	
+	
 func _exit_tree()-> void:
 	_stop_measuring()
 

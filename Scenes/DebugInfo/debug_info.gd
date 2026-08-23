@@ -15,10 +15,12 @@ static var CURRENT:DebugInfo
 ## the thing being measured. Ten times a second reads better and costs less.
 const UPDATE_PERIOD_S:float = 0.1
 
-var _stats:Node
 var _until_update:float = 0.0
 ## One value label per pipeline compilation category, built at runtime.
 var _compile_rows:Dictionary[String, Label] = {}
+
+var header_labels:Dictionary[String, Label] = {}
+var value_labels:Dictionary[String, Label] = {}
 
 
 func _ready()-> void:
@@ -33,16 +35,14 @@ func _ready()-> void:
 	# GPU, and a menu being open is no reason to stop reporting.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
-	# Resolved by path rather than by name so that projects which do not
-	# register the autoload keep working -- they simply get no perf rows.
-	_stats = get_node_or_null("/root/PerfStats")
-	%PerfGrid.visible = _stats != null
-
-	if _stats != null: _build_compile_rows()
 
 	# Nothing here is interactive, and a readout that swallows clicks makes the
 	# game under it untestable wherever the panel happens to sit.
 	_ignore_mouse(self)
+	
+	_build_compile_rows()
+	_build_custom_monitor_rows()
+	PerfStats.monitor_added.connect(_insert_entry)
 
 	initialize_values()
 
@@ -54,18 +54,35 @@ func _build_compile_rows()-> void:
 	var insert_at:int = %CompilesValue.get_index() + 1
 
 	for key in PerformanceStats.PIPELINE_MONITORS:
-		var header := Label.new()
-		header.text = "    %s" % key
-		var value := Label.new()
-
-		%PerfGrid.add_child(header)
-		%PerfGrid.add_child(value)
-		%PerfGrid.move_child(header, insert_at)
-		%PerfGrid.move_child(value, insert_at + 1)
+		_insert_entry(key, insert_at, "    %s" % key)
 		insert_at += 2
 
-		_compile_rows[key] = value
+		_compile_rows[key] = value_labels[key]
+		
+		
+func _build_custom_monitor_rows()-> void:
+	for m in PerfStats.custom_monitors:
+		_insert_entry(m)
+		
+		
+func _insert_entry(data_name:String, insert_at:int = -1, 
+				header_text:String = "")-> void:
+	var header := Label.new()
+	if header_text == "":
+		header.text = data_name
+	else:
+		header.text = header_text
+	var value := Label.new()
 
+	%PerfGrid.add_child(header)
+	%PerfGrid.add_child(value)
+	if insert_at >= 0:
+		%PerfGrid.move_child(header, insert_at)
+		%PerfGrid.move_child(value, insert_at + 1)
+	
+	header_labels[data_name] = header
+	value_labels[data_name] = value
+	
 
 func _ignore_mouse(node:Node)-> void:
 	if node is Control:
@@ -79,40 +96,40 @@ func initialize_values()-> void:
 
 
 func update_values()-> void:
-	if _stats == null:
-		%FpsValue.text = "%2.2f" % Engine.get_frames_per_second()
-		return
-
 	# Engine.get_frames_per_second() is only refreshed once a second, so it lags
 	# every change you make while watching it. This is derived from the frame
 	# time instead and moves immediately.
-	%FpsValue.text = "%2.2f" % (1000.0 / maxf(_stats.frame_ms, 0.01))
-	%FrameValue.text = "%.2f ms" % _stats.frame_ms
+	%FpsValue.text = "%2.2f" % (1000.0 / maxf(PerfStats.frame_ms, 0.01))
+	%FrameValue.text = "%.2f ms" % PerfStats.frame_ms
 
 	# Shown either way, but flagged while they still include scene loading and
 	# shader compilation -- which is when they look worst and mean least.
-	var settling:String = "" if _stats.is_settled() else "  (starting up)"
+	var settling:String = "" if PerfStats.is_settled() else "  (starting up)"
 	%PercentileValue.text = "%.2f / %.2f / %.2f ms%s" % [
-		_stats.p50(), _stats.p95(), _stats.p99(), settling]
-	%WorstPeakValue.text = "%.2f / %.2f ms" % [_stats.worst_ms, _stats.peak_ms]
-	%HitchesValue.text = "%d" % _stats.hitches
-	%DrawsValue.text = "%d" % _stats.monitor("draw_calls")
-	%TargetValue.text = _stats.target_name()
+		PerfStats.p50(), PerfStats.p95(), PerfStats.p99(), settling]
+	%WorstPeakValue.text = "%.2f / %.2f ms" % [PerfStats.worst_ms, PerfStats.peak_ms]
+	%HitchesValue.text = "%d" % PerfStats.hitches
+	%DrawsValue.text = "%d" % PerfStats.monitor("draw_calls")
+	%TargetValue.text = PerfStats.target_name()
 
 	# "no reading yet" has to look different from "cost nothing to draw".
-	if _stats.has_render_time():
+	if PerfStats.has_render_time():
 		%RenderTimeValue.text = "%.2f / %.2f ms" % [
-			_stats.render_time_cpu_ms(), _stats.render_time_gpu_ms()]
+			PerfStats.render_time_cpu_ms(), PerfStats.render_time_gpu_ms()]
 	else:
 		%RenderTimeValue.text = "waiting for first reading"
 
-	var compiles:Dictionary = _stats.pipeline_compilations()
+	var compiles:Dictionary = PerfStats.pipeline_compilations()
 	var total:int = 0
 	for key in compiles:
 		total += compiles[key]
 		if _compile_rows.has(key):
 			_compile_rows[key].text = "%d" % compiles[key]
 	%CompilesValue.text = "%d" % total
+	
+	# Custom monitors
+	for m in PerfStats.custom_monitors:
+		value_labels[m].text = "%2.2f" % PerfStats.get_value(m)
 
 
 func _physics_process(delta: float) -> void:
