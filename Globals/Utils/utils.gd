@@ -117,9 +117,14 @@ static func get_layer_number(layer_name:String)-> int:
 # Ex: bunch(3, 5) = [1, 1, 1, 0, 0]
 # Ex: bunch(7, 5) = [2, 2, 1, 1, 1]
 # Ex: bunch(70, 8) = [9, 9, 9, 9, 9, 9, 8, 8]
+static var bunches_cache:Dictionary[Vector2i, Array] = {}
 static func bunch(amount:int, max_bunches:int)-> Array[int]:
 	assert(amount >= 0, "'amount' must be non-negative")
 	assert(max_bunches > 0, "'max_bunches' must be bigger than 1")
+	
+	var input = Vector2i(amount, max_bunches)
+	var _cached = bunches_cache.get(input, null)
+	if _cached != null: return _cached
 	
 	var bunches:Array[int] = []
 	var left := amount
@@ -142,7 +147,8 @@ static func bunch(amount:int, max_bunches:int)-> Array[int]:
 				
 			bunches[i] += 1
 			left -= 1
-				
+			
+	bunches_cache[input] = bunches	
 	return bunches
 	
 ## Like RandomNumberGenerator.rand_weighted, but allows using a dictionary that 
