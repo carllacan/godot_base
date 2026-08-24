@@ -246,6 +246,8 @@ func _on_cycle_finished()-> void:
 func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return
 	if not run_in_editor and Engine.is_editor_hint(): return
+	if not enabled: return
+	
 
 	var t := get_target()
 	if not t.visible: return
