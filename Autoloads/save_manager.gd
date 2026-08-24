@@ -79,8 +79,8 @@ func needs_to_save()-> bool:
 	return save_queued
 
 
-func save_if_possible()-> void:
-	if current_save_deadtime > 0:
+func save_if_possible(ignore_deadtime:bool = false)-> void:
+	if current_save_deadtime > 0 and not ignore_deadtime:
 		return
 	if is_saving:
 		return
@@ -92,7 +92,7 @@ func save_if_possible()-> void:
 
 
 func flush_saves()-> void:
-	save_if_possible()
+	save_if_possible(true)
 	
 
 func _physics_process(delta: float) -> void:
