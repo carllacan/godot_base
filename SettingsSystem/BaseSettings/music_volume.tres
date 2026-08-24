@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_sa8al")
 name = "music_volume"
-dname = "VOLUME"
+dname = "MUSIC"
 type = 2
 min_value = 1.0
 metadata/_custom_type_script = "uid://y1yl5gpm1oo1"
