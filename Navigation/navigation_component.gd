@@ -66,13 +66,16 @@ signal performed
 ## component per menu whose destination is the screen that starts open.
 @export var show_on_ready:bool = false
 
+@export var target_trigger_signals:Array[String] = ["pressed"]
+
+
 func _ready()-> void:
 	if null in to_hide or null in to_show:
 		push_error("Null references in '%s'" % get_path())
 
 
-func _is_parent_valid()-> bool:
-	return get_target() is Button
+#func _is_parent_valid()-> bool:
+	#return get_target() is Button
 
 
 func _on_parent_ready()-> void:
@@ -80,7 +83,8 @@ func _on_parent_ready()-> void:
 	# would serialize that, so opening a menu scene would silently hide half of it.
 	if Engine.is_editor_hint(): return
 
-	get_target().pressed.connect(_on_parent_button_pressed)
+	for s in target_trigger_signals:
+		get_target().connect(s, _on_target_triggered_navigation)
 
 	if hide_on_ready:
 		perform_hide()
@@ -88,7 +92,9 @@ func _on_parent_ready()-> void:
 		perform_show()
 
 
-func _on_parent_button_pressed()-> void:
+func _on_target_triggered_navigation()-> void:
+	if get_target() == null: return
+		
 	perform_navigation()
 	
 	
@@ -103,6 +109,9 @@ func perform_hide()-> void:
 
 	p("%s hiding", [get_target().name])
 	for node in to_hide:
+		if node == null: 
+			push_warning("null reference as hide target of %s" % get_path())
+			return
 		p("%s hides node %s", [get_target().name, node.name])
 		node.hide()
 
@@ -112,5 +121,8 @@ func perform_show()-> void:
 
 	p("%s showing", [get_target().name])
 	for node in to_show:
+		if node == null: 
+			push_warning("null reference as show target of %s" % get_path())
+			return
 		p("%s shows node %s", [get_target().name, node.name])
 		node.show()
