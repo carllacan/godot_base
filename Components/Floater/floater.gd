@@ -9,6 +9,10 @@ enum TriggerType {
 	ON_SHOWN,
 }
 
+## Emitted once the float is over, before anything is freed. A target that is
+## pooled rather than thrown away listens to this to know it is free again.
+signal finished
+
 var _final_pos:Vector2 = Vector2(0, -50)
 
 ## Sets the position the target will float to via coordinates. 
@@ -27,6 +31,11 @@ var _final_pos:Vector2 = Vector2(0, -50)
 @export var trigger:TriggerType = TriggerType.ON_READY
 ## Whether to free the parent after the animation is done
 @export var free_parent_at_end:bool = true
+## Whether to free the component itself after the animation is done. Only has a
+## say while [member free_parent_at_end] is off, since freeing the parent takes
+## its children with it anyway. Turn both off for a target that is pooled and
+## floated again, and watch [signal finished] instead.
+@export var free_self_at_end:bool = true
 
 
 ## Calculate position the target will float to.
@@ -69,8 +78,9 @@ func _on_parent_shown()-> void:
 
 
 func _on_parent_ready()-> void:
-	# float_away() tweens the target and then frees this node, which at edit time
-	# would delete the component out of the scene being edited.
+	# float_away() tweens the target and, unless told to free nothing, frees this
+	# node, which at edit time would delete the component out of the scene being
+	# edited.
 	if Engine.is_editor_hint(): return
 
 	var t := get_target()
@@ -103,7 +113,9 @@ func float_away()-> void:
 
 	await tw.finished
 
+	finished.emit()
+
 	if free_parent_at_end:
 		get_parent().queue_free()
-	else:
+	elif free_self_at_end:
 		queue_free()

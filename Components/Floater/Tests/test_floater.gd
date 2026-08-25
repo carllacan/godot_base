@@ -35,6 +35,7 @@ func _make_floater(opts:Dictionary = {})-> Floater:
 	floater.float_time_fluctuation = opts.get("float_time_fluctuation", 0.0)
 	floater.trigger = opts.get("trigger", Floater.TriggerType.MANUAL)
 	floater.free_parent_at_end = opts.get("free_parent_at_end", false)
+	floater.free_self_at_end = opts.get("free_self_at_end", true)
 
 	parent.add_child(floater)
 	add_child_autofree(parent)
@@ -273,6 +274,84 @@ func test_a_triggered_float_frees_the_parent_too():
 	await wait_seconds(WAIT_TIME)
 
 	assert_freed(parent, "parent")
+
+
+## How a pooled target is floated: nothing is freed, so the same node can be put
+## back where it started and sent off again.
+func test_a_floater_told_to_free_nothing_leaves_both_alive():
+	var floater := _make_floater({
+		"free_parent_at_end": false, "free_self_at_end": false
+	})
+	var parent := _parent_of(floater)
+
+	await floater.float_away()
+	await wait_process_frames(1)
+
+	assert_not_freed(floater, "floater")
+	assert_not_freed(parent, "parent")
+
+
+## free_self_at_end has no say once the parent goes: the floater hangs off it.
+func test_freeing_the_parent_takes_the_floater_even_when_it_keeps_itself():
+	var floater := _make_floater({
+		"free_parent_at_end": true, "free_self_at_end": false
+	})
+	var parent := _parent_of(floater)
+
+	await floater.float_away()
+	await wait_process_frames(1)
+
+	assert_freed(parent, "parent")
+	assert_freed(floater, "floater")
+
+
+func test_a_floater_that_frees_nothing_can_float_again():
+	var floater := _make_floater({
+		"free_parent_at_end": false, "free_self_at_end": false
+	})
+	var parent := _parent_of(floater)
+
+	await floater.float_away()
+
+	parent.position = Vector2.ZERO
+	parent.modulate.a = 1.0
+	await floater.float_away()
+
+	_assert_floated_away(parent)
+
+#endregion
+
+
+#region telling the target the float is over
+
+func test_the_finished_signal_fires_once_the_float_is_over():
+	var floater := _make_floater({"free_self_at_end": false})
+	watch_signals(floater)
+
+	await floater.float_away()
+
+	assert_signal_emitted(floater, "finished")
+
+
+func test_the_finished_signal_does_not_fire_while_the_float_is_running():
+	var floater := _make_floater({"float_time_s": 1.0, "free_self_at_end": false})
+	watch_signals(floater)
+
+	floater.float_away()
+	await wait_seconds(0.2)
+
+	assert_signal_not_emitted(floater, "finished")
+
+
+## The signal goes out before anything is freed, so a listener still gets it on
+## a floater that is on its way out.
+func test_the_finished_signal_fires_even_when_the_floater_frees_itself():
+	var floater := _make_floater({"free_self_at_end": true})
+	watch_signals(floater)
+
+	await floater.float_away()
+
+	assert_signal_emitted(floater, "finished")
 
 #endregion
 
