@@ -20,7 +20,9 @@ static var VOLUME_SETTING_NAMES:Dictionary[String, String] = {
 }
 
 var _bus_indices:Dictionary[String, int] = {}
+## Volume changes set by the game, which are combined with the player's settings
 var _internal_volumes:Dictionary[String, float] = {}
+## Mutes toggles set by the game, which are combined with the player's settings
 var _internal_mutes:Dictionary[String, bool] = {}
 
 
@@ -33,11 +35,13 @@ func _ready()-> void:
 	Settings.setting_changed.connect(update_buses.unbind(2))
 	
 
+## Apply dBs to an audio bus that will be combined with the volume settings
 func set_internal_volume(bus_name:String, db:float)-> void:
 	_internal_volumes[bus_name] = db
 	update_buses()
 
 
+## Set the mute toggle of an audio bus that will be combined with the mute settings
 func set_internal_mute(bus_name:String, muted:bool)-> void:
 	_internal_mutes[bus_name] = muted
 	update_buses()
