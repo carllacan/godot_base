@@ -429,3 +429,77 @@ func test_removing_a_monitor_unregisters_and_announces_it()-> void:
 	assert_signal_emitted_with_parameters(
 		stats, "monitor_removed", [monitor_name])
 	assert_null(stats.get_value(monitor_name), "and no longer readable")
+
+
+func test_an_owner_can_remove_the_monitor_it_registered()-> void:
+	## The call a node makes on its way out, so that its monitor goes with it
+	## instead of erroring on every read until the next prune sweep.
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+	var owner_node := MonitorOwner.new()
+	autofree(owner_node)
+	stats.add_custom_monitor(monitor_name, owner_node.make_getter())
+
+	stats.remove_custom_monitor_owned_by(monitor_name, owner_node)
+
+	assert_does_not_have(stats.custom_monitors, monitor_name)
+	assert_false(Performance.has_custom_monitor(monitor_name),
+		"and unregistered from the engine, not just forgotten")
+
+
+func test_a_replacement_registration_survives_the_old_owner_dying()-> void:
+	## The reason the ownership check exists. Freeing is deferred and
+	## re-registration is not, so a rebuilt scene has already registered its own
+	## getter by the time the old node is deleted -- and an unconditional removal
+	## from the old node would take the live monitor down with it.
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+
+	var first := MonitorOwner.new()
+	autofree(first)
+	stats.add_custom_monitor(monitor_name, first.make_getter())
+
+	var second := MonitorOwner.new()
+	autofree(second)
+	second.items = [1, 2]
+	stats.add_custom_monitor(monitor_name, second.make_getter())
+
+	stats.remove_custom_monitor_owned_by(monitor_name, first)
+
+	assert_has(stats.custom_monitors, monitor_name,
+		"the monitor belongs to the new owner now")
+	assert_eq(float(stats.get_value(monitor_name)), 2.0,
+		"and still reads the new owner's getter")
+
+
+func test_a_declared_owner_counts_as_ownership()-> void:
+	## A getter that captured only a local has the GDScript itself as its object,
+	## so matching on the callable alone would never recognise its owner.
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "detached"
+	var owner_node := MonitorOwner.new()
+	autofree(owner_node)
+	stats.add_custom_monitor(monitor_name,
+		func(): return len(owner_node.items), [],
+		Performance.MonitorType.MONITOR_TYPE_QUANTITY, owner_node)
+
+	stats.remove_custom_monitor_owned_by(monitor_name, owner_node)
+
+	assert_does_not_have(stats.custom_monitors, monitor_name)
+
+
+func test_a_stranger_cannot_remove_someone_elses_monitor()-> void:
+	var stats := _make_stats()
+	var monitor_name:String = MONITOR_PREFIX + "items"
+	var owner_node := MonitorOwner.new()
+	autofree(owner_node)
+	var stranger := MonitorOwner.new()
+	autofree(stranger)
+	stats.add_custom_monitor(monitor_name, owner_node.make_getter())
+
+	stats.remove_custom_monitor_owned_by(monitor_name, stranger)
+	stats.remove_custom_monitor_owned_by(monitor_name, null)
+	stats.remove_custom_monitor_owned_by(MONITOR_PREFIX + "unknown", owner_node)
+
+	assert_has(stats.custom_monitors, monitor_name, "untouched")
+	assert_true(Performance.has_custom_monitor(monitor_name))

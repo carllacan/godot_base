@@ -195,9 +195,10 @@ func add_custom_monitor(monitor_name:String, getter:Callable, arguments:Array = 
 	if is_new: monitor_added.emit(monitor_name)
 
 
-## Unregisters a monitor and drops its readout row. Worth calling from the
-## _exit_tree() of whatever owns the getter, though _prune_dead_monitors()
-## catches most of the ones that do not.
+## Unregisters a monitor and drops its readout row. _prune_dead_monitors()
+## catches most of the monitors nobody removes by hand, but only on its periodic
+## sweep -- a node that wants its monitor gone the moment it dies should call
+## remove_custom_monitor_owned_by() instead of this.
 func remove_custom_monitor(monitor_name:String)-> void:
 	if not custom_monitors.has(monitor_name): return
 
@@ -208,6 +209,39 @@ func remove_custom_monitor(monitor_name:String)-> void:
 		Performance.remove_custom_monitor(monitor_name)
 
 	monitor_removed.emit(monitor_name)
+
+
+## Removes a monitor, but only while it is still the one monitor_owner
+## registered.
+##
+## This is the call for a node to make on its way out, rather than
+## remove_custom_monitor(). An unconditional removal from a dying node is a trap:
+## a rebuilt scene registers its replacement getter before the old node is
+## actually deleted -- freeing is deferred, re-registration is not -- so the old
+## node would take the new registration down with it and leave the readout
+## without a row.
+##
+## Ownership is the getter's own object as well as any owner declared at
+## registration, so a getter that captured self needs nothing extra.
+func remove_custom_monitor_owned_by(monitor_name:String, monitor_owner:Object)-> void:
+	if not custom_monitors.has(monitor_name): return
+	if not _is_monitor_owned_by(monitor_name, monitor_owner): return
+
+	remove_custom_monitor(monitor_name)
+
+
+func _is_monitor_owned_by(monitor_name:String, monitor_owner:Object)-> bool:
+	if monitor_owner == null: return false
+
+	if custom_monitors[monitor_name].get_object() == monitor_owner:
+		return true
+
+	# Most monitors declare no owner, and reading a key a Dictionary does not
+	# have is an error that aborts the caller rather than returning null.
+	if custom_monitor_owner_ids.has(monitor_name):
+		return custom_monitor_owner_ids[monitor_name] == monitor_owner.get_instance_id()
+
+	return false
 
 
 ## Current value of a custom monitor, or null when there is no such monitor or
