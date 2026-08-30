@@ -154,12 +154,18 @@ func _quantize(weight:float)-> float:
 
 func start()-> void:
 	if not is_node_ready(): return
-	
-	if state != State.STOPPED:
+
+	if state not in [State.STOPPED, State.WAITING_FOR_CYCLE_TO_STOP]:
 		return
-		
+
+	# Only a stopped animator rewinds. Starting one that was asked to finish its
+	# cycle calls that stop off in place: it is still running and still at the
+	# right phase, so picking it back up is invisible, where rewinding would jump
+	# the property. A caller that does want it back at the beginning has reset().
+	if state == State.STOPPED:
+		cycle_time = 0
+
 	state = State.PLAYING
-	cycle_time = 0
 	
 	
 func reset()-> void:
@@ -178,13 +184,28 @@ func stop()-> void:
 		
 	state = State.STOPPED
 	cycle_time = 0
+	# Rewound too, so that stopping during a pause does not leave a countdown
+	# behind. Nothing reads it again before _on_cycle_finished sets it afresh,
+	# but a stopped animator holding a half-spent pause is a trap for the next
+	# person to add a state to this machine.
+	intercycle_time = 0
 	update_property()
 	
 
 func finish_cycle_and_stop()-> void:
 	if not is_node_ready(): return
+
+	# Asked for during the pause between two cycles there is no cycle left to
+	# finish: the last one is over and cycle_time is already back at 0, so the
+	# property is sitting at the value a stop would leave it on anyway. Stopping
+	# on the spot is therefore just as silent, where waiting would mean running a
+	# whole extra cycle first.
+	if state == State.WAITING_BETWEEN_CYCLES:
+		stop()
+		return
+
 	if state != State.PLAYING: return
-	
+
 	state = State.WAITING_FOR_CYCLE_TO_STOP
 	
 

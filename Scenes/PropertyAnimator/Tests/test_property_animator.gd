@@ -323,6 +323,15 @@ func test_stopping_an_animator_that_is_already_stopped_leaves_the_property_alone
 	assert_almost_eq(animator.get_target().rotation, 3.0, DELTA)
 
 
+func test_stopping_rewinds_the_pause_between_cycles_too():
+	var animator := _make_animator({"pause_between_cycles": 0.5})
+	animator.advance_cycle(1.2)
+
+	animator.stop()
+
+	assert_almost_eq(animator.intercycle_time, 0.0, DELTA)
+
+
 func test_resetting_rewinds_the_cycle_and_the_property():
 	var animator := _make_animator({"mode": PropertyAnimator.Mode.RESTART})
 
@@ -370,6 +379,31 @@ func test_the_animator_stops_once_the_cycle_it_was_finishing_is_over():
 
 	assert_eq(animator.state, PropertyAnimator.State.STOPPED)
 	assert_almost_eq(animator.cycle_time, 0.0, DELTA)
+
+
+func test_starting_an_animator_that_is_finishing_its_cycle_calls_the_stop_off():
+	var animator := _make_animator()
+	animator._physics_process(0.25)
+	animator.finish_cycle_and_stop()
+
+	animator.start()
+
+	assert_eq(animator.state, PropertyAnimator.State.PLAYING)
+	assert_almost_eq(animator.cycle_time, 0.25, DELTA,
+		"it picks up where it was, rather than rewinding and jumping the property")
+
+
+func test_an_animator_asked_to_finish_its_cycle_mid_pause_stops_on_the_spot():
+	var animator := _make_animator({"pause_between_cycles": 0.5})
+	animator.advance_cycle(1.2)
+	assert_eq(animator.state, PropertyAnimator.State.WAITING_BETWEEN_CYCLES,
+		"the animator is between cycles, not playing")
+
+	animator.finish_cycle_and_stop()
+
+	assert_eq(animator.state, PropertyAnimator.State.STOPPED,
+		"there is no cycle left to finish, so it does not run another one first")
+	assert_almost_eq(animator.intercycle_time, 0.0, DELTA)
 
 #endregion
 
