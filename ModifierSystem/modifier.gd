@@ -69,6 +69,10 @@ func apply(base_value)-> float:
 			
 			
 func get_value()-> float:
+	if Engine.is_editor_hint():
+		# Skip the override in the editor to avoid getter errors
+		return value
+
 	if apply_override and Flags.DEBUG:
 		return override_value
 	else:
@@ -77,7 +81,7 @@ func get_value()-> float:
 		
 ## Returns the value, transforming to % if it's a multiplicative mod
 func get_value_str()-> String:
-	match mode:	
+	match mode:
 		Mode.ADDITIVE:
 			return "%1.0f" % value
 		Mode.MULTIPLICATIVE:

@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BuildConfig" format=3]
+
+[ext_resource type="Script" uid="uid://b4bqvf2sluvh1" path="res://Parameters/build_config.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+force_debug = 1

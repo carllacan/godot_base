@@ -7,12 +7,28 @@ func before_each():
 	manager = ModifierManager.new()
 
 
+func after_each()-> void:
+	# Back to the build configuration the run was started with
+	BuildConfig.Default = null
+
+
 func _additive(key:String, value:float)-> Modifier:
 	return Modifier.make_new_additive(key, value)
 
 
 func _multiplicative(key:String, value:float)-> Modifier:
 	return Modifier.make_new_multiplicative(key, value)
+
+
+## Replaces the build configuration with one of those sitting next to this
+## script, so the tests do not depend on which configuration the run happened to
+## pick up. The file is found relative to the script so the tests travel with
+## their configurations.
+func _use_build_config(file_name:String)-> void:
+	var path:String = get_script().resource_path.get_base_dir().path_join(file_name)
+	var config:BuildConfig = load(path)
+	assert_not_null(config, "No build configuration at %s" % path)
+	BuildConfig.Default = config
 
 
 #region apply_modifiers
@@ -213,6 +229,7 @@ func test_a_key_can_be_emptied_and_refilled():
 #region overrides
 
 func test_an_overridden_value_is_the_one_that_gets_registered():
+	_use_build_config("debug_on_build_config.tres")
 	var mod := _additive("speed", 3.0)
 	mod.override_value = 99.0
 	mod.apply_override = true
