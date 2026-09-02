@@ -6,6 +6,30 @@ extends GutTest
 ## engine state add the node instead.
 
 
+func before_each()-> void:
+	_force_debug()
+
+
+func after_each()-> void:
+	# Back to the build configuration the run was started with
+	BuildConfig.Default = null
+
+	for monitor_name in Performance.get_custom_monitor_names():
+		if String(monitor_name).begins_with(MONITOR_PREFIX):
+			Performance.remove_custom_monitor(monitor_name)
+
+
+## PerformanceStats does nothing at all outside a debug build -- registering a
+## monitor is a no-op, and everything downstream of it reads null. Which build
+## the run picked up is not this file's business: `Data/Dev/editor_build_config`
+## is per-developer and gitignored, so leaving the flag ambient means the whole
+## monitor half of this suite passes or fails depending on whose machine it is.
+func _force_debug()-> void:
+	var config := BuildConfig.new()
+	config.force_debug = BaseBuildConfig.ForceActions.ForceTrue
+	BuildConfig.Default = config
+
+
 func _make_bare()-> PerformanceStats:
 	## A stats object that has not been through _ready, with just the buffer set
 	## up. Keeps the sampling tests clear of autoloads and viewport resolution.
@@ -257,12 +281,6 @@ class MonitorOwner extends Node:
 
 	func make_getter()-> Callable:
 		return func(): return len(items)
-
-
-func after_each()-> void:
-	for monitor_name in Performance.get_custom_monitor_names():
-		if String(monitor_name).begins_with(MONITOR_PREFIX):
-			Performance.remove_custom_monitor(monitor_name)
 
 
 func _make_stats()-> PerformanceStats:
