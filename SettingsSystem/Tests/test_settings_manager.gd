@@ -65,8 +65,13 @@ func _make_setting_info(setting_name:String, type:Variant.Type)-> SettingInfo:
 ## Steam API. With Steam closed the API was never initialized and every call
 ## pushes an engine error, which GUT counts as a failure of whatever test was
 ## running, so the tests that would ask are skipped instead.
+##
+## The steam flag is checked on top of is_platform_ready() because the base
+## controller reports itself as not ready: on a build without the flag there is
+## no platform to reach, get_current_language() answers "" without erroring and
+## the test has its own fallback for that, so there is nothing to skip.
 func _steam_is_unreachable()-> bool:
-	return Flags.STEAM and not Steam.isSteamRunning()
+	return Flags.STEAM and not Integration.is_platform_ready()
 
 
 ## A manager holding the three test settings. It is not in the tree, so

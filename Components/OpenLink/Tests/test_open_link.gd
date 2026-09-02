@@ -3,10 +3,11 @@ extends GutTest
 ## The component's two halves are tested differently. get_link and the signal
 ## wiring are plain logic and are tested directly. Pressing is not: _on_pressed
 ## ends in OS.shell_open, which would really open a browser on the machine
-## running the tests, so only the store branch, which returns before reaching
-## it, is exercised here. To see that branch happen at all the Integration
-## autoload gets a spy script for the duration of each test and its own script
-## back afterwards, which is safe because the controller holds no state.
+## running the tests, so only the store and overlay branches, which return
+## before reaching it, are exercised here. To see those branches happen at all
+## the Integration autoload gets a spy script for the duration of each test and
+## its own script back afterwards, which is safe because the controller holds
+## no state.
 
 ## Feature tags the tests use to steer get_link. Tests always run from an
 ## editor build, so "editor" is there and "template" and "web", which only
@@ -28,10 +29,12 @@ class IntegrationSpy extends BaseIntegrationController:
 	func open_store_page(store_id:Variant = null)-> void:
 		store_page_calls.append(store_id)
 
-	## The base controller has no such method, only the Steam one does, so the
-	## spy provides it to keep the overlay branch from erroring out.
-	func open_overlay(page_id:String)-> void:
+	## The base controller does have this one, but it only reports that it
+	## opened nothing, so the spy records the call and answers like a platform
+	## whose overlay is available.
+	func open_overlay(page_id:String)-> bool:
 		overlay_calls.append(page_id)
+		return true
 
 
 func before_each():
@@ -241,5 +244,54 @@ func test_the_store_page_is_opened_even_with_a_feature_link_set():
 	_button(open_link).pressed.emit()
 
 	assert_eq(_store_page_calls().size(), 1)
+
+#endregion
+
+
+#region pressing with an overlay configured
+
+## The overlay is opened with the id it was configured with, and no store page
+## is opened on the way there. That the link is not opened as well cannot be
+## asserted, only read off the return in _on_pressed: OS.shell_open cannot be
+## observed from here.
+func test_pressing_opens_the_overlay_when_an_overlay_id_is_set():
+	var open_link := _make_open_link({
+		"link": LINK,
+		"overlay_id": "some_overlay",
+	})
+
+	_button(open_link).pressed.emit()
+
+	assert_eq(_overlay_calls(), ["some_overlay"])
+	assert_eq(_store_page_calls(), [])
+
+
+## The store features are what pick the store branch, so listing only absent
+## ones leaves the overlay branch in charge.
+func test_an_absent_store_feature_does_not_take_the_overlay_away():
+	var open_link := _make_open_link({
+		"link": LINK,
+		"store_id_if_feature": [ABSENT_FEATURE] as Array[String],
+		"overlay_id": "some_overlay",
+	})
+
+	_button(open_link).pressed.emit()
+
+	assert_eq(_overlay_calls(), ["some_overlay"])
+	assert_eq(_store_page_calls(), [])
+
+
+## The feature links steer get_link, which the overlay branch never reaches, so
+## configuring one changes nothing about which branch runs.
+func test_the_overlay_is_opened_even_with_a_feature_link_set():
+	var open_link := _make_open_link({
+		"link": LINK,
+		"link_if_feature": {PRESENT_FEATURE: FEATURE_LINK} as Dictionary[String, String],
+		"overlay_id": "some_overlay",
+	})
+
+	_button(open_link).pressed.emit()
+
+	assert_eq(_overlay_calls(), ["some_overlay"])
 
 #endregion

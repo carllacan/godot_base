@@ -8,6 +8,10 @@ func _ready()-> void:
 	initialize()
 	
 	
+func is_platform_ready()-> bool:
+	return false
+
+
 func _process(_delta: float) -> void:
 	pass
 	
@@ -169,5 +173,5 @@ func read_remote_file(_remote_path:String) -> PackedByteArray:
 	
 	
 # Opens the platform's in-app overlay on a given page, if it has one.
-func open_overlay(_page_id:String)-> void:
-	pass
+func open_overlay(_page_id:String)-> bool:
+	return false

@@ -16,7 +16,11 @@ func _ready()-> void:
 				
 	initialize()	
 	
-		
+	
+func is_platform_ready()-> bool:
+	return Flags.STEAM and Steam.isSteamRunning()
+
+
 func initialize()-> void:	
 	if not Flags.STEAM:
 		return
@@ -227,12 +231,15 @@ func open_store_page(store_id:Variant = null)-> void:
 		Steam.activateGameOverlayToStore(store_id)
 		
 		
-func open_overlay(page_id:String)-> void:
-	if not Flags.STEAM: return
+func open_overlay(page_id:String)-> bool:
+	if not Flags.STEAM: return false
 	
 	if Steam.isOverlayEnabled():
 		Steam.activateGameOverlayToWebPage(page_id, 
 		Steam.OverlayToWebPageMode.OVERLAY_TO_WEB_PAGE_MODE_DEFAULT)
+		return true
+	else:
+		return false
 	
 		
 func get_float_statistic(stat_name:String)-> float:
