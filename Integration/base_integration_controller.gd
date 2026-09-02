@@ -168,3 +168,6 @@ func read_remote_file(_remote_path:String) -> PackedByteArray:
 	return []
 	
 	
+# Opens the platform's in-app overlay on a given page, if it has one.
+func open_overlay(_page_id:String)-> void:
+	pass
