@@ -469,3 +469,24 @@ static func get_all_subnodes_of_type(root:Node, type:String)-> Array[Node]:
 	for node in get_all_subnodes(root):
 		if node.is_class(type): out.append(node)
 	return out
+
+
+## The amount of arguments a signal carries, from its emitter's signal list.
+static func get_signal_argument_amount(s:Signal)-> int:
+	var emitter:Object = s.get_object()
+	if emitter == null: return 0
+
+	for signal_info in emitter.get_signal_list():
+		if signal_info["name"] == s.get_name():
+			return signal_info["args"].size()
+	return 0
+
+
+## Godot errors on emit when a connected callable takes fewer arguments than the
+## signal carries, so a handler that ignores the payload cannot be connected as
+## is. This returns the callable with the surplus arguments unbound, letting the
+## same handler be connected to signals of any arity.
+static func unbind_for_signal(s:Signal, callable:Callable)-> Callable:
+	var surplus:int = get_signal_argument_amount(s) - callable.get_argument_count()
+	if surplus <= 0: return callable
+	return callable.unbind(surplus)
