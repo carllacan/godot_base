@@ -21,8 +21,24 @@ enum Mode {
 @export var property:String
 @export var mode:Mode
 @export var period:float = 1.0
+## Where in the cycle the animation begins, as a fraction of the period. It
+## slides the animation along without changing its shape or its length: a cycle
+## still lasts one whole [member period] whatever value it starts on.
+##
+## Careful with [constant Mode.PERIODIC], whose cycle starts halfway between the
+## ends and rising rather than at [member min_value]. The phase that starts on an
+## end is therefore a quarter turn away from the obvious one:
+## [code]0.25[/code] begins at the maximum and [code]0.75[/code] at the minimum,
+## while [code]0.5[/code] begins halfway again, only falling.
+## [constant Mode.RESTART] has no such quarter turn: there the phase and the
+## fraction of the way from min to max are the same number.
+@export_range(0.0, 1.0, 0.01) var initial_phase:float = 0.0
 @export var pause_between_cycles:float = 0.0
+## Whether the animation should start when this node enters the tree
 @export var autostart:bool = true
+## Whether the property should be reset to the starting value when this node
+## enters the tree
+@export var autoreset:bool = false
 ## Whether the animation repeats. With this off it runs a single cycle and holds
 ## the value it ended on, rather than snapping back to the start.
 @export var loop:bool = true
@@ -64,6 +80,8 @@ func _ready()-> void:
 	
 	#assert(property in target.get_property_list())
 	finished_cycle.connect(_on_cycle_finished)
+	
+	update_property()
 	if autostart:
 		start()
 
@@ -213,7 +231,14 @@ func update_property()-> void:
 	if not is_node_ready(): return
 	if min_value == null or max_value == null or property == "": return
 	
-	var phase:float = cycle_time/period
+	# The offset can carry the phase past the end of the cycle, so it wraps back
+	# around. Past 1 and not at it: a non-looping animation parks on
+	# cycle_time == period to hold the value it finished on, and that is the far
+	# end of the cycle rather than the start of the next one.
+	var phase:float = cycle_time/period + initial_phase
+	if phase > 1.0:
+		phase -= 1.0
+
 	var weight:float
 
 	match mode:
@@ -233,6 +258,7 @@ func update_property()-> void:
 	
 func advance_cycle(delta:float)-> void:
 	cycle_time += delta
+
 	if cycle_time > period:
 		cycle_time -= period
 		finished_cycle.emit()

@@ -21,6 +21,7 @@ func _make_animator(opts:Dictionary = {})-> PropertyAnimator:
 	animator.property = opts.get("property", "rotation")
 	animator.mode = opts.get("mode", PropertyAnimator.Mode.PERIODIC)
 	animator.period = opts.get("period", 1.0)
+	animator.initial_phase = opts.get("initial_phase", 0.0)
 	animator.pause_between_cycles = opts.get("pause_between_cycles", 0.0)
 	animator.autostart = opts.get("autostart", true)
 	animator.min_value = opts.get("min_value", 0.0)
@@ -227,6 +228,53 @@ func test_a_restarting_animation_reaches_the_top_at_the_end_of_the_cycle():
 	animator.update_property()
 
 	assert_almost_eq(_value(animator), 10.0, DELTA)
+
+
+func test_the_initial_phase_moves_a_periodic_animation_along():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.PERIODIC,
+		"initial_phase": 0.75,
+	})
+
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), 0.0, DELTA,
+		"a periodic cycle begins halfway and rising, so the bottom is three quarters along")
+
+
+func test_the_initial_phase_moves_a_restarting_animation_along():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART,
+		"initial_phase": 0.5,
+	})
+
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), 5.0, DELTA)
+
+
+func test_the_initial_phase_wraps_around_the_end_of_the_cycle():
+	var animator := _make_animator({
+		"mode": PropertyAnimator.Mode.RESTART,
+		"initial_phase": 0.5,
+	})
+
+	animator.cycle_time = 0.75
+
+	animator.update_property()
+
+	assert_almost_eq(_value(animator), 2.5, DELTA,
+		"a phase past the end of the cycle comes back around rather than overshooting the maximum")
+
+
+func test_the_initial_phase_does_not_change_how_long_a_cycle_lasts():
+	var animator := _make_animator({"period": 1.0, "initial_phase": 0.5})
+	watch_signals(animator)
+
+	animator.advance_cycle(1.2)
+
+	assert_signal_emit_count(animator, "finished_cycle", 1)
+	assert_almost_eq(animator.cycle_time, 0.2, DELTA)
 
 
 func test_the_period_scales_the_animation():
