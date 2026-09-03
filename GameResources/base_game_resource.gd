@@ -9,3 +9,7 @@ class_name BaseGameResource
 
 func _to_string() -> String:
 	return dname
+
+
+func get_bbcode(size:int = 12)-> String:
+	return "[img=%dx%d]%s[/img]" % [size, size, icon.resource_path]
