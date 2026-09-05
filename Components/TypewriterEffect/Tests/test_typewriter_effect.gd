@@ -159,12 +159,36 @@ func test_a_label_with_no_text_is_left_blank():
 
 #region how long the effect takes
 
+## The windows below are deliberately wide, and PACED_MIN sits well under the
+## 400 ms these effects nominally take. play() waits on a chain of four
+## SceneTreeTimers, and a SceneTreeTimer counts down by the frame's delta rather
+## than by the clock: a frame that takes 80 ms takes 80 ms off the timer, so a
+## timer set for 100 ms can expire after 20 ms of real time. The effect therefore
+## finishes *early* by up to one frame per character, and by more whenever the
+## engine hitches.
+##
+## How much it loses depends on what else the run is doing, not on the typewriter:
+## measured over 40 runs, this suite on its own lands at 398-415 ms, next to the
+## Fader and Floater suites at 321-396 ms, and in a full res://GodotBase run at
+## 314-335 ms. The old 350 ms floor sat inside that spread, so these tests passed
+## alone and failed every time in the full suite.
+##
+## What the numbers are actually here to tell apart is a paced effect from an
+## instant one, and those are an order of magnitude apart: ~400 ms against the
+## ~15 ms of four back-to-back frames. Keep the two windows far enough apart that
+## no one reading of the clock can satisfy both, and do not tighten PACED_MIN back
+## towards the nominal time.
+const PACED_MIN:int = 200
+const PACED_MAX:int = 900
+const INSTANT_MAX:int = 150
+
+
 func test_the_total_time_paces_the_whole_effect():
 	var typewriter := _make_typewriter({"total_time": 0.4})
 
 	var elapsed:int = await _time_play(typewriter)
 
-	assert_between(elapsed, 350, 900)
+	assert_between(elapsed, PACED_MIN, PACED_MAX)
 
 
 func test_the_minimum_character_time_holds_a_fast_effect_back():
@@ -172,7 +196,7 @@ func test_the_minimum_character_time_holds_a_fast_effect_back():
 
 	var elapsed:int = await _time_play(typewriter)
 
-	assert_between(elapsed, 350, 900)
+	assert_between(elapsed, PACED_MIN, PACED_MAX)
 
 
 func test_a_zero_total_time_with_no_minimum_is_as_fast_as_the_frames_allow():
@@ -180,7 +204,7 @@ func test_a_zero_total_time_with_no_minimum_is_as_fast_as_the_frames_allow():
 
 	var elapsed:int = await _time_play(typewriter)
 
-	assert_lt(elapsed, 300)
+	assert_lt(elapsed, INSTANT_MAX)
 
 
 # play() takes the time to spend on the effect as an argument, but paces itself
@@ -191,7 +215,7 @@ func test_the_time_given_to_play_is_ignored():
 
 	var elapsed:int = await _time_play(typewriter, 0.0)
 
-	assert_between(elapsed, 350, 900, "should take the total time, not the time it was given")
+	assert_between(elapsed, PACED_MIN, PACED_MAX, "should take the total time, not the time it was given")
 
 #endregion
 
