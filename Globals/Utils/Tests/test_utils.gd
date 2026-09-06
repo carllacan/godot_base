@@ -513,6 +513,16 @@ func test_format_number_compact_uses_custom_suffixes():
 
 #region rand_weighted
 
+## Publishes `rng` as the run's generator for the duration of the callable, then
+## restores whatever was there. The random helpers fall back to Current.Rng, so
+## every test of that fallback has to leave it as it found it.
+func _with_current_rng(rng:RandomNumberGenerator, body:Callable)-> void:
+	var previous := Current.Rng
+	Current.Rng = rng
+	body.call()
+	Current.Rng = previous
+
+
 func test_rand_weighted_empty_catalog_returns_null():
 	var result: Variant = Utils.rand_weighted({})
 	assert_null(result)
@@ -540,6 +550,41 @@ func test_rand_weighted_returns_key_from_catalog():
 		var result: Variant = Utils.rand_weighted(catalog, false, rng)
 		assert_true(result in catalog,
 			"Result '%s' not in catalog" % str(result))
+
+
+func test_rand_weighted_falls_back_to_current_rng():
+	var explicit := RandomNumberGenerator.new()
+	explicit.seed = 77
+	var fallback := RandomNumberGenerator.new()
+	fallback.seed = 77
+	var catalog := {"a": 1.0, "b": 2.0, "c": 3.0}
+
+	var expected:Array = []
+	for i in range(20):
+		expected.append(Utils.rand_weighted(catalog, false, explicit))
+
+	var got:Array = []
+	_with_current_rng(fallback, func():
+		for i in range(20):
+			got.append(Utils.rand_weighted(catalog))
+	)
+
+	assert_eq(got, expected)
+
+
+func test_rand_weighted_infinite_weights_draw_from_the_given_rng():
+	# Two infinite weights, so the branch has an actual choice to make and the
+	# generator it uses is observable.
+	var rng1 := RandomNumberGenerator.new()
+	rng1.seed = 5
+	var rng2 := RandomNumberGenerator.new()
+	rng2.seed = 5
+	var catalog := {"a": INF, "b": INF}
+
+	for i in range(20):
+		assert_eq(
+			Utils.rand_weighted(catalog, false, rng1),
+			Utils.rand_weighted(catalog, false, rng2))
 
 
 func test_rand_weighted_sorted_catalog_same_as_unsorted():
@@ -618,6 +663,50 @@ func test_rand_bool_half_probability_produces_both_outcomes():
 		"Expected a mix of outcomes at p=0.5, got %d trues out of 200" % trues)
 
 
+func test_rand_bool_with_same_seed_repeats_its_outcomes():
+	var rng1 := RandomNumberGenerator.new()
+	rng1.seed = 4242
+	var rng2 := RandomNumberGenerator.new()
+	rng2.seed = 4242
+	for i in range(50):
+		assert_eq(Utils.rand_bool(0.5, rng1), Utils.rand_bool(0.5, rng2))
+
+
+func test_rand_bool_falls_back_to_current_rng():
+	var explicit := RandomNumberGenerator.new()
+	explicit.seed = 808
+	var fallback := RandomNumberGenerator.new()
+	fallback.seed = 808
+
+	var expected:Array[bool] = []
+	for i in range(50):
+		expected.append(Utils.rand_bool(0.5, explicit))
+
+	var got:Array[bool] = []
+	_with_current_rng(fallback, func():
+		for i in range(50):
+			got.append(Utils.rand_bool(0.5))
+	)
+
+	assert_eq(got, expected)
+
+
+func test_rand_bool_prefers_its_argument_over_current_rng():
+	var given := RandomNumberGenerator.new()
+	given.seed = 1
+	var current := RandomNumberGenerator.new()
+	current.seed = 1
+	var untouched_state := current.state
+
+	_with_current_rng(current, func():
+		for i in range(20):
+			Utils.rand_bool(0.5, given)
+	)
+
+	assert_eq(current.state, untouched_state,
+		"Current.Rng was drawn from even though a generator was passed in")
+
+
 func test_rand_bool_probability_above_one_warns_and_returns_true():
 	var result := Utils.rand_bool(1.5)
 	assert_push_warning("not in [0,1]")
@@ -669,6 +758,52 @@ func test_rand_sort_keeps_duplicates():
 	var sorted_result := result.duplicate()
 	sorted_result.sort()
 	assert_eq(sorted_result, [1, 1, 2])
+
+
+func test_rand_sort_with_same_seed_repeats_its_order():
+	var rng1 := RandomNumberGenerator.new()
+	rng1.seed = 31337
+	var rng2 := RandomNumberGenerator.new()
+	rng2.seed = 31337
+	var original := [1, 2, 3, 4, 5, 6, 7, 8]
+	for i in range(10):
+		assert_eq(Utils.rand_sort(original, rng1), Utils.rand_sort(original, rng2))
+
+
+func test_rand_sort_falls_back_to_current_rng():
+	var explicit := RandomNumberGenerator.new()
+	explicit.seed = 555
+	var fallback := RandomNumberGenerator.new()
+	fallback.seed = 555
+	var original := [1, 2, 3, 4, 5, 6, 7, 8]
+
+	var expected:Array = []
+	for i in range(10):
+		expected.append(Utils.rand_sort(original, explicit))
+
+	var got:Array = []
+	_with_current_rng(fallback, func():
+		for i in range(10):
+			got.append(Utils.rand_sort(original))
+	)
+
+	assert_eq(got, expected)
+
+
+## Shuffling with a generator must not touch the global one: a run that draws
+## its order from its own stream would otherwise still be perturbing, and be
+## perturbed by, every cosmetic randf() in the project.
+func test_rand_sort_with_an_rng_leaves_the_global_generator_alone():
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 909
+	seed(4321)
+	var before := randi()
+
+	seed(4321)
+	for i in range(10):
+		Utils.rand_sort([1, 2, 3, 4, 5], rng)
+
+	assert_eq(randi(), before)
 
 
 func test_rand_sort_eventually_produces_a_different_order():

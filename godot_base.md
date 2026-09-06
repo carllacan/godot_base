@@ -797,7 +797,7 @@ take.
 
 ### Utils
 
-**File**: `GodotBase/Globals/utils.gd`
+**File**: `GodotBase/Globals/Utils/utils.gd`
 
 Static utility methods.
 
@@ -807,11 +807,34 @@ Static utility methods.
 | `Utils.angle_distance(a, b)` | Shortest angle between two angles (radians) |
 | `Utils.angle_distance_deg(a, b)` | Shortest angle (degrees) |
 | `Utils.bunch(total, num_bunches)` | Distribute amount into N bunches |
-| `Utils.rand_weighted(dict)` | Weighted random selection |
+| `Utils.rand_weighted(dict, sorted, rng)` | Weighted random selection |
+| `Utils.rand_bool(probability, rng)` | True with the given probability |
+| `Utils.rand_sort(array, rng)` | A randomly ordered copy of the array |
 | `Utils.standardize_string(s)` | Capitalize, trim, format for display |
 | `Utils.piecewise_linear(x, points)` | Evaluate piecewise linear function |
 | `Utils.write_local_file(path, bytes)` | Write bytes to user:// |
 | `Utils.get_layer_number(layer_name)` | Get physics layer by name |
+
+#### Which generator the random helpers use
+
+All three take an optional `RandomNumberGenerator` and resolve it the same way:
+the one passed in, else `Current.Rng`, else the global generator. A project that
+publishes its run's generator on `Current.Rng` therefore gets a deterministic,
+saveable stream without changing a single call site — which also means
+**presentation code must not call these helpers**. A cosmetic sprite wiggle
+calling `Utils.rand_bool()` would consume from the gameplay stream and
+desynchronise the run depending on which views happen to be open; views and
+effects use `randf()` / `randi()` directly.
+
+A project that never sets `Current.Rng` keeps the previous behaviour exactly,
+but its `Current` must still declare the field:
+
+```gdscript
+class_name Current
+
+static var Save:GameState
+static var Rng:RandomNumberGenerator
+```
 
 ### Flags
 

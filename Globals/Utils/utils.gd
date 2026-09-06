@@ -163,18 +163,23 @@ static func rand_weighted(
 	)-> Variant:
 	if len(catalog) == 0:
 		return null
-	
-	# Create a new RNG, if the user hasn't used a custom one
+
+	# Fall back to the run's generator, and only then to a throwaway one, so that
+	# a call site that names no generator still draws from the run's stream.
+	if rng == null:
+		rng = Current.Rng
 	if rng == null:
 		rng = RandomNumberGenerator.new()
-		
+
 	# If there are infinite-weighted elements, pick one of them randomly
 	var infinite_weighted:Array = []
 	for k in catalog.keys():
 		if catalog[k] == INF:
 			infinite_weighted.append(k)
 	if not infinite_weighted.is_empty():
-		return infinite_weighted.pick_random()
+		# Not pick_random(): that reads the global generator and would leave this
+		# branch of the function outside whatever stream the rest of it uses.
+		return infinite_weighted[rng.randi_range(0, infinite_weighted.size() - 1)]
 
 	# Ensure consistent index-based access to the catalog		
 	var keys:Array[Variant] = []
@@ -201,21 +206,40 @@ static func rand_weighted(
 	return keys[chosen_idx]
 	
 	
-static func rand_bool(probability:float)-> bool:
-	if probability < 0 or probability > 1: 
+## Returns true with the given probability.
+## Draws from `rng` if one is given, otherwise from the run's generator
+## (Current.Rng), otherwise from the global generator. Presentation code should
+## call randf() directly rather than this: drawing from a run's stream to wiggle
+## a sprite makes the run depend on which views happen to be open.
+static func rand_bool(probability:float, rng:RandomNumberGenerator = null)-> bool:
+	if probability < 0 or probability > 1:
 		push_warning("rand_bool called with p %0.2f, not in [0,1]" % probability)
-	return randf() < probability
-	
-	
-## Returns a copy of the given array, sorted randomly
-static func rand_sort(array:Array)-> Array:
-	var d = array.duplicate()
-	var random_sort := []
-	for i in len(array):
-		var chosen_element = d.pick_random()
-		d.erase(chosen_element)
-		random_sort.append(chosen_element)
-	return random_sort
+	if rng == null:
+		rng = Current.Rng
+	if rng == null:
+		return randf() < probability
+	return rng.randf() < probability
+
+
+## Returns a copy of the given array, sorted randomly.
+## Resolves its generator like rand_bool: `rng`, then Current.Rng, then the
+## global one.
+static func rand_sort(array:Array, rng:RandomNumberGenerator = null)-> Array:
+	if rng == null:
+		rng = Current.Rng
+
+	# Fisher-Yates: walk from the back, swapping each element with one drawn from
+	# the part not yet visited. Every permutation is equally likely. The previous
+	# version drew with pick_random(), which reads the global generator and takes
+	# no rng, so it could not have been made to honour one; it also searched the
+	# array with erase() on every step, which this does not need to do.
+	var shuffled := array.duplicate()
+	for i in range(shuffled.size() - 1, 0, -1):
+		var j:int = rng.randi_range(0, i) if rng != null else randi_range(0, i)
+		var swapped = shuffled[i]
+		shuffled[i] = shuffled[j]
+		shuffled[j] = swapped
+	return shuffled
 		
 		
 static func get_magnitude_order(amount:float)-> int:
