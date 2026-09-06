@@ -86,25 +86,25 @@ func _on_quit_requested()-> void:
 #region Game Flow
 
 func begin_new_game() -> void:
-	var game_run: GameState = GameState.create_new_run()
-	assert(game_run != null)
-	start_game(game_run)
+	var game_state: GameState = GameState.create_new_state()
+	assert(game_state != null)
+	start_game(game_state)
 
 
-func continue_game(game_run:GameState = null) -> void:
-	if game_run == null:
-		game_run = GameState.load_last_run()
-	assert(game_run != null)
-	start_game(game_run)
+func continue_game(game_state:GameState = null) -> void:
+	if game_state == null:
+		game_state = GameState.load_last_state()
+	assert(game_state != null)
+	start_game(game_state)
 
 
-func start_game(game_run: GameState) -> void:
+func start_game(game_state: GameState) -> void:
 	_hide_main_menu()
-		
-	Current.Save = game_run
-	game_run.on_load()
-	
-	Log.info("Save started", "Save", {"version": Dist.get_version(), "name": game_run.id})
+
+	Current.Save = game_state
+	game_state.on_load()
+
+	Log.info("Save started", "Save", {"version": Dist.get_version(), "name": game_state.id})
 	Events.save_loaded.emit(Current.Save)
 	
 	if load_screen_scene != null:

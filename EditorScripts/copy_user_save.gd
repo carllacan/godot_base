@@ -19,7 +19,7 @@ func _run() -> void:
 		push_error("Save file not found at: %s" % source_path)
 		return
 
-	var dest_virtual := "res://Data/GameRuns/user_save.tres"
+	var dest_virtual := "res://Data/GameStates/user_save.tres"
 	var dest_path := ProjectSettings.globalize_path(dest_virtual)
 
 	var source_file := FileAccess.open(source_path, FileAccess.READ)

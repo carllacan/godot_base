@@ -3,8 +3,8 @@ extends Resource
 class_name BaseGameState
 
 const DEFAULT_FILENAME = "save.tres"
-const INITIAL_RUN_FILEPATH = "res://Data/GameStates/initial_game_run.tres"
-const DEMO_INITIAL_RUN_FILEPATH = "res://Data/GameRuns/demo_initial_game_run.tres"
+const INITIAL_STATE_FILEPATH = "res://Data/GameStates/initial_game_state.tres"
+const DEMO_INITIAL_STATE_FILEPATH = "res://Data/GameStates/demo_initial_game_state.tres"
 
 ## Command line switch that picks the directory saves are read from and written
 ## to, overriding saving_default_dir. Takes a path relative to user:// or an
@@ -124,9 +124,9 @@ func actually_save(state:BaseGameState, filename:String = "")-> Error:
 	var result:Error
 
 	# A name passed to save() beats the one this state was built with; both lose
-	# to the command line, which get_run_filepath settles.
+	# to the command line, which get_state_filepath settles.
 	var fname:String = filename if not filename.is_empty() else state.saving_default_filename
-	var filepath:String = get_run_filepath(fname, state.saving_default_dir)
+	var filepath:String = get_state_filepath(fname, state.saving_default_dir)
 
 	# The directory can sit outside user://, so it has to be created as the
 	# absolute path it is rather than relative to an opened user://.
@@ -149,14 +149,14 @@ func actually_save(state:BaseGameState, filename:String = "")-> Error:
 	return result
 
 
-static func get_default_run()-> BaseGameState:
-	return load(get_run_filepath())
+static func get_default_state()-> BaseGameState:
+	return load(get_state_filepath())
 
 
 ## Where a save lives: the directory and the filename, each resolved the same
 ## way. Both parts are optional, because half the callers here are static and
 ## have no state to ask — they get the command line's answer, or the default.
-static func get_run_filepath(filename:String = "", dir:String = "")-> String:
+static func get_state_filepath(filename:String = "", dir:String = "")-> String:
 	return _resolve_save_path(get_save_dir(dir), get_save_filename(filename))
 
 
@@ -219,7 +219,7 @@ static func get_save_filename(filename:String = "")-> String:
 	return DEFAULT_FILENAME
 	
 	
-# Loads a GameRun saved as a resource
+# Loads a GameState saved as a resource
 static func load_from_file(filepath:String)-> BaseGameState:
 	# Sync save, if configured to do so. This might download a new save.
 	Integration.sync_file(filepath)
@@ -259,66 +259,66 @@ func initialize()-> void:
 	total_collected_resources = {}
 
 
-#region Run Loading/Creation (for BaseMainScene)
+#region State Loading/Creation (for BaseMainScene)
 
-## Loads the last saved run, checking testing save first (if in DEBUG mode), then user save.
+## Loads the last saved state, checking testing save first (if in DEBUG mode), then user save.
 ## Returns null if no saved game exists.
-static func load_last_run()-> BaseGameState:
-	var game_run: BaseGameState
+static func load_last_state()-> BaseGameState:
+	var game_state: BaseGameState
 	if BuildConfig.Default.use_testing_savefile and Flags.DEBUG:
 		assert(BuildConfig.Default.testing_savefile, "No testing save!")
-		game_run = BuildConfig.Default.testing_savefile
-		if game_run != null:
-			print("Loaded testing run")
+		game_state = BuildConfig.Default.testing_savefile
+		if game_state != null:
+			print("Loaded testing state")
 		else:
-			push_error("Failed to load testing run")
+			push_error("Failed to load testing state")
 	else:
-		var last_saved_run_filepath: String = get_run_filepath()
-		if FileAccess.file_exists(last_saved_run_filepath):
-			game_run = load_from_file(last_saved_run_filepath)
-			if game_run != null:
-				print("Last game run successfully loaded")
+		var last_saved_state_filepath: String = get_state_filepath()
+		if FileAccess.file_exists(last_saved_state_filepath):
+			game_state = load_from_file(last_saved_state_filepath)
+			if game_state != null:
+				print("Last game state successfully loaded")
 			else:
 				push_error("FAILED to load saved file, even though it exists")
 		else:
-			print("No last-save file found at '%s'" % last_saved_run_filepath)
+			print("No last-save file found at '%s'" % last_saved_state_filepath)
 
-	return game_run
+	return game_state
 
 
-## Creates a new run by loading from initial save (respecting DEMO flag) or creating fresh.
+## Creates a new state by loading from initial save (respecting DEMO flag) or creating fresh.
 ## Implements fallback chain: initial save → create new.
-static func create_new_run()-> GameState:
-	var game_run: GameState
+static func create_new_state()-> GameState:
+	var game_state: GameState
 
-	var initial_game_run_path:String = ""
+	var initial_game_state_path:String = ""
 	if Flags.DEMO:
 		print("Loading DEMO initial save file")
-		initial_game_run_path = DEMO_INITIAL_RUN_FILEPATH
+		initial_game_state_path = DEMO_INITIAL_STATE_FILEPATH
 	else:
 		print("Loading initial save file")
-		initial_game_run_path = INITIAL_RUN_FILEPATH
-		
+		initial_game_state_path = INITIAL_STATE_FILEPATH
 
-	if FileAccess.file_exists(initial_game_run_path):
-		game_run = load(initial_game_run_path)
+
+	if FileAccess.file_exists(initial_game_state_path):
+		game_state = load(initial_game_state_path)
 	else:
-		push_warning("Initial save not found, creating empty run")
-		game_run = GameState.new()
-		game_run.id = str(game_run.get_rid().get_id())
-		game_run.initialize()
+		push_warning("Initial save not found, creating empty state")
+		game_state = GameState.new()
+		game_state.id = str(game_state.get_rid().get_id())
+		game_state.initialize()
 
-	assert(game_run != null)
+	assert(game_state != null)
 
-	return game_run
+	return game_state
 
 
-## Checks if a saved game exists (returns true if load_last_run would succeed).
+## Checks if a saved game exists (returns true if load_last_state would succeed).
 static func has_saved_game()-> bool:
 	if BuildConfig.Default.use_testing_savefile and Flags.DEBUG:
 		return true
-	var last_saved_run_filepath: String = get_run_filepath()
-	if FileAccess.file_exists(last_saved_run_filepath):
+	var last_saved_state_filepath: String = get_state_filepath()
+	if FileAccess.file_exists(last_saved_state_filepath):
 		return true
 		
 	return false
@@ -433,7 +433,7 @@ func can_afford(price:Dictionary[GameResource, float])-> bool:
 #region Tools
 
 func set_as_testing_savefile()-> void:
-	if Engine.is_editor_hint():
+	if not Engine.is_editor_hint():
 		return
 
 	var config := BuildConfig.Default

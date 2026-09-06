@@ -176,33 +176,6 @@ func reset()-> void:
 - `reset()` - Initialize default values for new save
 - `save()` - Persist to disk (calls parent implementation)
 
-### BaseGameRun
-
-**File**: `GodotBase/Classes/base_game_run.gd`
-
-Base class for a single gameplay attempt/session. Extend to create your game's `GameRun` class.
-
-```gdscript
-extends BaseGameRun
-class_name GameRun
-
-signal debris_collected_changed
-
-@export var level:int = 1
-@export var score:float = 0
-@export var time_elapsed:float = 0
-
-var run:GameState : set = set_run
-
-func set_run(new_value:GameState)-> void:
-    run = new_value
-    on_new_run_set()
-
-func on_new_run_set()-> void:
-    # Apply persistent upgrades, etc.
-    pass
-```
-
 ### BaseActor
 
 **File**: `GodotBase/GameWorld/base_actor.gd`
@@ -246,7 +219,7 @@ Container for managing actors. Extends `Node2D`.
 
 **Properties**:
 - `actors:Array[BaseActor]` - All actors in the world
-- `run:GameState` - Reference to current save
+- `game_state:GameState` - Reference to current save
 
 **Key methods**:
 - `add_actor(actor:BaseActor)` - Add and track an actor

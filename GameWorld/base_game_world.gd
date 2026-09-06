@@ -49,23 +49,23 @@ var place_new_task:Task
 	#round_info = new_value
 	
 	
-var run:GameState : set = set_run
+var game_state:GameState : set = set_game_state
 
-func set_run(new_value:GameState)-> void:
-	var old_value = run
-	run = new_value
+func set_game_state(new_value:GameState)-> void:
+	var old_value = game_state
+	game_state = new_value
 	var changed:bool = new_value != old_value
-	
+
 	if changed:
-		_on_run_changed(new_value, old_value)
-	
-	
+		_on_game_state_changed(new_value, old_value)
+
+
 func _ready()-> void:
 	pass
-		
-		
+
+
 @warning_ignore("unused_parameter")
-func _on_run_changed(new_value:GameState, old_value:GameState)-> void:
+func _on_game_state_changed(new_value:GameState, old_value:GameState)-> void:
 	return
 	
 	
@@ -292,7 +292,7 @@ func clear_actors()-> void:
 func add_actor(new_actor:BaseActor)-> void:
 	actors.append(new_actor)
 	
-	new_actor.run = run
+	new_actor.game_state = game_state
 	new_actor.effect_dropped.connect(_on_actor_effect_dropped.bind(new_actor))
 	new_actor.effect_emitted.connect(_on_actor_effect_emitted.bind(new_actor))
 	new_actor.dropped.connect(_on_actor_dropped.bind(new_actor))

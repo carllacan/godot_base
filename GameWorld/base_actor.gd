@@ -34,6 +34,9 @@ enum State {
 
 var state:State = State._undef : set = set_state
 
+## The game state this actor belongs to. Set by BaseGameWorld.add_actor().
+var game_state:GameState
+
 var just_for_show:bool = false
 var being_destroyed:bool : 
 	get: 
