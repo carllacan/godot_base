@@ -433,7 +433,23 @@ func can_afford(price:Dictionary[GameResource, float])-> bool:
 #region Tools
 
 func set_as_testing_savefile()-> void:
-	BuildConfig.Default.testing_savefile = self
+	if Engine.is_editor_hint():
+		return
+
+	var config := BuildConfig.Default
+	config.testing_savefile = self
+	config.use_testing_savefile = true
+
+	if config.resource_path.is_empty():
+		push_error("Build config has no resource_path — can't save it.")
+		return
+
+	var err := ResourceSaver.save(config, config.resource_path)
+	if err != OK:
+		push_error("Failed to save build config: %d" % err)
+	else:
+		print("Set %s as testing savefile and saved %s" % [
+			resource_path, config.resource_path])
 
 
 func overwrite_user_save() -> void:
