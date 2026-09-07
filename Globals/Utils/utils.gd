@@ -81,10 +81,14 @@ static func staircase(x: float, step_width: float, step_height: float) -> float:
 	return floor(x / step_width) * step_height
 
 
+## Takes two angles (in radians) and returns the difference between them, 
+## taking wraparound into account.
 static func angle_distance(angle1:float, angle2:float)-> float:
 	return Vector2.from_angle(angle1).angle_to(Vector2.from_angle(angle2))
 	
 	
+## Takes two angles (in degrees) and returns the difference between them, 
+## taking wraparound into account.
 static func angle_distance_deg(angle1:float, angle2:float)-> float:
 	#print("angle1: %s, angle2: %s, distance: %s" % [
 		#angle1, angle2, rad_to_deg(angle_difference(deg_to_rad(angle1), deg_to_rad(angle2)))

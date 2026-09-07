@@ -162,19 +162,108 @@ class_name GameState
 @export var unlocked_levels:Array[int] = []
 @export var total_playtime:float = 0.0
 
-static func create()-> GameState:
-    var state = GameState.new()
-    state.reset()
-    return state
-
-func reset()-> void:
+func initialize()-> void:
+    super.initialize()
     unlocked_levels = [1]
     total_playtime = 0.0
 ```
 
 **Key methods to override**:
-- `reset()` - Initialize default values for new save
-- `save()` - Persist to disk (calls parent implementation)
+- `initialize()` - Reset to the values a brand new save starts from
+- `on_load()` - Runs once just before the game starts, after the file is read
+- `save()` - Persist to disk
+
+**Constructors do not chain.** `BaseGameState._init()` builds the state's
+`resources` wallet. GDScript does not call a parent `_init()` automatically, so a
+`GameState` declaring its own **must** call `super()`. Skipping it leaves
+`resources` null, which breaks loading silently rather than loudly — see the
+migration note under BaseGameResourcesState.
+
+### BaseGameResourcesState
+
+**File**: `GodotBase/GameResources/base_game_resources_state.gd`
+
+A wallet: how much of each `GameResource` is held (`current_resources`), how much
+has been collected over its lifetime (`total_collected_resources`), and which
+kinds the player has been shown (`revealed_resources`). Every `BaseGameState` has
+one, in `resources`.
+
+```gdscript
+var wallet:BaseGameResourcesState = Current.Save.resources
+
+wallet.increase_resource(GameResource.COINS, 10)
+if wallet.can_afford({GameResource.COINS: 4.0}):
+    wallet.decrease_resource(GameResource.COINS, 4)
+```
+
+**Why it is a separate object.** A game can hold more than one. A roguelike keeps
+a run wallet beside the save's, with the same resource at a different amount in
+each, and starting a new run is then a plain assignment:
+
+```gdscript
+run_resources = BaseGameResourcesState.new()
+```
+
+Games that only need one never construct it themselves.
+
+**It does not save.** The wallet announces what changed and leaves persisting to
+whoever holds it. `BaseGameState` connects `changed` in
+`_on_resources_state_changed()`; a game that wants a write to trigger a save
+hangs that off `resources_changed`, which is coalesced to one emission per frame
+so a burst of writes queues a single save.
+
+**Signals**: `resources_changed` (coalesced), `resource_changed(resource, new_value)`,
+`resource_revealed(resource)`, plus `Resource.changed`.
+
+**Relaying its signals from the state.** Godot does not propagate `changed` from a
+sub-resource to the resource holding it, so a state that wants listeners to keep
+connecting to *it* rather than to the wallet has to forward them, and rebind when
+the wallet is replaced:
+
+```gdscript
+func _on_resources_state_changed(
+        old_value:BaseGameResourcesState, new_value:BaseGameResourcesState)-> void:
+    super._on_resources_state_changed(old_value, new_value) # keeps `changed` alive
+
+    if old_value != null:
+        old_value.resources_changed.disconnect(_on_resources_changed)
+    if new_value != null:
+        new_value.resources_changed.connect(_on_resources_changed)
+```
+
+Forgetting `super()` there is silent: the game's own signals keep working and only
+`changed` stops arriving.
+
+#### Migrating a project that predates the wallet
+
+Before this existed, `current_resources`, `total_collected_resources` and
+`revealed_resources` lived directly on `BaseGameState`, and older `.tres` saves
+still name them at the top level. They are gone from the base class, so a project
+bumping past this commit has to declare them on its own `GameState` as
+**non-exported** forwarding properties:
+
+```gdscript
+var current_resources:Dictionary[GameResource, float]:
+    set(value): resources.current_resources = value
+    get: return resources.current_resources
+```
+
+Not exporting them means nothing writes them back out, while the loader still
+assigns them when an old file names them — so a save migrates itself the first
+time it is read and re-saved. Reads keep working too, so existing code touching
+`state.current_resources` needs no change.
+
+The same project also needs whichever of `get_current_resource()`,
+`set_resource()`, `increase_resource(s)()`, `decrease_resource(s)()`,
+`reveal_resource()`, `is_resource_revealed()` and `can_afford()` its call sites
+use, as one-line forwarders onto `resources`.
+
+**This cannot be handled by a version check after loading.** The old values arrive
+during deserialisation and are assigned through those setters; if the property is
+missing, the assignment fails *inside* `ResourceLoader.load()`, which still
+returns a non-null object with the data gone. By the time any post-load hook could
+read `version`, there is nothing left to migrate. For property-shaped changes the
+setter is the migration hook.
 
 ### BaseActor
 

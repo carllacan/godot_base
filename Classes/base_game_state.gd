@@ -35,10 +35,6 @@ const SAVE_DIR_ARG:String = "--save-dir"
 const SAVE_FILE_ARG:String = "--save-file"
 
 
-signal resources_changed
-signal resource_changed(resource:GameResource, new_value:float)
-signal resource_revealed(resource:GameResource)
-
 @export var id:String = ""
 @export_group("Saving")
 ## Filename to save under when none is passed to save(). Empty means
@@ -48,12 +44,9 @@ signal resource_revealed(resource:GameResource)
 ## have. Takes a path relative to user:// or an absolute filesystem path.
 @export var saving_default_dir:String = ""
 @export_group("Resources")
-## Current amount of resources available to the player
-@export var current_resources:Dictionary[GameResource, float] = {}
-## Resources of each kind collected through the entire run.
-@export var total_collected_resources:Dictionary[GameResource, float] = {}
-## Which resources have been revealed to the player so far
-@export var revealed_resources:Array[GameResource] = []
+## Keeps track of GameResource reserves
+@export var resources:BaseGameResourcesState: set = set_resources_state
+
 @export_group("Debug")
 @export var verbose:bool = false
 @export_group("Others")
@@ -66,6 +59,13 @@ signal resource_revealed(resource:GameResource)
 
 
 var saving_enabled:bool = true
+
+## A subclass that declares its own _init() must call super(): GDScript does not
+## chain constructors, and without a wallet here the legacy resource fields on an
+## older save fail to assign while it is being deserialised, which drops their
+## contents with no error the loader can report.
+func _init()-> void:
+	resources = BaseGameResourcesState.new()
 
 
 func p(text:String)-> void:
@@ -244,19 +244,15 @@ static func load_from_file(filepath:String)-> BaseGameState:
 	
 ## To be called just before the game starts
 func on_load()-> void:
-	# Ensure the total_collected resources is at least coherent.
-	# Manually created saves might leave it empty, while having positive 
-	# values in current_resources
-	for r in current_resources.keys():
-		var t = total_collected_resources.get(r, 0)
-		if t < current_resources[r]:
-			total_collected_resources[r] = current_resources[r]
-	
+	# Late enough that the loader has finished setting properties, so verbose is
+	# whatever the file said rather than the default it held while binding.
+	resources.verbose = verbose
+	resources.on_load()
+
 
 func initialize()-> void:
-	current_resources = {}
-	revealed_resources = []
-	total_collected_resources = {}
+	resources = BaseGameResourcesState.new()
+	resources.initialize()
 
 
 #region State Loading/Creation (for BaseMainScene)
@@ -327,106 +323,29 @@ static func has_saved_game()-> bool:
 
 #region Resource management
 
-	
-func get_current_resource(res:GameResource)-> float:
-	return current_resources.get(res, 0)
-	
-	
-func is_resource_revealed(res:GameResource)-> bool:
-	if res in revealed_resources:
-		p("%s IS revealed" % res.dname)
-		return true
-	else:
-		return false
-		
-		
-func reveal_resource(resource:GameResource)-> void:
-	if not resource in current_resources.keys():
-		set_resource(resource, 0)
-	revealed_resources.append(resource)
-	resource_revealed.emit(resource)
-	p("%s revealed" % resource.dname)
-	
-	
-func set_resource(resource:GameResource, value:float)-> void:
-	var old_value:float = current_resources.get(resource, 0.0)
-	current_resources[resource] = value
+func set_resources_state(new_value:BaseGameResourcesState)-> void:
+	var old_value = resources
+	resources = new_value
+	var has_changed:bool = old_value != new_value
 
-	if value > 0 and resource not in revealed_resources:
-		reveal_resource(resource)
-
-	if old_value != value:
-		resource_changed.emit(resource, value)
-		SignalManager.emit_this_frame(changed)
-		SignalManager.emit_this_frame(resources_changed)
+	if has_changed:
+		_on_resources_state_changed(old_value, new_value)
 
 
-func increase_resource(resource:GameResource, amount: float)-> void:
-	return increase_resources({resource: amount})
-	
-	
-func increase_resources(amount:Dictionary[GameResource, float])-> void:
-	for c in amount.keys():
-		if amount[c] == 0:
-			continue
-			
-		if c not in revealed_resources:
-			reveal_resource(c)
-			
-		if c not in current_resources.keys(): current_resources[c] = 0 # JIC
-		current_resources[c] += amount[c]
+## Called when [member resources] is replaced. Subclasses that relay the wallet's
+## signals rebind them here, and must call super() to keep [signal
+## Resource.changed] propagating: Godot does not forward that from a sub-resource
+## to the resource holding it.
+func _on_resources_state_changed(
+	old_value:BaseGameResourcesState, new_value:BaseGameResourcesState
+	)-> void:
 
-		if c not in total_collected_resources.keys():
-			total_collected_resources[c] = 0
-		total_collected_resources[c] += amount[c]
-
-		resource_changed.emit(c, current_resources[c])
-
-	save()
-	SignalManager.emit_this_frame(changed)
-	SignalManager.emit_this_frame(resources_changed)
+	if old_value != null:
+		old_value.changed.disconnect(emit_changed)
+	if new_value != null:
+		new_value.changed.connect(emit_changed)
 
 
-func decrease_resource(resource:GameResource, amount: float)-> void:
-	return decrease_resources({resource: amount})
-	
-	
-func decrease_resources(amount:Dictionary[GameResource, float])-> void:
-	if BuildConfig.Default.blank_check:
-		push_warning("Omitting decrease_resources because blank_check is active")
-		return
-
-	for c in amount.keys():
-		if is_nan(amount[c]): continue
-		if amount[c] == 0: continue
-		
-		assert(
-			get_current_resource(c) >= amount[c],
-			"Can't take %s %s from %s" % [amount[c], c.dname, get_current_resource(c)]
-		)
-		
-		current_resources[c] -= amount[c]
-		
-		resource_changed.emit(c, get_current_resource(c))
-
-	save()
-	SignalManager.emit_this_frame(changed)
-	SignalManager.emit_this_frame(resources_changed)
-	
-	
-# this needs to be typed with GameResource, otherwise it conflicts when you
-# use prices typed with GameResource
-func can_afford(price:Dictionary[GameResource, float])-> bool:
-	if BuildConfig.Default.blank_check:
-		#push_warning("Omitting can_afford checks because blank_check is active")
-		return true
-
-	for c in price.keys():
-		if get_current_resource(c) < price[c]:
-			return false
-
-	return true
-	
 #endregion
 
 
