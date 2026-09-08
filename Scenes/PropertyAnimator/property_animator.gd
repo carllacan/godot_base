@@ -33,6 +33,7 @@ enum Mode {
 ## [constant Mode.RESTART] has no such quarter turn: there the phase and the
 ## fraction of the way from min to max are the same number.
 @export_range(0.0, 1.0, 0.01) var initial_phase:float = 0.0
+@export var randomize_phase_on_ready:bool = false
 @export var pause_between_cycles:float = 0.0
 ## Whether the animation should start when this node enters the tree
 @export var autostart:bool = true
@@ -80,6 +81,9 @@ func _ready()-> void:
 	
 	#assert(property in target.get_property_list())
 	finished_cycle.connect(_on_cycle_finished)
+	
+	if randomize_phase_on_ready and not Engine.is_editor_hint():
+		initial_phase = randf()
 	
 	update_property()
 	if autostart:
