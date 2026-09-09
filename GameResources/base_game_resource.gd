@@ -1,9 +1,14 @@
 extends Resource
 class_name BaseGameResource
 
-
-@export var dname:String
+## Used to refer to this resource internally
+@export var id:String
+## Displayed in indicators, inline...
 @export var icon:Texture
+@export_group("DisplayedInfo")
+## The name the player will see for this resource
+@export var dname:String
+## A description that might show up in tooltips
 @export var description:String
 
 

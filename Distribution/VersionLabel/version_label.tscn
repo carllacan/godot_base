@@ -3,5 +3,6 @@
 [ext_resource type="Script" uid="uid://ci58pwbx0ryl5" path="res://GodotBase/Distribution/VersionLabel/version_label.gd" id="1_5ntv8"]
 
 [node name="VersionLabel" type="Label" unique_id=571207099]
-text = "v1.2.3_something"
+auto_translate_mode = 2
+text = "editor_build"
 script = ExtResource("1_5ntv8")

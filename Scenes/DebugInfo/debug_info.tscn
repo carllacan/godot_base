@@ -10,6 +10,7 @@ content_margin_bottom = 4.0
 bg_color = Color(0.4, 0.4, 0.4, 0.78431374)
 
 [node name="DebugInfo" type="CanvasLayer" unique_id=412960063]
+auto_translate_mode = 2
 layer = 100
 script = ExtResource("1_wb4s0")
 

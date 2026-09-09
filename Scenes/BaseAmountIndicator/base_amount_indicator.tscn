@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bm8yqaqvnt5k1"]
 
-[ext_resource type="Script" uid="uid://bccujtnn04f6o" path="res://GodotBase/Scenes/BaseAmountIndicator/base_amount_indicator.gd" id="1_base"]
+[ext_resource type="Script" uid="uid://bpont0auslt1" path="res://GodotBase/Scenes/BaseAmountIndicator/base_amount_indicator.gd" id="1_base"]
 
 [node name="BaseAmountIndicator" type="MarginContainer" unique_id=1540817948]
 offset_right = 51.0
@@ -22,17 +22,20 @@ layout_mode = 2
 
 [node name="AmountLabel" type="Label" parent="OuterGrid/InnerGrid/AmountArea" unique_id=1000000005]
 unique_name_in_owner = true
+auto_translate_mode = 2
 layout_mode = 2
 text = "0.0"
 
 [node name="SlashLabel" type="Label" parent="OuterGrid/InnerGrid/AmountArea" unique_id=1000000006]
 unique_name_in_owner = true
+auto_translate_mode = 2
 visible = false
 layout_mode = 2
 text = " / "
 
 [node name="MaxLabel" type="Label" parent="OuterGrid/InnerGrid/AmountArea" unique_id=1000000007]
 unique_name_in_owner = true
+auto_translate_mode = 2
 visible = false
 layout_mode = 2
 text = "0"
@@ -60,5 +63,6 @@ text = "+"
 
 [node name="LessButton" type="Button" parent="OuterGrid/ArrowsContainer" unique_id=1000000012]
 unique_name_in_owner = true
+auto_translate_mode = 2
 layout_mode = 2
 text = "-"

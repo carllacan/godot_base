@@ -2,6 +2,7 @@ extends Resource
 class_name SettingInfo
 
 @export var name:String
+@export_group("DisplayedInfo")
 @export var dname:String : get = get_dname
 # Just for reference purposes, will not be shown
 @export_multiline var description:String = "" : get = get_description
@@ -13,6 +14,7 @@ class_name SettingInfo
 @export_group("If array type")
 ## Map from internal to external representation of this setting's possible values.
 ## Ex: {"en_EN":"English",es_ES": "Spanish"}
+@export_subgroup("DisplayedInfo") 
 @export var options:Dictionary[String, String] = {}
 
 
@@ -64,7 +66,7 @@ func get_value_representation(value:Variant)-> String:
 	var val_str:String
 	match type:
 		Variant.Type.TYPE_BOOL:
-			val_str = "ON" if value else "OFF"
+			val_str = tr("ON", "Boolean setting value") if value else tr("OFF", "Boolean setting value")
 		Variant.Type.TYPE_INT:
 			val_str = str(value)
 		Variant.Type.TYPE_ARRAY:
