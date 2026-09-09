@@ -49,11 +49,15 @@
 ##   required_name_pattern, excluded_name_pattern
 ##       Properties whose name fails the first or matches the second are
 ##       skipped. Either one empty is that filter off.
+##   excluded_value_pattern
+##       Strings matching it are skipped whatever property they came from, so a
+##       project marking its placeholders "##" can set "^##" and keep them out
+##       of the template.
 ##
-## The patterns are regular expressions, searched for anywhere in the name:
-## "^Text$" is how a whole-name match is asked for. A project that leaves every
-## setting at its default behaves exactly as it did when the paths were
-## hardcoded and nothing was filtered, and keeps project.godot free of them.
+## The patterns are regular expressions, searched for anywhere in the name or
+## string: "^Text$" is how a whole-name match is asked for. A project that
+## leaves every setting at its default behaves exactly as it did when the paths
+## were hardcoded and nothing was filtered, and keeps project.godot free of them.
 ##
 ## Re-run it after adding or editing text anywhere; it overwrites the tres and
 ## merged .pot files from scratch every time. If the project is not set up yet
@@ -127,6 +131,13 @@ static var SETTINGS := [
 		"default": "",
 	},
 	{
+		"key": "excluded_value_pattern",
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"default": "",
+	},
+	{
 		# The hint an "@export_file("*.gd") var x: PackedStringArray" gets, which
 		# gives every element of the array its own file picker.
 		"key": "included_scripts",
@@ -144,13 +155,15 @@ var excluded_dirs: PackedStringArray  # Folder names skipped while walking res:/
 var required_group_pattern: String    # Only groups/subgroups matching it are extracted
 var required_name_pattern: String     # Only properties matching it are extracted
 var excluded_name_pattern: String     # Properties matching it are never extracted
+var excluded_value_pattern: String    # Strings matching it are never extracted
 var included_scripts: PackedStringArray  # Only resources using these scripts are read
 
-# The three patterns above, compiled. Null when the setting they come from is
+# The four patterns above, compiled. Null when the setting they come from is
 # empty, which is what turns that filter off.
 var _required_group_regex: RegEx
 var _required_name_regex: RegEx
 var _excluded_name_regex: RegEx
+var _excluded_value_regex: RegEx
 
 func _run():
 	if not load_settings():
@@ -202,21 +215,39 @@ static func register_settings() -> void:
 # back, so a typo in a pattern stops the run instead.
 func load_settings() -> bool:
 	register_settings()
-	godot_pot = ProjectSettings.get_setting(SETTINGS_PREFIX + "godot_pot")
-	tres_pot = ProjectSettings.get_setting(SETTINGS_PREFIX + "tres_pot")
-	merged_pot = ProjectSettings.get_setting(SETTINGS_PREFIX + "merged_pot")
-	excluded_dirs = ProjectSettings.get_setting(SETTINGS_PREFIX + "excluded_dirs")
-	required_group_pattern = ProjectSettings.get_setting(SETTINGS_PREFIX + "required_group_pattern")
-	required_name_pattern = ProjectSettings.get_setting(SETTINGS_PREFIX + "required_name_pattern")
-	excluded_name_pattern = ProjectSettings.get_setting(SETTINGS_PREFIX + "excluded_name_pattern")
-	included_scripts = ProjectSettings.get_setting(SETTINGS_PREFIX + "included_scripts")
+	godot_pot = get_setting_value("godot_pot")
+	tres_pot = get_setting_value("tres_pot")
+	merged_pot = get_setting_value("merged_pot")
+	excluded_dirs = get_setting_value("excluded_dirs")
+	required_group_pattern = get_setting_value("required_group_pattern")
+	required_name_pattern = get_setting_value("required_name_pattern")
+	excluded_name_pattern = get_setting_value("excluded_name_pattern")
+	excluded_value_pattern = get_setting_value("excluded_value_pattern")
+	included_scripts = get_setting_value("included_scripts")
 
 	_required_group_regex = _compile_pattern("required_group_pattern", required_group_pattern)
 	_required_name_regex = _compile_pattern("required_name_pattern", required_name_pattern)
 	_excluded_name_regex = _compile_pattern("excluded_name_pattern", excluded_name_pattern)
+	_excluded_value_regex = _compile_pattern("excluded_value_pattern", excluded_value_pattern)
 	return ((required_group_pattern.is_empty() or _required_group_regex != null)
 		and (required_name_pattern.is_empty() or _required_name_regex != null)
-		and (excluded_name_pattern.is_empty() or _excluded_name_regex != null))
+		and (excluded_name_pattern.is_empty() or _excluded_name_regex != null)
+		and (excluded_value_pattern.is_empty() or _excluded_value_regex != null))
+
+
+# --- Read one of the settings declared in SETTINGS ---
+# ProjectSettings.get_setting() answers null for a setting that is not
+# registered, and that null then fails to assign to the typed field it was read
+# into, stopping the run on an error naming neither the setting nor the reason.
+# Reading through the default declared here instead means an unregistered
+# setting behaves as one left untouched, which is what an editor session that
+# has not picked up a newly added setting yet needs to get through a run.
+static func get_setting_value(key: String) -> Variant:
+	for setting in SETTINGS:
+		if setting["key"] == key:
+			return ProjectSettings.get_setting(SETTINGS_PREFIX + key, setting["default"])
+	push_error("'%s' is not one of this script's settings" % key)
+	return null
 
 
 # --- Compile one of the pattern settings ---
@@ -344,7 +375,7 @@ func _extract_value(path: String, reference: String, value: Variant,
 	match typeof(value):
 		TYPE_STRING:
 			var text: String = value
-			if text.is_empty():
+			if not _string_is_included(text):
 				return
 			if not result.has(text):
 				result[text] = []
@@ -414,6 +445,18 @@ func _property_is_included(prop_name: String, group: String, subgroup: String) -
 	if _required_name_regex != null and _required_name_regex.search(prop_name) == null:
 		return false
 	if _excluded_name_regex != null and _excluded_name_regex.search(prop_name) != null:
+		return false
+	return true
+
+
+# --- Decide whether one string found in a property should reach the .pot ---
+# An empty string holds no text to translate. "excluded_value_pattern" holds
+# back the rest, and is searched for anywhere in the string: a project marking
+# its placeholders "##" sets it to "^##" to keep them out of the template.
+func _string_is_included(text: String) -> bool:
+	if text.is_empty():
+		return false
+	if _excluded_value_regex != null and _excluded_value_regex.search(text) != null:
 		return false
 	return true
 
