@@ -7,67 +7,236 @@
 ## String properties of custom resources. Any text authored in a .tres (item
 ## names, descriptions, tooltips, ...) would therefore never reach the
 ## translators. This script walks every .tres under res:// (skipping addons/,
-## which holds third party resources), pulls out every
-## non-empty String property (including strings inside Array and Dictionary
-## properties), writes them to a temporary .pot, and merges that with the
-## editor-generated .pot into a single template.
+## which holds third party resources), pulls out every non-empty String it can
+## reach from a property (including strings nested inside Arrays, Dictionaries
+## and sub-resources embedded in the same file), writes them to a temporary
+## .pot, and merges that with the editor-generated .pot into a single template.
 ##
-## Each extracted string gets a "#:" reference comment pointing at the resource
-## path and property it came from, e.g. "#: res://Foo/bar.tres:display_name" or
-## "#: res://Foo/bar.tres:lines[2]". Duplicated strings are collapsed into one
-## entry that carries all of its references. All msgstr entries are left empty:
-## this produces a template, never a translation.
+## Each extracted string gets a "#:" reference comment naming the resource path
+## and the trail of properties, indices and keys followed to reach it, e.g.
+## "#: res://Foo/bar.tres:display_name", "#: res://Foo/bar.tres:lines[2]" or
+## "#: res://Foo/bar.tres:reward.lines[2]". Duplicated strings are collapsed
+## into one entry that carries all of its references. All msgstr entries are
+## left empty: this produces a template, never a translation.
 ##
 ## Usage:
 ##   1. In Project Settings > Localization > POT Generation, list the scenes and
 ##      scripts holding translatable text and press "Generate POT", saving it to
-##      GODOT_POT ("res://locales/auto_template.pot").
+##      the path in the "godot_pot" setting below.
 ##   2. Open this file in the script editor and run it with
 ##      File > Run (Ctrl+Shift+X). It is an EditorScript, so it only runs from
 ##      the editor and is never part of the exported game.
-##   3. The merged template is written to MERGED_POT
-##      ("res://locales/complete_template.pot"). Feed that file to the
-##      translation tool (Poedit, msgmerge, ...) to create or update the .po
-##      files, and add the resulting translations in
+##   3. The merged template is written to the "merged_pot" setting's path. Feed
+##      that file to the translation tool (Poedit, msgmerge, ...) to create or
+##      update the .po files, and add the resulting translations in
 ##      Project Settings > Localization > Translations.
 ##
-## Re-run it after adding or editing text anywhere; it overwrites TRES_POT and
-## MERGED_POT from scratch every time. If the project is not set up yet (missing
-## locales folder, empty POT generation list, missing GODOT_POT) the script
-## aborts with a warning explaining what to fix instead of writing a partial
-## template.
+## The settings live under "translation/tres_extraction/" in Project > Project
+## Settings, and appear there once this script has been run once in the current
+## editor session (or right away, with the tres_translation plugin enabled):
+##
+##   godot_pot, tres_pot, merged_pot
+##       The three .pot paths described above.
+##   excluded_dirs
+##       Folder names never walked into, addons/ by default.
+##   included_scripts
+##       Script paths. While it is empty every .tres and every sub-resource in
+##       it is read; otherwise only those whose script is one of them, or
+##       derives from one.
+##   required_group_pattern
+##       While it is empty every property is read; otherwise only those sitting
+##       in an @export_group or @export_subgroup whose name matches it.
+##   required_name_pattern, excluded_name_pattern
+##       Properties whose name fails the first or matches the second are
+##       skipped. Either one empty is that filter off.
+##
+## The patterns are regular expressions, searched for anywhere in the name:
+## "^Text$" is how a whole-name match is asked for. A project that leaves every
+## setting at its default behaves exactly as it did when the paths were
+## hardcoded and nothing was filtered, and keeps project.godot free of them.
+##
+## Re-run it after adding or editing text anywhere; it overwrites the tres and
+## merged .pot files from scratch every time. If the project is not set up yet
+## (missing locales folder, empty POT generation list, missing generated .pot)
+## the script aborts with a warning explaining what to fix instead of writing a
+## partial template.
 extends EditorScript
 class_name TranslateTresFiles
 
-const GODOT_POT := "res://locales/auto_template.pot"   # Godot-generated .pot
-const TRES_POT := "res://locales/tres_template.pot"     # Temp .pot for .tres strings
-const MERGED_POT := "res://locales/complete_template.pot" # Final merged .pot
+## Prefix of the project settings this script reads.
+const SETTINGS_PREFIX := "translation/tres_extraction/"
 
-## Project setting holding the files the editor scans when generating GODOT_POT.
+## Project setting holding the files the editor scans when generating the
+## Godot-side .pot.
 const POT_FILES_SETTING := "internationalization/locale/translations_pot_files"
 
-## Folder names skipped while walking res://. Third party code shipped in
-## addons/ carries its own strings, which are not ours to translate.
-const EXCLUDED_DIRS := ["addons"]
+## The settings this script registers, in the order they appear in the
+## Project Settings list. "hint_string" doubles as the file filter for the
+## paths and is unused for the folder list. A static var rather than a const
+## because PackedStringArray() is not a constant expression.
+static var SETTINGS := [
+	{
+		"key": "godot_pot",
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_FILE,
+		"hint_string": "*.pot",
+		"default": "res://locales/auto_template.pot",
+	},
+	{
+		"key": "tres_pot",
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_FILE,
+		"hint_string": "*.pot",
+		"default": "res://locales/tres_template.pot",
+	},
+	{
+		"key": "merged_pot",
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_FILE,
+		"hint_string": "*.pot",
+		"default": "res://locales/complete_template.pot",
+	},
+	{
+		# Third party code shipped in addons/ carries its own strings, which are
+		# not ours to translate.
+		"key": "excluded_dirs",
+		"type": TYPE_PACKED_STRING_ARRAY,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"default": PackedStringArray(["addons"]),
+	},
+	{
+		"key": "required_group_pattern",
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"default": "",
+	},
+	{
+		"key": "required_name_pattern",
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"default": "",
+	},
+	{
+		"key": "excluded_name_pattern",
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"default": "",
+	},
+	{
+		# The hint an "@export_file("*.gd") var x: PackedStringArray" gets, which
+		# gives every element of the array its own file picker.
+		"key": "included_scripts",
+		"type": TYPE_PACKED_STRING_ARRAY,
+		"hint": PROPERTY_HINT_TYPE_STRING,
+		"hint_string": "%d/%d:*.gd" % [TYPE_STRING, PROPERTY_HINT_FILE],
+		"default": PackedStringArray(),
+	},
+]
+
+var godot_pot: String      # Godot-generated .pot
+var tres_pot: String       # Temp .pot for .tres strings
+var merged_pot: String     # Final merged .pot
+var excluded_dirs: PackedStringArray  # Folder names skipped while walking res://
+var required_group_pattern: String    # Only groups/subgroups matching it are extracted
+var required_name_pattern: String     # Only properties matching it are extracted
+var excluded_name_pattern: String     # Properties matching it are never extracted
+var included_scripts: PackedStringArray  # Only resources using these scripts are read
+
+# The three patterns above, compiled. Null when the setting they come from is
+# empty, which is what turns that filter off.
+var _required_group_regex: RegEx
+var _required_name_regex: RegEx
+var _excluded_name_regex: RegEx
 
 func _run():
+	if not load_settings():
+		return
+
 	# Without this the run still "succeeds", writing a merged .pot missing every
 	# string that lives outside a .tres.
 	if not check_setup():
 		return
 
 	var tres_entries = extract_all_tres_strings("res://")
-	if not generate_pot_file(tres_entries, TRES_POT):
+	if not generate_pot_file(tres_entries, tres_pot):
 		return
-	if not merge_pot_files(GODOT_POT, TRES_POT, MERGED_POT):
+	if not merge_pot_files(godot_pot, tres_pot, merged_pot):
 		return
-	print("✅ Strings extracted and merged into: %s" % MERGED_POT)
+	print("✅ Strings extracted and merged into: %s" % merged_pot)
+
+
+# --- Declare the settings so Project Settings shows them, typed and revertable ---
+# Called by the TresTranslationSettings editor plugin at editor startup, and
+# again by load_settings() so the script still works in a project that does not
+# have the plugin enabled.
+#
+# Nothing is saved here. set_initial_value() marks the defaults as defaults, and
+# Godot only writes a setting to project.godot once it differs from its default,
+# so a project that leaves them all alone keeps a project.godot free of them and
+# the editor persists whichever ones the user does change.
+static func register_settings() -> void:
+	for setting in SETTINGS:
+		var setting_name: String = SETTINGS_PREFIX + setting["key"]
+		if not ProjectSettings.has_setting(setting_name):
+			ProjectSettings.set_setting(setting_name, setting["default"])
+		# Re-applied every time: neither the property info nor the initial value
+		# lives in project.godot, so without this the setting comes back as an
+		# untyped raw value with no revert arrow after an editor restart.
+		ProjectSettings.set_initial_value(setting_name, setting["default"])
+		ProjectSettings.set_as_basic(setting_name, true)
+		ProjectSettings.add_property_info({
+			"name": setting_name,
+			"type": setting["type"],
+			"hint": setting["hint"],
+			"hint_string": setting["hint_string"],
+		})
+
+
+# --- Read the settings into the fields above ---
+# Returns false if one of the pattern settings does not compile. Carrying on
+# with that filter off would quietly export everything it was meant to hold
+# back, so a typo in a pattern stops the run instead.
+func load_settings() -> bool:
+	register_settings()
+	godot_pot = ProjectSettings.get_setting(SETTINGS_PREFIX + "godot_pot")
+	tres_pot = ProjectSettings.get_setting(SETTINGS_PREFIX + "tres_pot")
+	merged_pot = ProjectSettings.get_setting(SETTINGS_PREFIX + "merged_pot")
+	excluded_dirs = ProjectSettings.get_setting(SETTINGS_PREFIX + "excluded_dirs")
+	required_group_pattern = ProjectSettings.get_setting(SETTINGS_PREFIX + "required_group_pattern")
+	required_name_pattern = ProjectSettings.get_setting(SETTINGS_PREFIX + "required_name_pattern")
+	excluded_name_pattern = ProjectSettings.get_setting(SETTINGS_PREFIX + "excluded_name_pattern")
+	included_scripts = ProjectSettings.get_setting(SETTINGS_PREFIX + "included_scripts")
+
+	_required_group_regex = _compile_pattern("required_group_pattern", required_group_pattern)
+	_required_name_regex = _compile_pattern("required_name_pattern", required_name_pattern)
+	_excluded_name_regex = _compile_pattern("excluded_name_pattern", excluded_name_pattern)
+	return ((required_group_pattern.is_empty() or _required_group_regex != null)
+		and (required_name_pattern.is_empty() or _required_name_regex != null)
+		and (excluded_name_pattern.is_empty() or _excluded_name_regex != null))
+
+
+# --- Compile one of the pattern settings ---
+# Returns null both for an empty setting (the filter is off) and for one that
+# does not compile; load_settings() tells the two apart.
+func _compile_pattern(key: String, pattern: String) -> RegEx:
+	if pattern.is_empty():
+		return null
+	var regex := RegEx.new()
+	if regex.compile(pattern) != OK:
+		push_error("'%s%s' is not a valid regular expression: %s" % [
+			SETTINGS_PREFIX, key, pattern])
+		return null
+	return regex
 
 
 # --- Verify the project is set up for translation before doing any work ---
 # Returns false (after explaining what is missing) if it is not.
 func check_setup()-> bool:
-	var locales_dir := GODOT_POT.get_base_dir()
+	var locales_dir := godot_pot.get_base_dir()
 	if not DirAccess.dir_exists_absolute(locales_dir):
 		var err := DirAccess.make_dir_recursive_absolute(locales_dir)
 		if err != OK:
@@ -81,12 +250,12 @@ func check_setup()-> bool:
 			"POT generation is not configured: '%s' is empty. " % POT_FILES_SETTING
 			+ "Open Project > Project Settings > Localization > POT Generation, "
 			+ "add the scenes and scripts holding translatable text, then generate "
-			+ "the .pot into '%s'." % GODOT_POT)
+			+ "the .pot into '%s'." % godot_pot)
 		return false
 
-	if not FileAccess.file_exists(GODOT_POT):
+	if not FileAccess.file_exists(godot_pot):
 		push_warning(
-			"'%s' does not exist yet, so only .tres strings would be collected. " % GODOT_POT
+			"'%s' does not exist yet, so only .tres strings would be collected. " % godot_pot
 			+ "Open Project > Project Settings > Localization > POT Generation and "
 			+ "press 'Generate POT', saving it to that exact path.")
 		return false
@@ -111,55 +280,142 @@ func _scan_dir(current_path: String, result: Dictionary) -> void:
 		var path = current_path.path_join(file_name)
 		if file_name.ends_with(".tres"):
 			var res = ResourceLoader.load(path)
-			if res:
-				for prop in res.get_property_list():
-					if prop.usage & PROPERTY_USAGE_EDITOR == 0:
-						continue
-					if prop.name.begins_with("_"):
-						continue
-					if prop.name in ["resource_path", "resource_name", "metadata/_custom_type_script"]:
-						continue
-						
-					# Take a look at the propertie's value, so we know what to save
-					var value = res.get(prop.name)
-					
-					# Save String properties
-					if prop.type == TYPE_STRING:
-						if value != "":
-							if not result.has(value):
-								result[value] = []
-							# Add comment: resource path and property name
-							result[value].append("#: %s:%s" % [path, prop.name])
-							#print(prop.name)
-							
-					# Save Array[String]Properties
-					elif prop.type == TYPE_ARRAY and typeof(value) == TYPE_ARRAY:
-						for i in range(value.size()):
-							var item = value[i]
-							if typeof(item) == TYPE_STRING and item != "":
-								if not result.has(item):
-									result[item] = []
-								# Add comment: resource path, property name, and array index
-								result[item].append("#: %s:%s[%d]" % [path, prop.name, i])
-								#print("%s[%d]" % [prop.name, i])
-								
-								#if not result.has(item):
-									#result[item] = {"comments": [], "context": path}
-								#result[item]["comments"].append("#: %s:%s[%d]" % [path, prop.name, i])
-								
-					elif prop.type == TYPE_DICTIONARY and typeof(value) == TYPE_DICTIONARY:
-						for key in value.keys():
-							var item = value[key]
-							if typeof(item) == TYPE_STRING and item != "":
-								if not result.has(item):
-									result[item] = []
-								result[item].append("#: %s:%s[%s]" % [path, prop.name, _dict_key_label(key)])
+			if res and _resource_is_included(res):
+				_extract_resource_strings(path, res, result)
 
 		elif dir.current_is_dir():
-			if not file_name in EXCLUDED_DIRS:
+			if not file_name in excluded_dirs:
 				_scan_dir(path, result)
 		file_name = dir.get_next()
 	dir.list_dir_end()
+
+
+# --- Pull the translatable strings out of one loaded resource ---
+func _extract_resource_strings(path: String, res: Resource, result: Dictionary) -> void:
+	_extract_object_strings(path, "", res, result, [res])
+
+
+# --- Walk one object's properties, recording every string they lead to ---
+# `reference` is the trail of property names, indices and keys followed to reach
+# `obj` from the resource saved at `path`, empty for that resource itself. It is
+# what the "#:" comment of every string found below this point is built from.
+func _extract_object_strings(path: String, reference: String, obj: Object,
+		result: Dictionary, seen: Array) -> void:
+	# Groups and subgroups are entries of the property list rather than fields of
+	# the properties they hold: each one applies to the properties that follow it
+	# until the next entry of its kind. A category entry opens the section of the
+	# next script up the inheritance chain, where neither applies any more.
+	var group := ""
+	var subgroup := ""
+
+	for prop in obj.get_property_list():
+		if prop.usage & PROPERTY_USAGE_CATEGORY:
+			group = ""
+			subgroup = ""
+			continue
+		if prop.usage & PROPERTY_USAGE_GROUP:
+			group = prop.name
+			subgroup = ""
+			continue
+		if prop.usage & PROPERTY_USAGE_SUBGROUP:
+			subgroup = prop.name
+			continue
+		if prop.usage & PROPERTY_USAGE_EDITOR == 0:
+			continue
+		if prop.name.begins_with("_"):
+			continue
+		if prop.name in ["resource_path", "resource_name", "metadata/_custom_type_script"]:
+			continue
+		if not _property_is_included(prop.name, group, subgroup):
+			continue
+
+		var child_reference: String = (prop.name if reference.is_empty()
+			else "%s.%s" % [reference, prop.name])
+		_extract_value(path, child_reference, obj.get(prop.name), result, seen)
+
+
+# --- Record every string one value holds, whatever shape it comes in ---
+# Arrays, Dictionaries and sub-resources are walked into rather than read, so a
+# string sits in the .pot no matter how deep in a property it is nested. Only
+# the values of a Dictionary are looked at: its keys identify entries, they are
+# not text shown to the player.
+func _extract_value(path: String, reference: String, value: Variant,
+		result: Dictionary, seen: Array) -> void:
+	match typeof(value):
+		TYPE_STRING:
+			var text: String = value
+			if text.is_empty():
+				return
+			if not result.has(text):
+				result[text] = []
+			result[text].append("#: %s:%s" % [path, reference])
+		TYPE_ARRAY:
+			var array: Array = value
+			for i in array.size():
+				_extract_value(path, "%s[%d]" % [reference, i], array[i], result, seen)
+		TYPE_DICTIONARY:
+			var dict: Dictionary = value
+			for key in dict:
+				_extract_value(path, "%s[%s]" % [reference, _dict_key_label(key)],
+					dict[key], result, seen)
+		TYPE_OBJECT:
+			_extract_sub_resource_strings(path, reference, value, result, seen)
+
+
+# --- Walk into a sub-resource, if it is one this run should read ---
+# Only resources embedded in the file being read are followed. One saved in its
+# own .tres is left alone: _scan_dir() reaches it on its own, and following it
+# from here would repeat its strings under every resource pointing at it, with
+# references naming those resources instead of the file the text lives in.
+#
+# `seen` holds the resources already walked, and is never emptied: a resource
+# used by two properties of the same file is read under the first of them. That
+# both keeps a cycle from sending the walk around forever and keeps one string
+# from collecting a reference per path leading to it.
+func _extract_sub_resource_strings(path: String, reference: String, value: Variant,
+		result: Dictionary, seen: Array) -> void:
+	if not (value is Resource):
+		return
+	var res: Resource = value
+	var is_embedded := (res.resource_path.is_empty()
+		or res.resource_path.begins_with(path + "::"))
+	if not is_embedded or not _resource_is_included(res) or seen.has(res):
+		return
+	seen.append(res)
+	_extract_object_strings(path, reference, res, result, seen)
+
+
+# --- Decide whether a resource is one the "included_scripts" setting asks for ---
+# A resource whose script derives from a listed one counts as included, so
+# listing a base class covers every resource written against it.
+func _resource_is_included(res: Resource) -> bool:
+	if included_scripts.is_empty():
+		return true
+	var script: Script = res.get_script()
+	while script != null:
+		if script.resource_path in included_scripts:
+			return true
+		script = script.get_base_script()
+	return false
+
+
+# --- Decide whether one property's strings should reach the .pot ---
+# `group` and `subgroup` are the ones the property sits in, empty when it sits
+# in none. The patterns are searched for anywhere in the name, so "^Text$" is
+# how a whole-name match is asked for.
+func _property_is_included(prop_name: String, group: String, subgroup: String) -> bool:
+	if _required_group_regex != null:
+		var group_matches := (not group.is_empty()
+			and _required_group_regex.search(group) != null)
+		var subgroup_matches := (not subgroup.is_empty()
+			and _required_group_regex.search(subgroup) != null)
+		if not (group_matches or subgroup_matches):
+			return false
+	if _required_name_regex != null and _required_name_regex.search(prop_name) == null:
+		return false
+	if _excluded_name_regex != null and _excluded_name_regex.search(prop_name) != null:
+		return false
+	return true
 
 
 # --- Name a Dictionary key for the "#:" reference comment of its value ---

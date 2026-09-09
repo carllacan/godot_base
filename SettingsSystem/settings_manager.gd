@@ -15,6 +15,10 @@ const SETTINGS_SAVE_PATH:String = "user://settings.tres"
 
 var settings:SettingsContainer
 
+## Version stamped on the settings file that was read at startup. Empty when
+## there was no file, or when it was written before settings carried a version.
+var loaded_version:String = ""
+
 
 func _ready()-> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -32,6 +36,9 @@ func _ready()-> void:
 	if FileAccess.file_exists(SETTINGS_SAVE_PATH):
 		var last_settings = load(SETTINGS_SAVE_PATH)
 		if last_settings != null:
+			# Read before apply_configuration(), which saves and so restamps the
+			# file with the running version.
+			loaded_version = last_settings.game_version
 			apply_configuration(last_settings)
 		else:
 			print("Couldn't load last settings file, using default")
@@ -94,6 +101,7 @@ func cycle_setting(setting_name:String, steps:int = 1)-> void:
 	
 	
 func save_settings()-> void:
+	settings.game_version = Dist.get_version_num()
 	ResourceSaver.save(settings, SETTINGS_SAVE_PATH)
 	
 	

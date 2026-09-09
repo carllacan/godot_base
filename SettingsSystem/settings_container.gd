@@ -4,6 +4,7 @@ class_name SettingsContainer
 # A resource that contains a bunch of settings, so a whole configuration
 # can be easily saved to a file.
 
+## Version of the build that last wrote this container out.
 @export var game_version:String
 @export var values:Dictionary[SettingInfo, Variant] = {}
 
