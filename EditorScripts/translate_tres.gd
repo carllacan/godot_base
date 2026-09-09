@@ -553,11 +553,7 @@ func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String)-> 
 		push_error("Cannot write merged pot: %s" % merged_pot)
 		return false
 
-	# minimal header
-	f_out.store_line('# Merged POT file')
-	f_out.store_line('msgid ""')
-	f_out.store_line('msgstr ""')
-	f_out.store_line('')
+	_store_pot_header(f_out)
 
 	# write entries
 	for key in entries.keys():
@@ -583,6 +579,32 @@ func merge_pot_files(godot_pot: String, tres_pot: String, merged_pot: String)-> 
 	f_out.close()
 	print("✅ Merged POT written to: %s" % merged_pot)
 	return true
+
+
+# --- Write the metadata entry every .pot has to open with ---
+# gettext identifies it by its empty msgid, and reads the charset of the whole
+# file out of it. Without the Content-Type line the file parses but its strings
+# are taken as ASCII: "msgfmt --check" answers "PO file header missing or
+# invalid, charset conversion will not work", and the first msgid carrying an
+# accent is either mangled or refused.
+#
+# No POT-Creation-Date: it would be the one line of the file that changes on
+# every run, so each regenerated .pot would show up as modified even when not a
+# single string moved.
+func _store_pot_header(f: FileAccess) -> void:
+	f.store_line('# Merged POT file')
+	f.store_line('msgid ""')
+	f.store_line('msgstr ""')
+	# Empty but present: "msgfmt --check" warns about each one it cannot find,
+	# and the translation tool fills them in on the .po it derives from this.
+	f.store_line('"Project-Id-Version: \\n"')
+	f.store_line('"PO-Revision-Date: \\n"')
+	f.store_line('"Last-Translator: \\n"')
+	f.store_line('"Language-Team: \\n"')
+	f.store_line('"MIME-Version: 1.0\\n"')
+	f.store_line('"Content-Type: text/plain; charset=UTF-8\\n"')
+	f.store_line('"Content-Transfer-Encoding: 8bit\\n"')
+	f.store_line('')
 
 
 # --- Read a .pot into `entries`, keyed by the identity of each message ---
