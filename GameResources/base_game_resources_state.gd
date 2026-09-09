@@ -6,8 +6,13 @@ class_name BaseGameResourcesState
 ## over the wallet's lifetime, and which kinds the player has been shown.
 ##
 ## A game can hold several — a roguelike keeps one for the run and one for the
-## save, with the same resource at a different amount in each. Games needing only
-## one use BaseGameState's forwarding methods and never touch this class.
+## save, with the same resource at a different amount in each. Reached through
+## the state that holds it, as Current.Save.resources.
+##
+## The methods take a GameResource but the dictionaries are keyed by its id, so
+## that moving or renaming a resource's .tres does not orphan what the player is
+## holding, and so a save can be read back — by a test, a tool or an analysis
+## pipeline — without loading the resources it names.
 ##
 ## Nothing here saves. The wallet announces what changed and leaves persisting it
 ## to whoever holds it.
@@ -15,6 +20,15 @@ class_name BaseGameResourcesState
 
 signal resources_changed
 signal resource_changed(resource:GameResource, new_value:float)
+## Emitted for each resource an increase_resources() call actually moved, with
+## the amount it went up by rather than the total it reached. This is the one
+## place the size of a gain is known, so a game that pays out on income — a
+## reveal, a threshold, an animation — hangs off here rather than off
+## [signal resource_changed], which only ever carries the new total.
+##
+## Emitted once the whole call has been applied, so a listener that spends or
+## earns in response finds the wallet already settled.
+signal resource_increased(resource:GameResource, amount:float)
 signal resource_revealed(resource:GameResource)
 
 ## Current amount of each resource available to the player, keyed by
@@ -33,18 +47,6 @@ func _init()-> void:
 	current_amounts = {}
 	revealed_ids = []
 	total_collected_amounts = {}
-
-
-## The key a resource is filed under. Saves store ids rather than the
-## GameResources themselves, so that moving or renaming a resource's .tres does
-## not orphan what the player is holding, and so a save can be read back — by a
-## test, a tool or the analysis pipeline — without loading the resources it
-## names.
-static func _key(resource:GameResource)-> String:
-	assert(resource != null, "No resource given")
-	assert(not resource.id.is_empty(),
-		"GameResource '%s' has no id" % resource.resource_path)
-	return resource.id
 
 
 func p(text:String)-> void:
@@ -72,15 +74,15 @@ func on_load()-> void:
 #region Reading
 
 func get_current_resource(res:GameResource)-> float:
-	return current_amounts.get(_key(res), 0)
+	return current_amounts.get(res.id, 0)
 
 
 func get_total_collected_resource(res:GameResource)-> float:
-	return total_collected_amounts.get(_key(res), 0)
+	return total_collected_amounts.get(res.id, 0)
 
 
 func is_resource_revealed(res:GameResource)-> bool:
-	if _key(res) in revealed_ids:
+	if res.id in revealed_ids:
 		p("%s IS revealed" % res.dname)
 		return true
 	else:
@@ -106,18 +108,20 @@ func can_afford(price:Dictionary[GameResource, float])-> bool:
 #region Writing
 
 func reveal_resource(resource:GameResource)-> void:
-	if not _key(resource) in current_amounts.keys():
+	if resource.id in revealed_ids:
+		return
+	if not resource.id in current_amounts.keys():
 		set_resource(resource, 0)
-	revealed_ids.append(_key(resource))
+	revealed_ids.append(resource.id)
 	resource_revealed.emit(resource)
 	p("%s revealed" % resource.dname)
 
 
 func set_resource(resource:GameResource, value:float)-> void:
-	var old_value:float = current_amounts.get(_key(resource), 0.0)
-	current_amounts[_key(resource)] = value
+	var old_value:float = current_amounts.get(resource.id, 0.0)
+	current_amounts[resource.id] = value
 
-	if value > 0 and _key(resource) not in revealed_ids:
+	if value > 0:
 		reveal_resource(resource)
 
 	if old_value != value:
@@ -131,15 +135,15 @@ func increase_resource(resource:GameResource, amount:float)-> void:
 
 func increase_resources(amount:Dictionary[GameResource, float])-> void:
 	var any_changed:bool = false
+	var increased:Array[GameResource] = []
 
 	for c in amount.keys():
 		if amount[c] == 0:
 			continue
 
-		var key:String = _key(c)
+		var key:String = c.id
 
-		if key not in revealed_ids:
-			reveal_resource(c)
+		reveal_resource(c)
 
 		if key not in current_amounts.keys(): current_amounts[key] = 0 # JIC
 		current_amounts[key] += amount[c]
@@ -149,7 +153,13 @@ func increase_resources(amount:Dictionary[GameResource, float])-> void:
 		total_collected_amounts[key] += amount[c]
 
 		resource_changed.emit(c, current_amounts[key])
+		increased.append(c)
 		any_changed = true
+
+	# After the loop, not inside it: a listener that earns or spends in response
+	# would otherwise re-enter this while the rest of `amount` is still unapplied.
+	for c in increased:
+		resource_increased.emit(c, amount[c])
 
 	if any_changed:
 		_notify_changed()
@@ -175,7 +185,7 @@ func decrease_resources(amount:Dictionary[GameResource, float])-> void:
 			"Can't take %s %s from %s" % [amount[c], c.dname, get_current_resource(c)]
 		)
 
-		current_amounts[_key(c)] -= amount[c]
+		current_amounts[c.id] -= amount[c]
 
 		resource_changed.emit(c, get_current_resource(c))
 		any_changed = true

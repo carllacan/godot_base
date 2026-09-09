@@ -60,7 +60,7 @@ func _parent(syncer:GameResourceSyncer)-> SyncerParent:
 #region on ready
 
 func test_the_parent_gets_the_current_amount_on_ready():
-	_save.set_resource(_resource, 7.0)
+	_save.resources.set_resource(_resource, 7.0)
 
 	var syncer := _make_syncer()
 
@@ -133,25 +133,25 @@ func test_a_change_request_signal_the_parent_does_not_have_is_reported():
 func test_the_parent_follows_the_resource_going_up():
 	var syncer := _make_syncer()
 
-	_save.set_resource(_resource, 12.0)
+	_save.resources.set_resource(_resource, 12.0)
 
 	assert_eq(_parent(syncer).amount, 12.0)
 
 
 func test_the_parent_follows_the_resource_going_down():
-	_save.set_resource(_resource, 12.0)
+	_save.resources.set_resource(_resource, 12.0)
 	var syncer := _make_syncer()
 
-	_save.set_resource(_resource, 4.0)
+	_save.resources.set_resource(_resource, 4.0)
 
 	assert_eq(_parent(syncer).amount, 4.0)
 
 
 func test_changes_to_other_resources_are_ignored():
-	_save.set_resource(_resource, 3.0)
+	_save.resources.set_resource(_resource, 3.0)
 	var syncer := _make_syncer()
 
-	_save.set_resource(_other_resource, 99.0)
+	_save.resources.set_resource(_other_resource, 99.0)
 
 	assert_eq(_parent(syncer).amount, 3.0)
 
@@ -171,25 +171,25 @@ func test_update_info_writes_the_current_amount():
 #region change requests
 
 func test_a_change_request_adds_to_the_resource():
-	_save.set_resource(_resource, 10.0)
+	_save.resources.set_resource(_resource, 10.0)
 	var syncer := _make_syncer()
 
 	_parent(syncer).amount_change_requested.emit(3.0)
 
-	assert_eq(_save.get_current_resource(_resource), 13.0)
+	assert_eq(_save.resources.get_current_resource(_resource), 13.0)
 
 
 func test_a_negative_change_request_takes_from_the_resource():
-	_save.set_resource(_resource, 10.0)
+	_save.resources.set_resource(_resource, 10.0)
 	var syncer := _make_syncer()
 
 	_parent(syncer).amount_change_requested.emit(-4.0)
 
-	assert_eq(_save.get_current_resource(_resource), 6.0)
+	assert_eq(_save.resources.get_current_resource(_resource), 6.0)
 
 
 func test_the_parent_is_updated_after_its_own_change_request():
-	_save.set_resource(_resource, 10.0)
+	_save.resources.set_resource(_resource, 10.0)
 	var syncer := _make_syncer()
 
 	_parent(syncer).amount_change_requested.emit(3.0)
@@ -231,16 +231,16 @@ func test_changing_the_change_request_signal_moves_the_connection():
 
 
 func test_the_new_change_request_signal_is_the_one_that_works():
-	_save.set_resource(_resource, 10.0)
+	_save.resources.set_resource(_resource, 10.0)
 	var syncer := _make_syncer()
 	syncer.change_request_signal = "other_change_requested"
 
 	_parent(syncer).amount_change_requested.emit(3.0)
-	assert_eq(_save.get_current_resource(_resource), 10.0, "the old signal should do nothing")
+	assert_eq(_save.resources.get_current_resource(_resource), 10.0, "the old signal should do nothing")
 
 	_parent(syncer).other_change_requested.emit(3.0)
 
-	assert_eq(_save.get_current_resource(_resource), 13.0)
+	assert_eq(_save.resources.get_current_resource(_resource), 13.0)
 
 
 func test_changing_the_icon_property_paints_the_new_one():

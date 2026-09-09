@@ -99,12 +99,12 @@ func update_info()-> void:
 	# number alone, the same way the icon and the change request are skipped.
 	if resource == null: return
 
-	var a = Current.Save.get_current_resource(resource)
+	var a = Current.Save.resources.get_current_resource(resource)
 	get_target().set(target_property, a)
 
 
 func _on_change_requested(delta:float)-> void:
 	if Current.Save == null: return
 	if resource == null: return
-	var current:float = Current.Save.get_current_resource(resource)
-	Current.Save.set_resource(resource, current + delta)
+	var current:float = Current.Save.resources.get_current_resource(resource)
+	Current.Save.resources.set_resource(resource, current + delta)
