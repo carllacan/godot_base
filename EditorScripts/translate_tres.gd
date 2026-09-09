@@ -300,25 +300,26 @@ func extract_all_tres_strings(root_path: String) -> Dictionary:
 	_scan_dir(root_path, result)
 	return result
 
+# get_files() and get_directories() return their entries sorted, while
+# list_dir_begin()/get_next() return them in filesystem order, which changes
+# when a folder is modified. Both the order of the entries and the order of the
+# "#:" comment lines within one entry follow this walk, so an unsorted one makes
+# each regenerated .pot differ from the last one wherever the filesystem
+# happened to reshuffle, for no change in the strings themselves.
 func _scan_dir(current_path: String, result: Dictionary) -> void:
 	var dir = DirAccess.open(current_path)
 	if dir == null:
 		push_error("Cannot open folder: %s" % current_path)
 		return
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-	while file_name != "":
-		var path = current_path.path_join(file_name)
+	for file_name in dir.get_files():
 		if file_name.ends_with(".tres"):
+			var path := current_path.path_join(file_name)
 			var res = ResourceLoader.load(path)
 			if res and _resource_is_included(res):
 				_extract_resource_strings(path, res, result)
-
-		elif dir.current_is_dir():
-			if not file_name in excluded_dirs:
-				_scan_dir(path, result)
-		file_name = dir.get_next()
-	dir.list_dir_end()
+	for dir_name in dir.get_directories():
+		if not dir_name in excluded_dirs:
+			_scan_dir(current_path.path_join(dir_name), result)
 
 
 # --- Pull the translatable strings out of one loaded resource ---
