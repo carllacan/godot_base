@@ -95,7 +95,7 @@ func save(filename:String = "")-> void:
 ##
 ## DEEP_DUPLICATE_INTERNAL copies exactly the sub-resources a run mutates (balls,
 ## cards, stamps and the flying-coin ids, all of them built-in) and leaves the
-## ones with a path — GameResource, BallModel, CardModel, the stamp scenes —
+## ones with a path — BallModel, CardModel, UpgradeInfo, the stamp scenes —
 ## shared, so they still serialise as ext_resource references and still compare
 ## equal as Dictionary keys when the save is read back.
 func prepare_save(filename:String = "")-> Callable:
@@ -225,11 +225,11 @@ static func load_from_file(filepath:String)-> BaseGameState:
 	Integration.sync_file(filepath)
 	
 	# IGNORE (not IGNORE_DEEP): the save file itself must always be re-read
-	# fresh, but its ext_resource dependencies (GameResource singletons,
-	# UpgradeInfo, CardModel, etc.) must be reused from cache. Those are used
-	# as Dictionary keys elsewhere (e.g. current_resources[GameResource.COINS])
-	# and Dictionary equality for Resources is identity-based, so forcing them
-	# to reload as new instances orphans the values stored under the old key.
+	# fresh, but its ext_resource dependencies (UpgradeInfo, CardModel, etc.)
+	# must be reused from cache. Those are used as Dictionary keys elsewhere
+	# (e.g. UpgradeInfo.requirements) and Dictionary equality for Resources is
+	# identity-based, so forcing them to reload as new instances orphans the
+	# values stored under the old key.
 	var r:BaseGameState = ResourceLoader.load(filepath,
 		"", ResourceLoader.CACHE_MODE_IGNORE)
 	

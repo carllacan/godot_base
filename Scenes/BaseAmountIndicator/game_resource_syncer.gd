@@ -95,6 +95,9 @@ func update_info()-> void:
 	# Current.Save is a static that only gets assigned once a run starts, so this
 	# would dereference null at edit time. It also writes to the parent.
 	if Engine.is_editor_hint(): return
+	# A syncer that has not been pointed at a resource yet leaves the parent's
+	# number alone, the same way the icon and the change request are skipped.
+	if resource == null: return
 
 	var a = Current.Save.get_current_resource(resource)
 	get_target().set(target_property, a)

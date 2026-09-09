@@ -27,8 +27,12 @@ func before_each()-> void:
 	_save = GameState.new()
 	_save.saving_enabled = false
 	Current.Save = _save
+	# The wallet files amounts under GameResource.id, so the two stand-ins need
+	# ids of their own or they would share the one slot.
 	_resource = GameResource.new()
+	_resource.id = "test_resource"
 	_other_resource = GameResource.new()
+	_other_resource.id = "test_other_resource"
 
 
 func after_each()-> void:
@@ -156,7 +160,7 @@ func test_update_info_writes_the_current_amount():
 	var syncer := _make_syncer()
 	_parent(syncer).amount = 0.0
 
-	_save.current_resources[_resource] = 5.0
+	_save.resources.current_amounts[_resource.id] = 5.0
 	syncer.update_info()
 
 	assert_eq(_parent(syncer).amount, 5.0)
@@ -198,7 +202,7 @@ func test_a_change_request_without_a_resource_is_ignored():
 
 	_parent(syncer).amount_change_requested.emit(3.0)
 
-	assert_true(_save.current_resources.is_empty())
+	assert_true(_save.resources.current_amounts.is_empty())
 
 
 func test_a_change_request_without_a_save_is_ignored():
@@ -208,7 +212,7 @@ func test_a_change_request_without_a_save_is_ignored():
 	_parent(syncer).amount_change_requested.emit(3.0)
 
 	Current.Save = _save
-	assert_true(_save.current_resources.is_empty())
+	assert_true(_save.resources.current_amounts.is_empty())
 
 #endregion
 
