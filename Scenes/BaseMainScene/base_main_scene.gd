@@ -94,7 +94,9 @@ func begin_new_game() -> void:
 func continue_game(game_state:GameState = null) -> void:
 	if game_state == null:
 		game_state = GameState.load_last_state()
-	assert(game_state != null)
+		if game_state == null:
+			push_error("Couldn't load last_save")
+			return
 	start_game(game_state)
 
 
