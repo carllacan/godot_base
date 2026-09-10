@@ -299,7 +299,6 @@ static func create_new_state()-> GameState:
 	if FileAccess.file_exists(initial_game_state_path):
 		game_state = load(initial_game_state_path)
 	else:
-		push_warning("Initial save not found, creating empty state")
 		game_state = GameState.new()
 		game_state.id = str(game_state.get_rid().get_id())
 		game_state.initialize()
