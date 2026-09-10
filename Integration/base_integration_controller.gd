@@ -96,7 +96,7 @@ func sync_file(local_path:String,
 	criterion:Callable = DefaultSyncCriterion.criterion.bind("timestamp_unix")
 	) -> void:
 				
-	if not Settings.get_setting_value_by_name("steam_cloud_enabled"):
+	if not Settings.get_setting_value_by_id("steam_cloud_enabled"):
 		return
 
 	# Without cloud storage there is no remote side to compare against, and

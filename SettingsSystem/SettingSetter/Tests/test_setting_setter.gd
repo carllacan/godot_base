@@ -28,10 +28,15 @@ func before_all()-> void:
 	_language = _make_setting_info("test_language", "Language", Variant.Type.TYPE_ARRAY)
 	_language.options = {"en": "English", "es": "Spanish", "ca": "Catalan"}
 
+	# The catalog the manager built from the defaults, so cycle_setting can
+	# look these three up by id like any other setting
+	Settings.settings.known_settings.append_array([_quality, _flag, _language])
+
 
 func after_all()-> void:
 	for setting in [_quality, _flag, _language]:
-		Settings.settings.values.erase(setting)
+		Settings.settings.values.erase(setting.id)
+		Settings.settings.known_settings.erase(setting)
 
 	if _had_file:
 		var file := FileAccess.open(SettingsManager.SETTINGS_SAVE_PATH, FileAccess.WRITE)
@@ -45,14 +50,14 @@ func after_all()-> void:
 func before_each()-> void:
 	# Registered directly, without going through the autoload, so no
 	# setting_changed is emitted while the tests are setting themselves up
-	Settings.settings.values[_quality] = 0
-	Settings.settings.values[_flag] = true
-	Settings.settings.values[_language] = "en"
+	Settings.settings.values[_quality.id] = 0
+	Settings.settings.values[_flag.id] = true
+	Settings.settings.values[_language.id] = "en"
 
 
-func _make_setting_info(setting_name:String, dname:String, type:Variant.Type)-> SettingInfo:
+func _make_setting_info(setting_id:String, dname:String, type:Variant.Type)-> SettingInfo:
 	var setting := SettingInfo.new()
-	setting.name = setting_name
+	setting.id = setting_id
 	setting.dname = dname
 	setting.type = type
 	return setting
@@ -89,7 +94,7 @@ func _quality_reps()-> Dictionary[Variant, String]:
 
 
 func _value(setting:SettingInfo)-> Variant:
-	return Settings.get_setting_value_by_name(setting.name)
+	return Settings.get_setting_value_by_id(setting.id)
 
 
 func _mouse_event(button_index:int, released:bool = true)-> InputEventMouseButton:
@@ -179,7 +184,7 @@ func test_cycling_walks_the_whole_range_by_default():
 
 
 func test_cycling_wraps_around_the_range():
-	Settings.set_setting_value_by_name(_quality.name, 10)
+	Settings.set_setting_value_by_id(_quality.id, 10)
 	var setter := _make_setter(_quality)
 
 	setter.cycle_setting(1)
@@ -221,7 +226,7 @@ func test_cycling_skips_the_values_without_an_override():
 
 
 func test_cycling_the_overridden_values_wraps_around():
-	Settings.set_setting_value_by_name(_quality.name, 10)
+	Settings.set_setting_value_by_id(_quality.id, 10)
 	var setter := _make_setter(_quality, {
 		"value_representation_overrides": _quality_reps(),
 		"show_only_overridden_values": true,
@@ -246,7 +251,7 @@ func test_cycling_backwards_wraps_to_the_last_overridden_value():
 func test_cycling_forward_from_an_unshown_value_lands_on_the_first_one():
 	# A settings file written before the overrides were set up can hold a
 	# value that is no longer offered
-	Settings.set_setting_value_by_name(_quality.name, 7)
+	Settings.set_setting_value_by_id(_quality.id, 7)
 	var setter := _make_setter(_quality, {
 		"value_representation_overrides": _quality_reps(),
 		"show_only_overridden_values": true,
@@ -258,7 +263,7 @@ func test_cycling_forward_from_an_unshown_value_lands_on_the_first_one():
 
 
 func test_cycling_backward_from_an_unshown_value_lands_on_the_last_one():
-	Settings.set_setting_value_by_name(_quality.name, 7)
+	Settings.set_setting_value_by_id(_quality.id, 7)
 	var setter := _make_setter(_quality, {
 		"value_representation_overrides": _quality_reps(),
 		"show_only_overridden_values": true,
@@ -320,7 +325,7 @@ func test_button_text_is_left_alone_when_not_overriding_it():
 
 
 func test_button_text_falls_back_to_the_settings_own_representation():
-	Settings.set_setting_value_by_name(_quality.name, 7)
+	Settings.set_setting_value_by_id(_quality.id, 7)
 	var setter := _make_setter(_quality, {"value_representation_overrides": _quality_reps()})
 
 	assert_eq(setter.get_parent().text, "QUALITY: 7")
@@ -335,7 +340,7 @@ func test_button_text_of_an_array_setting_uses_its_options():
 func test_button_text_updates_when_the_setting_changes():
 	var setter := _make_setter(_quality, {"value_representation_overrides": _quality_reps()})
 
-	Settings.set_setting_value_by_name(_quality.name, 5)
+	Settings.set_setting_value_by_id(_quality.id, 5)
 	await wait_process_frames(2)
 
 	assert_eq(setter.get_parent().text, "QUALITY: Medium")
@@ -366,7 +371,7 @@ func test_button_icon_follows_the_setting():
 	var icons:Dictionary[Variant, Texture] = {10: high_icon}
 	var setter := _make_setter(_quality, {"icon_overrides": icons})
 
-	Settings.set_setting_value_by_name(_quality.name, 10)
+	Settings.set_setting_value_by_id(_quality.id, 10)
 	await wait_process_frames(2)
 
 	assert_eq(setter.get_parent().icon, high_icon)
@@ -401,7 +406,7 @@ func test_left_click_cycles_forward():
 
 
 func test_right_click_cycles_backwards():
-	Settings.set_setting_value_by_name(_quality.name, 5)
+	Settings.set_setting_value_by_id(_quality.id, 5)
 	var setter := _make_setter(_quality)
 
 	setter._on_parent_received_input(_mouse_event(MOUSE_BUTTON_RIGHT))

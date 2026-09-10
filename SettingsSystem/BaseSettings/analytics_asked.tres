@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_yhs35")
-name = "analytics_asked"
+id = "analytics_asked"
 dname = "Analytics asked"
 description = "INTERNAL SETTING, not for players. Marks whether the player has already been asked for analytics consent."
 metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

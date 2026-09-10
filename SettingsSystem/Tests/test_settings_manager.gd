@@ -52,10 +52,10 @@ func after_each()-> void:
 	TranslationServer.set_locale(_original_locale)
 
 
-func _make_setting_info(setting_name:String, type:Variant.Type)-> SettingInfo:
+func _make_setting_info(setting_id:String, type:Variant.Type)-> SettingInfo:
 	var setting := SettingInfo.new()
-	setting.name = setting_name
-	setting.dname = setting_name
+	setting.id = setting_id
+	setting.dname = setting_id
 	setting.type = type
 	return setting
 
@@ -80,9 +80,10 @@ func _steam_is_unreachable()-> bool:
 func _make_manager()-> SettingsManager:
 	var manager := SettingsManager.new()
 	manager.settings = SettingsContainer.new()
-	manager.settings.values[_quality] = 1
-	manager.settings.values[_flag] = true
-	manager.settings.values[_language] = "en"
+	manager.settings.known_settings = [_quality, _flag, _language]
+	manager.settings.values[_quality.id] = 1
+	manager.settings.values[_flag.id] = true
+	manager.settings.values[_language.id] = "en"
 	return autofree(manager)
 
 
@@ -95,11 +96,11 @@ func _remove_settings_file()-> void:
 ## to, so the startup tests cannot change the window mode or the locale
 func _pick_neutral_setting()-> SettingInfo:
 	var reacted:Array[String] = [
-		GodotBase.settings.window_mode_setting.name,
-		GodotBase.settings.language_setting.name,
+		GodotBase.settings.window_mode_setting.id,
+		GodotBase.settings.language_setting.id,
 	]
-	for setting in SettingsManager.DEFAULT_SETTINGS.values.keys():
-		if setting.name not in reacted:
+	for setting in SettingsManager.DEFAULT_SETTINGS.known_settings:
+		if setting.id not in reacted:
 			return setting
 	return null
 
@@ -127,20 +128,20 @@ func test_a_setting_is_read_by_resource():
 	assert_eq(manager.get_setting_value(_quality), 1)
 
 
-func test_a_setting_is_read_by_name():
+func test_a_setting_is_read_by_id():
 	var manager := _make_manager()
 
-	assert_eq(manager.get_setting_value_by_name("test_language"), "en")
+	assert_eq(manager.get_setting_value_by_id("test_language"), "en")
 
 #endregion
 
 
 #region writing
 
-func test_writing_by_name_changes_the_value():
+func test_writing_by_id_changes_the_value():
 	var manager := _make_manager()
 
-	manager.set_setting_value_by_name("test_quality", 2)
+	manager.set_setting_value_by_id("test_quality", 2)
 
 	assert_eq(manager.get_setting_value(_quality), 2)
 
@@ -153,16 +154,16 @@ func test_writing_by_resource_changes_the_value():
 	assert_eq(manager.get_setting_value(_quality), 2)
 
 
-func test_writing_by_name_announces_the_change():
+func test_writing_by_id_announces_the_change():
 	var manager := _make_manager()
 	watch_signals(manager)
 
-	manager.set_setting_value_by_name("test_quality", 2)
+	manager.set_setting_value_by_id("test_quality", 2)
 
 	assert_signal_emitted_with_parameters(manager, "setting_changed", ["test_quality", 2])
 
 
-func test_writing_by_resource_announces_the_change_under_the_settings_name():
+func test_writing_by_resource_announces_the_change_under_the_settings_id():
 	var manager := _make_manager()
 	watch_signals(manager)
 
@@ -174,12 +175,12 @@ func test_writing_by_resource_announces_the_change_under_the_settings_name():
 func test_writing_a_setting_saves_the_whole_configuration():
 	var manager := _make_manager()
 
-	manager.set_setting_value_by_name("test_quality", 3)
+	manager.set_setting_value_by_id("test_quality", 3)
 
 	var saved:SettingsContainer = ResourceLoader.load(
 		SettingsManager.SETTINGS_SAVE_PATH, "", ResourceLoader.CACHE_MODE_IGNORE)
-	assert_eq(saved.get_setting_value_by_name("test_quality"), 3)
-	assert_eq(saved.get_setting_value_by_name("test_language"), "en",
+	assert_eq(saved.get_setting_value_by_id("test_quality"), 3)
+	assert_eq(saved.get_setting_value_by_id("test_language"), "en",
 		"the settings that did not change are saved too")
 
 #endregion
@@ -190,8 +191,8 @@ func test_writing_a_setting_saves_the_whole_configuration():
 func test_applying_a_configuration_writes_all_of_its_values():
 	var manager := _make_manager()
 	var configuration := SettingsContainer.new()
-	configuration.values[_quality] = 3
-	configuration.values[_flag] = false
+	configuration.values[_quality.id] = 3
+	configuration.values[_flag.id] = false
 
 	manager.apply_configuration(configuration)
 
@@ -199,12 +200,12 @@ func test_applying_a_configuration_writes_all_of_its_values():
 	assert_eq(manager.get_setting_value(_flag), false)
 
 
-func test_applying_a_configuration_matches_the_settings_by_name():
-	# A configuration read back from disk can hold different SettingInfo
-	# instances than the ones the manager started with
+func test_applying_a_configuration_matches_the_settings_by_id():
+	# A configuration read back from disk carries ids alone, and none of the
+	# SettingInfo instances the manager started with
 	var manager := _make_manager()
 	var configuration := SettingsContainer.new()
-	configuration.values[_make_setting_info("test_quality", Variant.Type.TYPE_INT)] = 3
+	configuration.values["test_quality"] = 3
 
 	manager.apply_configuration(configuration)
 
@@ -215,8 +216,8 @@ func test_applying_a_configuration_matches_the_settings_by_name():
 func test_applying_a_configuration_announces_every_setting():
 	var manager := _make_manager()
 	var configuration := SettingsContainer.new()
-	configuration.values[_quality] = 3
-	configuration.values[_flag] = false
+	configuration.values[_quality.id] = 3
+	configuration.values[_flag.id] = false
 	watch_signals(manager)
 
 	manager.apply_configuration(configuration)
@@ -321,9 +322,9 @@ func test_startup_falls_back_to_the_defaults_without_a_settings_file():
 
 	var manager:SettingsManager = add_child_autofree(SettingsManager.new())
 
-	for setting in SettingsManager.DEFAULT_SETTINGS.values.keys():
+	for setting in SettingsManager.DEFAULT_SETTINGS.known_settings:
 		assert_eq(manager.get_setting_value(setting),
-			SettingsManager.DEFAULT_SETTINGS.values[setting], setting.name)
+			SettingsManager.DEFAULT_SETTINGS.values[setting.id], setting.id)
 
 
 func test_startup_applies_the_saved_settings_over_the_defaults():
@@ -333,7 +334,7 @@ func test_startup_applies_the_saved_settings_over_the_defaults():
 	# Only the one setting is saved, which is also what an old settings file
 	# written before the rest of them existed looks like
 	var saved := SettingsContainer.new()
-	saved.values[setting] = saved_value
+	saved.values[setting.id] = saved_value
 	ResourceSaver.save(saved, SettingsManager.SETTINGS_SAVE_PATH)
 
 	var manager:SettingsManager = add_child_autofree(SettingsManager.new())
@@ -344,16 +345,16 @@ func test_startup_applies_the_saved_settings_over_the_defaults():
 func test_startup_keeps_the_defaults_for_the_settings_the_file_does_not_mention():
 	var setting:SettingInfo = _pick_neutral_setting()
 	var saved := SettingsContainer.new()
-	saved.values[setting] = _other_value(
+	saved.values[setting.id] = _other_value(
 		setting, SettingsManager.DEFAULT_SETTINGS.get_setting_value(setting))
 	ResourceSaver.save(saved, SettingsManager.SETTINGS_SAVE_PATH)
 
 	var manager:SettingsManager = add_child_autofree(SettingsManager.new())
 
-	for default_setting in SettingsManager.DEFAULT_SETTINGS.values.keys():
+	for default_setting in SettingsManager.DEFAULT_SETTINGS.known_settings:
 		if default_setting == setting: continue
 		assert_eq(manager.get_setting_value(default_setting),
-			SettingsManager.DEFAULT_SETTINGS.values[default_setting], default_setting.name)
+			SettingsManager.DEFAULT_SETTINGS.values[default_setting.id], default_setting.id)
 
 
 func test_changing_a_setting_does_not_write_into_the_defaults():
@@ -385,7 +386,7 @@ func test_startup_keeps_running_while_the_game_is_paused():
 func test_changing_the_language_switches_the_locale():
 	var manager := _make_manager()
 
-	manager._on_setting_changed(GodotBase.settings.language_setting.name, "es")
+	manager._on_setting_changed(GodotBase.settings.language_setting.id, "es")
 
 	assert_eq(TranslationServer.get_locale(), "es")
 
@@ -401,7 +402,7 @@ func test_the_default_language_follows_the_system_one():
 	expected = TranslationServer.standardize_locale(expected)   # compare like for like
 
 
-	manager._on_setting_changed(GodotBase.settings.language_setting.name, "default")
+	manager._on_setting_changed(GodotBase.settings.language_setting.id, "default")
 
 	assert_eq(TranslationServer.get_locale(), expected)
 
@@ -421,9 +422,9 @@ func test_changing_the_window_mode_switches_the_window():
 	var manager := _make_manager()
 	var original_mode := DisplayServer.window_get_mode()
 
-	manager._on_setting_changed(GodotBase.settings.window_mode_setting.name, "fullscreen")
+	manager._on_setting_changed(GodotBase.settings.window_mode_setting.id, "fullscreen")
 	var fullscreen_mode := DisplayServer.window_get_mode()
-	manager._on_setting_changed(GodotBase.settings.window_mode_setting.name, "windowed")
+	manager._on_setting_changed(GodotBase.settings.window_mode_setting.id, "windowed")
 	var windowed_mode := DisplayServer.window_get_mode()
 
 	DisplayServer.window_set_mode(original_mode)

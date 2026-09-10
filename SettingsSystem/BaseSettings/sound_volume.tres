@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_m1h0r")
-name = "master_volume"
+id = "master_volume"
 dname = "MASTER"
 type = 2
 min_value = 1.0

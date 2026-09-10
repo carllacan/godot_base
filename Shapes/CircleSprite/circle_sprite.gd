@@ -149,7 +149,7 @@ func must_apply_antialising()-> bool:
 	if Engine.is_editor_hint():
 		return true
 		
-	var graph_qua = Settings.get_setting_value_by_name("graphics_quality")
+	var graph_qua = Settings.get_setting_value_by_id("graphics_quality")
 	var aa_setting_enabled = graph_qua > 1
 	return aa_setting_enabled
 	
@@ -163,7 +163,7 @@ func update_antialising()-> void:
 	#if force_no_antialising:
 		#s.set_shader_parameter("enable_antialising", false)
 	#elif not Engine.is_editor_hint():
-		#var aa_setting = Settings.get_setting_value_by_name("graphics_quality") > 1
+		#var aa_setting = Settings.get_setting_value_by_id("graphics_quality") > 1
 		#s.set_shader_parameter("enable_antialising", aa_setting)
 	#else:
 		#s.set_shader_parameter("enable_antialising", true)

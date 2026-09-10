@@ -4,6 +4,6 @@
 
 [resource]
 script = ExtResource("1_hfqmt")
-name = "sound_enabled"
+id = "sound_enabled"
 dname = "MASTER"
 metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

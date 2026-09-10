@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_b561b")
-name = "graphics_quality"
+id = "graphics_quality"
 dname = "Quality"
 description = "How much the graphics of the game will be simplifed"
 type = 2

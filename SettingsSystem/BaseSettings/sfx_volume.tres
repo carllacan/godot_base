@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_sa8al")
-name = "sfx_volume"
+id = "sfx_volume"
 dname = "SFX"
 type = 2
 min_value = 1.0

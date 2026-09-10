@@ -6,7 +6,7 @@ class_name SettingsManager
 # to remove those or add new ones. Also implements common reactions to changes
 # of some settings, like changing volumes or resolution.
 
-signal setting_changed(name:String, new_value:Variant) # TODO: use SettingInfo type
+signal setting_changed(setting_id:String, new_value:Variant) # TODO: use SettingInfo type
 
 
 const DEFAULT_SETTINGS:SettingsContainer = preload("res://Settings/default_settings.tres")
@@ -27,9 +27,11 @@ func _ready()-> void:
 	settings = DEFAULT_SETTINGS.duplicate()
 	# duplicate() hands over the very same values dictionary, so without this
 	# every change would also be written into the preloaded defaults. It cannot
-	# be duplicate(true) either: that would copy the SettingInfo keys too, and
-	# the lookups by resource would stop finding anything.
+	# be duplicate(true) either: that would copy the SettingInfo resources in
+	# known_settings, and the catalog would hand out copies of the settings
+	# instead of the ones the rest of the game holds references to.
 	settings.values = DEFAULT_SETTINGS.values.duplicate()
+	settings.known_settings = DEFAULT_SETTINGS.known_settings.duplicate()
 	setting_changed.connect(_on_setting_changed)
 	
 	print("Initializing settings...")
@@ -46,9 +48,9 @@ func _ready()-> void:
 		
 # Applies all settings one by one, so all reactions are triggered
 func apply_configuration(new_configuration:SettingsContainer)-> void:
-	for setting in new_configuration.values.keys():
-		var v = new_configuration.values[setting]
-		set_setting_value_by_name(setting.name, v)
+	for setting_id in new_configuration.values.keys():
+		var v = new_configuration.values[setting_id]
+		set_setting_value_by_id(setting_id, v)
 		
 		
 func get_setting_value(setting:SettingInfo)-> Variant:
@@ -59,56 +61,62 @@ func get_setting_value(setting:SettingInfo)-> Variant:
 	return setting_value
 	
 		
-func get_setting_value_by_name(setting_name:String)-> Variant:
-	var setting_value = settings.get_setting_value_by_name(setting_name)
-	
-	assert(setting_value != null, 
-	"No default or user value for setting '%s'" % setting_name)
-	
+func get_setting_value_by_id(setting_id:String)-> Variant:
+	var setting_value = settings.get_setting_value_by_id(setting_id)
+
+	assert(setting_value != null,
+	"No default or user value for setting '%s'" % setting_id)
+
 	return setting_value
-		
-		
-func set_setting_value_by_name(setting_name:String, new_value:Variant)-> void:
-	settings.set_setting_by_name(setting_name, new_value)
-	setting_changed.emit(setting_name, new_value)
+
+
+func set_setting_value_by_id(setting_id:String, new_value:Variant)-> void:
+	settings.set_setting_by_id(setting_id, new_value)
+	setting_changed.emit(setting_id, new_value)
 	save_settings()
 	
 	
 func set_setting(setting:SettingInfo, new_value:Variant)-> void:
 	settings.set_setting(setting, new_value)
-	setting_changed.emit(setting.name, new_value)
+	setting_changed.emit(setting.id, new_value)
 	save_settings()
-	
 
-func cycle_setting(setting_name:String, steps:int = 1)-> void:
-	var s = settings.get_setting_by_name(setting_name)
+
+func cycle_setting(setting_id:String, steps:int = 1)-> void:
+	var s = settings.get_setting_by_id(setting_id)
 	match s.type:
 		Variant.Type.TYPE_BOOL:
 			#if steps % 2 != 0:
-				var current:bool = get_setting_value_by_name(s.name)
-				set_setting_value_by_name(setting_name, not current)
+				var current:bool = get_setting_value_by_id(s.id)
+				set_setting_value_by_id(setting_id, not current)
 		Variant.Type.TYPE_INT:
-			var current:int = get_setting_value_by_name(s.name)
+			var current:int = get_setting_value_by_id(s.id)
 			var new:int = current + steps
 			var corrected:int = wrapi(new, s.min_value, s.max_value+1)
-			set_setting_value_by_name(setting_name, corrected)
+			set_setting_value_by_id(setting_id, corrected)
 		Variant.Type.TYPE_ARRAY:
-			var current_key:String = get_setting_value_by_name(s.name)
+			var current_key:String = get_setting_value_by_id(s.id)
 			var current_idx:int = s.options.keys().find(current_key)
 			var next_idx:int = wrapi(current_idx+steps, 0, len(s.options))
 			var next_key:String = s.options.keys()[next_idx]
-			set_setting_value_by_name(setting_name, next_key)
-	
-	
+			set_setting_value_by_id(setting_id, next_key)
+
+
 func save_settings()-> void:
 	settings.game_version = Dist.get_version_num()
-	ResourceSaver.save(settings, SETTINGS_SAVE_PATH)
+	# Only the values go out to disk. known_settings is the catalog the build
+	# ships with, and writing it would put a reference to every SettingInfo
+	# resource back into the player's file, which is what the ids replaced.
+	var to_save := SettingsContainer.new()
+	to_save.game_version = settings.game_version
+	to_save.values = settings.values.duplicate()
+	ResourceSaver.save(to_save, SETTINGS_SAVE_PATH)
 	
 	
 # TODO use settinginfo type here?
-func _on_setting_changed(setting_name:String, new_value:Variant)-> void:	
-	match setting_name:
-		GodotBase.settings.window_mode_setting.name:
+func _on_setting_changed(setting_id:String, new_value:Variant)-> void:
+	match setting_id:
+		GodotBase.settings.window_mode_setting.id:
 			match new_value:
 				"fullscreen":
 					DisplayServer.window_set_mode(
@@ -116,7 +124,7 @@ func _on_setting_changed(setting_name:String, new_value:Variant)-> void:
 				"windowed":
 					DisplayServer.window_set_mode(
 						DisplayServer.WINDOW_MODE_MAXIMIZED)
-		GodotBase.settings.language_setting.name:
+		GodotBase.settings.language_setting.id:
 			match new_value:
 				"default":
 					var preferred_language = Integration.get_current_language()

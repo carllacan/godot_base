@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_g5rhq")
-name = "language"
+id = "language"
 dname = "Language"
 description = "Which language to use"
 type = 28

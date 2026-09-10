@@ -94,16 +94,16 @@ func get_shown_values()-> Array[Variant]:
 
 func cycle_setting(steps:int = 1)-> void:
 	if not show_only_overridden_values:
-		Settings.cycle_setting(target_setting.name, steps)
+		Settings.cycle_setting(target_setting.id, steps)
 		return
 
 	var vals:Array[Variant] = get_shown_values()
 	if vals.is_empty():
 		push_error("Setting '%s' only shows overridden values, but has no overrides"
-			% target_setting.name)
+			% target_setting.id)
 		return
 
-	var current:Variant = Settings.get_setting_value_by_name(target_setting.name)
+	var current:Variant = Settings.get_setting_value_by_id(target_setting.id)
 	var current_idx:int = vals.find(current)
 	var next_idx:int
 	if current_idx == -1:
@@ -114,17 +114,17 @@ func cycle_setting(steps:int = 1)-> void:
 		next_idx = wrapi(current_idx + steps, 0, len(vals))
 
 	p("%s cycles '%s' from %s to %s",
-		[get_target().name, target_setting.name, str(current), str(vals[next_idx])])
+		[get_target().name, target_setting.id, str(current), str(vals[next_idx])])
 
-	Settings.set_setting_value_by_name(target_setting.name, vals[next_idx])
+	Settings.set_setting_value_by_id(target_setting.id, vals[next_idx])
 		
 		
 func _on_parent_button_pressed()-> void:
 	return
 	
 	
-func _on_setting_changed(setting_name:String, _new_value:Variant)-> void:
-	if setting_name == target_setting.name:
+func _on_setting_changed(setting_id:String, _new_value:Variant)-> void:
+	if setting_id == target_setting.id:
 		await get_tree().process_frame # TODO: do this some other way.
 		update_parent()
 		
@@ -139,11 +139,11 @@ func update_parent()-> void:
 	var parent = get_target()
 	
 	var n = target_setting.dname.to_upper()
-	var val = Settings.get_setting_value_by_name(target_setting.name)
+	var val = Settings.get_setting_value_by_id(target_setting.id)
 	
 	if not must_show_value(val):
 		p("%s shows '%s' as %s, which has no override",
-			[get_target().name, target_setting.name, str(val)])
+			[get_target().name, target_setting.id, str(val)])
 
 	# Generate a representative string
 	var val_str:String

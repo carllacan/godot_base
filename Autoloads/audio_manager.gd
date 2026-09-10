@@ -7,16 +7,16 @@ static var BUS_NAMES:Array[String] = [
 	"Master"
 ]
 
-static var ENABLED_SETTING_NAMES:Dictionary[String, String] = {
-	"Music": GodotBase.settings.music_enabled_setting.name,
-	"Sfx": GodotBase.settings.sfx_enabled_setting.name,
-	"Master": GodotBase.settings.master_enabled_setting.name,
+static var ENABLED_SETTING_IDS:Dictionary[String, String] = {
+	"Music": GodotBase.settings.music_enabled_setting.id,
+	"Sfx": GodotBase.settings.sfx_enabled_setting.id,
+	"Master": GodotBase.settings.master_enabled_setting.id,
 }
 
-static var VOLUME_SETTING_NAMES:Dictionary[String, String] = {
-	"Music": GodotBase.settings.music_volume_setting.name,
-	"Sfx": GodotBase.settings.sfx_volume_setting.name,
-	"Master": GodotBase.settings.master_volume_setting.name,
+static var VOLUME_SETTING_IDS:Dictionary[String, String] = {
+	"Music": GodotBase.settings.music_volume_setting.id,
+	"Sfx": GodotBase.settings.sfx_volume_setting.id,
+	"Master": GodotBase.settings.master_volume_setting.id,
 }
 
 var _bus_indices:Dictionary[String, int] = {}
@@ -51,13 +51,13 @@ func update_buses()-> void:
 	for bname in BUS_NAMES:
 		var i = _bus_indices[bname]
 		
-		var v_lin = Settings.get_setting_value_by_name(VOLUME_SETTING_NAMES[bname])
+		var v_lin = Settings.get_setting_value_by_id(VOLUME_SETTING_IDS[bname])
 		AudioServer.set_bus_volume_linear(i, v_lin / 10.0)
 		var v_db = AudioServer.get_bus_volume_db(i)
 		v_db += _internal_volumes[bname]
 		AudioServer.set_bus_volume_db(i, v_db)
 		
-		var enabled = Settings.get_setting_value_by_name(ENABLED_SETTING_NAMES[bname])
+		var enabled = Settings.get_setting_value_by_id(ENABLED_SETTING_IDS[bname])
 		enabled = enabled and not _internal_mutes[bname]
 		AudioServer.set_bus_mute(i, not enabled)
 			

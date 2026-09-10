@@ -35,7 +35,7 @@ func before_all()-> void:
 
 func after_all()-> void:
 	for setting in [_flag, _language]:
-		Settings.settings.values.erase(setting)
+		Settings.settings.values.erase(setting.id)
 
 	if _had_file:
 		var file := FileAccess.open(SettingsManager.SETTINGS_SAVE_PATH, FileAccess.WRITE)
@@ -49,8 +49,8 @@ func after_all()-> void:
 func before_each()-> void:
 	# Registered directly, without going through the autoload, so no
 	# setting_changed is emitted while the tests are setting themselves up
-	Settings.settings.values[_flag] = true
-	Settings.settings.values[_language] = "en"
+	Settings.settings.values[_flag.id] = true
+	Settings.settings.values[_language.id] = "en"
 
 	_original_controller_type = InputManager.current_controller_type
 	InputManager.current_controller_type = InputManager.ControllerTypes.KBM
@@ -64,10 +64,10 @@ func after_each()-> void:
 	BuildConfig.Default = null
 
 
-func _make_setting_info(setting_name:String, type:Variant.Type)-> SettingInfo:
+func _make_setting_info(setting_id:String, type:Variant.Type)-> SettingInfo:
 	var setting := SettingInfo.new()
-	setting.name = setting_name
-	setting.dname = setting_name
+	setting.id = setting_id
+	setting.dname = setting_id
 	setting.type = type
 	return setting
 

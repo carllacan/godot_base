@@ -1,7 +1,9 @@
 extends Resource
 class_name SettingInfo
 
-@export var name:String
+## Used to refer to this setting internally, and the key its value is stored
+## under in a SettingsContainer.
+@export var id:String
 @export_group("DisplayedInfo")
 @export var dname:String : get = get_dname
 # Just for reference purposes, will not be shown

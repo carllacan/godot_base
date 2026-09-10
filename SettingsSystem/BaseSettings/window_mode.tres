@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_4nfm2")
-name = "window_mode"
+id = "window_mode"
 dname = "Window mode"
 description = "Whether to start the game in window or fullscreen mode"
 type = 28

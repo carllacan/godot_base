@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_kevdf")
-name = "analytics"
+id = "analytics"
 dname = "Analytics enabled"
 description = "Whether you consent to sending anonymous data"
 metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

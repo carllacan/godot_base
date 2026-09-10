@@ -86,7 +86,7 @@ func update_parent()-> void:
 		if target_val == current_val:
 			must_show_parent = false
 			p("Setting '%s' meets condition, hiding the target of '%s'",
-				[setting.name, self.name])
+				[setting.id, self.name])
 				
 	if hide_in_joypad and InputManager.is_joypad():
 		must_show_parent = false

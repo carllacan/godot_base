@@ -6,53 +6,46 @@ class_name SettingsContainer
 
 ## Version of the build that last wrote this container out.
 @export var game_version:String
-@export var values:Dictionary[SettingInfo, Variant] = {}
+## Every setting the game knows about. Only the defaults resource fills this in:
+## it is the catalog that turns the ids in `values` back into SettingInfos.
+## Containers written to disk carry their values alone.
+@export var known_settings:Array[SettingInfo] = []
+## The value of each setting, keyed by the setting's id.
+@export var values:Dictionary[String, Variant] = {}
 
 
-func get_setting_value(setting:SettingInfo)-> Variant:	
-	if setting in values:
-		return values[setting]
+func get_setting_value(setting:SettingInfo)-> Variant:
+	if setting.id in values:
+		return values[setting.id]
 	else:
 		return null
-	
-	
-func get_setting_by_name(setting_name:String)-> SettingInfo:
-	for s in values.keys():
-		if s.name == setting_name:
+
+
+func get_setting_by_id(setting_id:String)-> SettingInfo:
+	for s in known_settings:
+		if s.id == setting_id:
 			return s
 	return null
-	
-	
-func get_setting_value_by_name(setting_name:String)-> Variant:
-	#if not values.keys().any(func(s): return s.name == setting_name):
-	if not values.keys().any(func(s): return s.name == setting_name):
-		var m = "No value defined for setting '%s'. Establish at least a default value" % [
-		setting_name
-		]
-		push_warning(m)
-		return null
-		
-	var target_setting:SettingInfo = get_setting_by_name(setting_name)
-	
-	if target_setting in values:
-		return values[target_setting]
-	else:
-		var m = "No value defined for setting '%s'. Establish at least a default value" % [
-		setting_name
-		]
-		push_warning(m)
-		return null
 
 
-func set_setting(setting:SettingInfo, new_value:Variant)-> void:		
+func get_setting_value_by_id(setting_id:String)-> Variant:
+	if setting_id in values:
+		return values[setting_id]
+
+	var m = "No value defined for setting '%s'. Establish at least a default value" % [
+	setting_id
+	]
+	push_warning(m)
+	return null
+
+
+func set_setting(setting:SettingInfo, new_value:Variant)-> void:
 	assert(setting != null)
-	values[setting] = new_value
-	
-	
-func set_setting_by_name(setting_name:String, new_value:Variant)-> void:	
-	var target_setting:SettingInfo = get_setting_by_name(setting_name)
-	
-	assert(target_setting != null)
-	values[target_setting] = new_value
-	
-	
+	values[setting.id] = new_value
+
+
+func set_setting_by_id(setting_id:String, new_value:Variant)-> void:
+	assert(not setting_id.is_empty())
+	values[setting_id] = new_value
+
+

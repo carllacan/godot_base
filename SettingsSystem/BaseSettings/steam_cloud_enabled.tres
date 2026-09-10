@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_cwppb")
-name = "steam_cloud_enabled"
+id = "steam_cloud_enabled"
 dname = "Enable Steam Cloud"
 description = "Whether the save data should be synced with steam cloud"
 metadata/_custom_type_script = "uid://y1yl5gpm1oo1"

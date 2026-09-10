@@ -26,7 +26,7 @@ func after_each()-> void:
 
 func _make_setting(type:Variant.Type)-> SettingInfo:
 	var setting := SettingInfo.new()
-	setting.name = "test_setting"
+	setting.id = "test_setting"
 	setting.dname = "Test setting"
 	setting.type = type
 	return setting
