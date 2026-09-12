@@ -10,6 +10,10 @@ class_name ResourceGetter
 @export var target_scripts: Array[Script]
 ## Include subdirectories
 @export var include_subdirectories: bool = false
+## Regexp checked against each subdirectory's name when include_subdirectories
+## is on. A folder whose name matches is skipped entirely, along with
+## everything under it. Leave empty to scan every subdirectory.
+@export var excluded_folders_pattern: String = ""
 @export_group("Debug")
 @export var verbose:bool = false
 
@@ -48,7 +52,8 @@ func _scan_directory(dir_path: String) -> Array[Resource]:
 			continue
 
 		if is_dir:
-			if include_subdirectories and not file.begins_with("."):
+			if include_subdirectories and not file.begins_with(".") \
+			and not _is_excluded_folder(file):
 				results.append_array(_scan_directory(full_path))
 		else:
 			if full_path.get_extension() in target_extensions:
@@ -71,6 +76,15 @@ func _scan_directory(dir_path: String) -> Array[Resource]:
 							results.append(res)
 
 	return results
+
+
+func _is_excluded_folder(folder_name:String)-> bool:
+	if excluded_folders_pattern.is_empty():
+		return false
+
+	var regex := RegEx.new()
+	regex.compile(excluded_folders_pattern)
+	return regex.search(folder_name) != null
 
 
 func _target_class_names()-> Array[String]:
