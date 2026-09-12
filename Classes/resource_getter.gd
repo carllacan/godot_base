@@ -32,49 +32,43 @@ func get_all() -> Array[Resource]:
 	return cached_resources
 
 
+## Lists res:// contents through ResourceLoader rather than DirAccess: the
+## latter's res:// listing is only reliable in the editor and can disagree
+## with it in packed/exported builds (godot-proposals #13122), which let a
+## stray resource slip into an export-only scan here before.
 func _scan_directory(dir_path: String) -> Array[Resource]:
-	var dir := DirAccess.open(dir_path)
-	if dir == null:
-		return []
-
 	var results: Array[Resource] = []
 
-	dir.list_dir_begin()
-	var file := dir.get_next()
-
-	while file != "":
-		var is_dir := dir.current_is_dir()
+	for entry:String in ResourceLoader.list_directory(dir_path):
+		var is_dir := entry.ends_with("/")
+		var file := entry.trim_suffix("/")
 		var full_path := dir_path.path_join(file)
-				
-		if full_path != get_path():
-			if is_dir:
-				if include_subdirectories and not file.begins_with("."):
-					results.append_array(_scan_directory(full_path))
-			else:
-				var actual_path = full_path.trim_suffix(".remap").trim_suffix(".import")
 
-				if actual_path.get_extension() in target_extensions:
-					var worth_loading := true
-					if not target_scripts.is_empty():
-						var peeked := _peek_script_class(actual_path)
-						# An inconclusive peek (binary .res, or no script_class in the
-						# header) falls through to loading it, same as before this
-						# check existed.
-						if not peeked.is_empty():
-							worth_loading = peeked in _target_class_names()
+		if full_path == get_path():
+			continue
 
-					if worth_loading:
-						var res := load(actual_path)
+		if is_dir:
+			if include_subdirectories and not file.begins_with("."):
+				results.append_array(_scan_directory(full_path))
+		else:
+			if full_path.get_extension() in target_extensions:
+				var worth_loading := true
+				if not target_scripts.is_empty():
+					var peeked := _peek_script_class(full_path)
+					# An inconclusive peek (binary .res, or no script_class in the
+					# header) falls through to loading it, same as before this
+					# check existed.
+					if not peeked.is_empty():
+						worth_loading = peeked in _target_class_names()
 
-						if target_scripts.is_empty():
+				if worth_loading:
+					var res := load(full_path)
+
+					if target_scripts.is_empty():
+						results.append(res)
+					else:
+						if res != null and res.get_script() in target_scripts:
 							results.append(res)
-						else:
-							if res != null and res.get_script() in target_scripts:
-								results.append(res)
-
-		file = dir.get_next()
-
-	dir.list_dir_end()
 
 	return results
 
