@@ -11,8 +11,8 @@ func before_each()-> void:
 
 
 func after_each()-> void:
-	# Back to the build configuration the run was started with
-	BuildConfig.Default = null
+	# Back to the flags the run was started with
+	Flags.Override = null
 
 	for monitor_name in Performance.get_custom_monitor_names():
 		if String(monitor_name).begins_with(MONITOR_PREFIX):
@@ -20,14 +20,14 @@ func after_each()-> void:
 
 
 ## PerformanceStats does nothing at all outside a debug build -- registering a
-## monitor is a no-op, and everything downstream of it reads null. Which build
-## the run picked up is not this file's business: `Data/Dev/editor_build_config`
-## is per-developer and gitignored, so leaving the flag ambient means the whole
+## monitor is a no-op, and everything downstream of it reads null. Which flags
+## the run picked up is not this file's business: `Data/Dev/editor_flags` is
+## per-developer and gitignored, so leaving the flag ambient means the whole
 ## monitor half of this suite passes or fails depending on whose machine it is.
 func _force_debug()-> void:
-	var config := BuildConfig.new()
-	config.force_debug = BaseBuildConfig.ForceActions.ForceTrue
-	BuildConfig.Default = config
+	var flags := Flags.new()
+	flags.force_debug = Flags.ForceActions.ForceTrue
+	Flags.Override = flags
 
 
 func _make_bare()-> PerformanceStats:

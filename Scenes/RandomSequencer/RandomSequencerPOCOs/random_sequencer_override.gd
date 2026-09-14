@@ -7,13 +7,13 @@ class_name RandomSequenceOverride
 @export_range(0, 100, 1, "or_greater") var time_end:float = INF
 @export var max_uses:int = -1
 @export_group("Debug")
-@export var force:BaseBuildConfig.ForceActions = BaseBuildConfig.ForceActions.None
+@export var force:Flags.ForceActions = Flags.ForceActions.None
 
 
 func is_active_at(time_s:float)-> bool:		
-	if force == BaseBuildConfig.ForceActions.ForceTrue:
+	if force == Flags.ForceActions.ForceTrue:
 		return true
-	if force == BaseBuildConfig.ForceActions.ForceFalse:
+	if force == Flags.ForceActions.ForceFalse:
 		return false
 
 	if time_s < time_start:

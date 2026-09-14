@@ -2,8 +2,8 @@ extends GutTest
 
 
 func after_each()-> void:
-	# Back to the build configuration the run was started with
-	BuildConfig.Default = null
+	# Back to the flags the run was started with
+	Flags.Override = null
 
 
 func _additive(key:String, value:float)-> Modifier:
@@ -14,15 +14,15 @@ func _multiplicative(key:String, value:float)-> Modifier:
 	return Modifier.make_new_multiplicative(key, value)
 
 
-## Replaces the build configuration with one of those sitting next to this
-## script, so the tests do not depend on which configuration the run happened to
-## pick up. The file is found relative to the script so the tests travel with
-## their configurations.
-func _use_build_config(file_name:String)-> void:
-	var path:String = get_script().resource_path.get_base_dir().path_join(file_name)
-	var config:BuildConfig = load(path)
-	assert_not_null(config, "No build configuration at %s" % path)
-	BuildConfig.Default = config
+## Forces the debug flag the override reads, so the tests do not depend on which
+## flags the run happened to pick up.
+func _force_debug(enabled:bool)-> void:
+	var flags := Flags.new()
+	if enabled:
+		flags.force_debug = Flags.ForceActions.ForceTrue
+	else:
+		flags.force_debug = Flags.ForceActions.ForceFalse
+	Flags.Override = flags
 
 
 #region factories
@@ -92,7 +92,7 @@ func test_unknown_mode_returns_nan():
 #region get_value
 
 func test_get_value_returns_the_exported_value_by_default():
-	_use_build_config("debug_on_build_config.tres")
+	_force_debug(true)
 	var mod := _additive("speed", 3.0)
 	mod.override_value = 99.0
 
@@ -100,7 +100,7 @@ func test_get_value_returns_the_exported_value_by_default():
 
 
 func test_get_value_returns_the_override_when_enabled():
-	_use_build_config("debug_on_build_config.tres")
+	_force_debug(true)
 	var mod := _additive("speed", 3.0)
 	mod.override_value = 99.0
 	mod.apply_override = true
@@ -109,7 +109,7 @@ func test_get_value_returns_the_override_when_enabled():
 
 
 func test_get_value_ignores_the_override_outside_debug_builds():
-	_use_build_config("debug_off_build_config.tres")
+	_force_debug(false)
 	var mod := _additive("speed", 3.0)
 	mod.override_value = 99.0
 	mod.apply_override = true
@@ -118,7 +118,7 @@ func test_get_value_ignores_the_override_outside_debug_builds():
 
 
 func test_apply_uses_the_override():
-	_use_build_config("debug_on_build_config.tres")
+	_force_debug(true)
 	var mod := _additive("speed", 3.0)
 	mod.override_value = 99.0
 	mod.apply_override = true

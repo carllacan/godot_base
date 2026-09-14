@@ -4,10 +4,7 @@ class_name CopyUserSave
 
 
 func _run() -> void:
-	# Replicate the Flags.DEMO logic directly — Flags.DEMO shortcuts to false
-	# in editor, ignoring force_demo, which would give the wrong path.
-	var is_demo := BuildConfig.Default.force_flag(
-			OS.has_feature("demo"), BuildConfig.Default.force_demo)
+	var is_demo := Flags.DEMO
 	var source_virtual: String
 	if is_demo:
 		source_virtual = "user://".path_join("demo").path_join(GameState.DEFAULT_FILENAME)

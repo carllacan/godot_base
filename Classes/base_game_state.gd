@@ -375,10 +375,7 @@ func overwrite_user_save() -> void:
 		push_error("This resource has no file path — save it as a .tres first.")
 		return
 
-	# Replicate Flags.DEMO logic directly — Flags.DEMO shortcuts to false in
-	# editor, which would ignore force_demo and give the wrong destination path.
-	var is_demo := BuildConfig.Default.force_flag(
-			OS.has_feature("demo"), BuildConfig.Default.force_demo)
+	var is_demo := Flags.DEMO
 	var dest_virtual:String = _resolve_save_path(
 			get_save_dir(saving_default_dir, is_demo),
 			get_save_filename(saving_default_filename))

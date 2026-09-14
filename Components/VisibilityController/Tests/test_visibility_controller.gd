@@ -60,8 +60,8 @@ func before_each()-> void:
 
 func after_each()-> void:
 	InputManager.current_controller_type = _original_controller_type
-	# Back to the build configuration the run was started with
-	BuildConfig.Default = null
+	# Back to the flags the run was started with
+	Flags.Override = null
 
 
 func _make_setting_info(setting_id:String, type:Variant.Type)-> SettingInfo:
@@ -72,20 +72,19 @@ func _make_setting_info(setting_id:String, type:Variant.Type)-> SettingInfo:
 	return setting
 
 
-## Replaces the build configuration with one that forces the flags the
-## controller looks at, so the tests do not depend on which configuration the
-## run happened to pick up.
+## Replaces the flags with ones that force the values the controller looks at,
+## so the tests do not depend on which flags the run happened to pick up.
 func _force_flags(opts:Dictionary = {})-> void:
-	var config := BuildConfig.new()
-	config.force_web = _forced(opts.get("web", false))
-	config.force_demo = _forced(opts.get("demo", false))
-	BuildConfig.Default = config
+	var flags := Flags.new()
+	flags.force_web = _forced(opts.get("web", false))
+	flags.force_demo = _forced(opts.get("demo", false))
+	Flags.Override = flags
 
 
-func _forced(value:bool)-> BaseBuildConfig.ForceActions:
+func _forced(value:bool)-> Flags.ForceActions:
 	if value:
-		return BaseBuildConfig.ForceActions.ForceTrue
-	return BaseBuildConfig.ForceActions.ForceFalse
+		return Flags.ForceActions.ForceTrue
+	return Flags.ForceActions.ForceFalse
 
 
 ## Builds a controller hanging from the control it shows and hides, which is how
