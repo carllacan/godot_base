@@ -107,14 +107,14 @@ func sync_file(local_path:String,
 
 	var remote_path = local_to_remote_filepath(local_path)
 
+	# A missing local file is not an error: it is the case a fresh install is in,
+	# and the one where the remote copy has to come down.
 	var local_bytes := PackedByteArray()
 	if FileAccess.file_exists(local_path):
 		var f := FileAccess.open(local_path, FileAccess.READ)
 		local_bytes = f.get_buffer(f.get_length())
 		f.close()
-	else:
-		push_error("Can't sync file %s: it doesn't exist" % remote_path)	
-	
+
 
 	var remote_bytes := read_remote_file(remote_path)
 
@@ -126,7 +126,7 @@ func sync_file(local_path:String,
 	# Only remote exists
 	if local_bytes.is_empty():
 		print("SYNC: File %s not found locally. Downloading remote." % local_path)
-		Utils.write_local_file(local_path, remote_bytes)
+		_write_downloaded_file(local_path, remote_bytes)
 		return
 
 	# Only local exists
@@ -146,13 +146,28 @@ func sync_file(local_path:String,
 			)
 			
 		# Overwrite local with remote
-		Utils.write_local_file(local_path, remote_bytes)
+		_write_downloaded_file(local_path, remote_bytes)
 	else:
 		print("SYNC: Local file %s found to be newer. Uploading to remote." % local_path)
 		#Overwrite remote with ocal
 		write_remote_file(remote_path, local_bytes)
 
 	
+## Writes a file that came down from the cloud. The directory it belongs in may
+## not exist yet: on a fresh install nothing has saved there, and the demo keeps
+## its saves in a subdirectory of its own.
+func _write_downloaded_file(local_path:String, bytes:PackedByteArray)-> void:
+	var dir:String = local_path.get_base_dir()
+	if not DirAccess.dir_exists_absolute(dir):
+		var result:Error = DirAccess.make_dir_recursive_absolute(dir)
+		if result != OK:
+			push_error("SYNC: Could not create %s to download %s into (error %d)" % [
+				dir, local_path, result])
+			return
+
+	Utils.write_local_file(local_path, bytes)
+
+
 func local_to_remote_filepath(local_path:String)-> String:
 	return local_path.get_file()
 	

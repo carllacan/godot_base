@@ -308,6 +308,17 @@ static func create_new_state()-> GameState:
 	return game_state
 
 
+## Brings the save at the configured path in line with the platform's cloud copy,
+## downloading it if this machine has none.
+##
+## This has to run before anything asks has_saved_game(), which only ever looks at
+## the local disk: a fresh install with a save in the cloud would otherwise be told
+## it has no save, start a new game, and then upload that new game over the old one
+## on its first save.
+static func sync_save_with_cloud()-> void:
+	Integration.sync_file(get_state_filepath())
+
+
 ## Checks if a saved game exists (returns true if load_last_state would succeed).
 static func has_saved_game()-> bool:
 	if BuildConfig.Default.use_testing_savefile and Flags.DEBUG:

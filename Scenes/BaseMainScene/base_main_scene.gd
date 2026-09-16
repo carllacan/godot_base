@@ -33,6 +33,11 @@ func _ready() -> void:
 	
 	_apply_cmdline_overrides()
 
+	# Before the main menu, which asks has_saved_game() to decide whether there is
+	# anything to continue, and before must_skip_main_menu() asks the same below.
+	# Both only see the local disk, so the cloud copy has to be here by now.
+	GameState.sync_save_with_cloud()
+
 	main_menu = main_menu_scene.instantiate()
 	add_child(main_menu)
 
