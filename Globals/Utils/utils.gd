@@ -323,6 +323,11 @@ static func piecewise_linear(
 	
 static func write_local_file(path:String, bytes:PackedByteArray) -> void:
 	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		push_error("Could not open %s for writing: error %d" % [
+			path, FileAccess.get_open_error()])
+		return
+
 	f.store_buffer(bytes)
 	f.close()
 
