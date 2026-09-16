@@ -161,8 +161,8 @@ func is_cloud_available()-> bool:
 ##
 ## Only achievements can be checked this way: Steamworks can enumerate them, but
 ## it exposes no equivalent for user stats. getStatInt/getStatFloat return 0 for
-## an unknown stat exactly as they do for one that is genuinely zero, so
-## stat_names cannot be verified without writing to them.
+## an unknown stat exactly as they do for one that is genuinely zero, so the
+## stat names cannot be verified without writing to them.
 func validate_achievements()-> bool:
 	if info == null:
 		return false
@@ -175,15 +175,17 @@ func validate_achievements()-> bool:
 	if configured.is_empty():
 		push_warning("App %d has no achievements configured in Steamworks" % get_steam_app_id())
 
+	var declared:Array[String] = info.get_achievement_names()
+
 	var valid := true
-	for ach_name in info.achievement_names:
+	for ach_name in declared:
 		if ach_name not in configured:
 			push_error("Achievement '%s' is declared in %s but is not configured in Steamworks" % [
 				ach_name, SteamIntegrationInfo.DEFAULT_PATH])
 			valid = false
 
 	for ach_name in configured:
-		if ach_name not in info.achievement_names:
+		if ach_name not in declared:
 			push_warning("Achievement '%s' is configured in Steamworks but is missing from %s" % [
 				ach_name, SteamIntegrationInfo.DEFAULT_PATH])
 
@@ -209,7 +211,7 @@ func mark_achievement_as_completed(ach_name:String)-> void:
 	if info == null:
 		return
 
-	if ach_name not in info.achievement_names:
+	if not info.has_achievement_name(ach_name):
 		push_error("Achievement %s not found" % ach_name)
 		return
 				
@@ -248,7 +250,7 @@ func get_float_statistic(stat_name:String)-> float:
 	if info == null:
 		return NAN
 
-	if stat_name not in info.stat_names:
+	if not info.has_stat_name(stat_name):
 		push_error("Stat %s not found" % stat_name)
 		return NAN
 		
@@ -261,7 +263,7 @@ func set_statistic(stat_name:String, new_value:Variant)-> void:
 	if info == null:
 		return
 
-	if stat_name not in info.stat_names:
+	if not info.has_stat_name(stat_name):
 		push_error("Stat %s not found" % stat_name)
 		return
 		
@@ -289,10 +291,10 @@ func change_statistic(stat_name:String, change:Variant)-> void:
 	if info == null:
 		return
 
-	if stat_name not in info.stat_names:
+	if not info.has_stat_name(stat_name):
 		push_error("Stat %s not found" % stat_name)
 		return
-		
+
 	assert(not is_nan(change))
 	
 	if change is int:
