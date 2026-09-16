@@ -36,6 +36,10 @@ static var DEMO:bool:
 	get:
 		#if Engine.is_editor_hint(): return false
 		return force_flag("demo", get_flags().force_demo)
+static var PLAYTEST:bool: 
+	get:
+		#if Engine.is_editor_hint(): return false
+		return force_flag("playtest", get_flags().force_playtest)
 static var DEBUG:bool: 
 	get:
 		#if Engine.is_editor_hint(): return true
@@ -71,6 +75,7 @@ static func force_flag(flag_feature:String, force_value:ForceActions)-> bool:
 
 @export var force_debug:ForceActions = ForceActions.None
 @export var force_demo:ForceActions = ForceActions.None
+@export var force_playtest:ForceActions = ForceActions.None
 @export var force_web:ForceActions = ForceActions.None
 @export var force_steam:ForceActions = ForceActions.None
 @export var force_itchio:ForceActions = ForceActions.None
