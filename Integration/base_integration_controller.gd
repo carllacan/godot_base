@@ -148,8 +148,8 @@ func sync_file(local_path:String,
 		# Overwrite local with remote
 		_write_downloaded_file(local_path, remote_bytes)
 	else:
-		print("SYNC: Local file %s found to be newer. Uploading to remote." % local_path)
-		#Overwrite remote with ocal
+		#print("SYNC: Local file %s found to be newer. Uploading to remote." % local_path)
+		# Overwrite remote with ocal
 		write_remote_file(remote_path, local_bytes)
 
 	
