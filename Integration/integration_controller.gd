@@ -9,7 +9,7 @@ extends BaseIntegrationController
 ## extension, so the autoload has to be a script that never names Steam.
 
 const STEAM_CONTROLLER_PATH := \
-	"res://GodotBase/Integration/Steam/steam_integration_controller.gd"
+	"res://addons/GodotBase/Integration/Steam/steam_integration_controller.gd"
 
 
 func _ready()-> void:

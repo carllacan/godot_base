@@ -15,7 +15,7 @@ class_name PerformanceStats
 ##    120 ms stall twice a second barely moves a mean. Use the percentiles.
 
 const DEBUG_INFO_SCENE:PackedScene = preload(
-	"res://GodotBase/Scenes/DebugInfo/debug_info.tscn")
+	"res://addons/GodotBase/Scenes/DebugInfo/debug_info.tscn")
 
 ## A frame this long is a visible stutter even if the average looks fine.
 const HITCH_MS:float = 33.0

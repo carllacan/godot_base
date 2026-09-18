@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bm8yqaqvnt5k1"]
 
-[ext_resource type="Script" uid="uid://bpont0auslt1" path="res://GodotBase/Scenes/BaseAmountIndicator/base_amount_indicator.gd" id="1_base"]
+[ext_resource type="Script" uid="uid://bpont0auslt1" path="res://addons/GodotBase/Scenes/BaseAmountIndicator/base_amount_indicator.gd" id="1_base"]
 
 [node name="BaseAmountIndicator" type="MarginContainer" unique_id=1540817948]
 offset_right = 51.0

@@ -1,7 +1,7 @@
 extends BaseEffect
 class_name FloatingLabel
 static var SCENE = load(
-	"res://GodotBase/Scenes/FloatingLabel/floating_label.tscn")
+	"res://addons/GodotBase/Scenes/FloatingLabel/floating_label.tscn")
 
 # USE:
 

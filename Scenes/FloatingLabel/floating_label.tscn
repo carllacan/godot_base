@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ga0vpydf14mq"]
 
-[ext_resource type="Script" uid="uid://dm0b4fsjtngc2" path="res://GodotBase/Scenes/FloatingLabel/floating_label.gd" id="1_c2ri8"]
-[ext_resource type="Script" uid="uid://bb7bvpctk8ssf" path="res://GodotBase/Components/Floater/floater.gd" id="2_semk3"]
+[ext_resource type="Script" uid="uid://dm0b4fsjtngc2" path="res://addons/GodotBase/Scenes/FloatingLabel/floating_label.gd" id="1_c2ri8"]
+[ext_resource type="Script" uid="uid://bb7bvpctk8ssf" path="res://addons/GodotBase/Components/Floater/floater.gd" id="2_semk3"]
 
 [node name="FloatingLabel" type="Node2D" unique_id=756654673]
 script = ExtResource("1_c2ri8")

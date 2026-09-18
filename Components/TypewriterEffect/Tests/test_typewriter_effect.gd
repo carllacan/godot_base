@@ -8,7 +8,7 @@ extends GutTest
 ## whole effect takes await play() and time it, over texts short enough for the
 ## wait to be short too.
 
-const SCENE:PackedScene = preload("res://GodotBase/Components/TypewriterEffect/typewriter_effect.tscn")
+const SCENE:PackedScene = preload("res://addons/GodotBase/Components/TypewriterEffect/typewriter_effect.tscn")
 ## Short, and a number of characters a total time divides into cleanly
 const TEXT:String = "abcd"
 const NUM_CHARS:int = 4

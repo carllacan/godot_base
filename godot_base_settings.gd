@@ -23,25 +23,25 @@ static var settings:GodotBase : get = get_settings
 
 ## Points to the settings that controls music
 @export var music_enabled_setting:SettingInfo = preload(
-	"res://GodotBase/SettingsSystem/BaseSettings/music_enabled.tres")
+	"res://addons/GodotBase/SettingsSystem/BaseSettings/music_enabled.tres")
 @export var music_volume_setting:SettingInfo = preload(
-	"res://GodotBase/SettingsSystem/BaseSettings/music_volume.tres")
+	"res://addons/GodotBase/SettingsSystem/BaseSettings/music_volume.tres")
 
 @export var sfx_enabled_setting:SettingInfo = preload(
-	"res://GodotBase/SettingsSystem/BaseSettings/sfx_enabled.tres")
+	"res://addons/GodotBase/SettingsSystem/BaseSettings/sfx_enabled.tres")
 @export var sfx_volume_setting:SettingInfo = preload(
-	"res://GodotBase/SettingsSystem/BaseSettings/sfx_volume.tres")
+	"res://addons/GodotBase/SettingsSystem/BaseSettings/sfx_volume.tres")
 
 @export var master_enabled_setting:SettingInfo = preload(
-	"res://GodotBase/SettingsSystem/BaseSettings/sound_enabled.tres")
+	"res://addons/GodotBase/SettingsSystem/BaseSettings/sound_enabled.tres")
 @export var master_volume_setting:SettingInfo = preload(
-	"res://GodotBase/SettingsSystem/BaseSettings/sound_volume.tres")
+	"res://addons/GodotBase/SettingsSystem/BaseSettings/sound_volume.tres")
 ## Points to the settings that controls music.
 @export var window_mode_setting:SettingInfo = preload(
-	"res://GodotBase/SettingsSystem/BaseSettings/window_mode.tres")
+	"res://addons/GodotBase/SettingsSystem/BaseSettings/window_mode.tres")
 ## Points to the settings that controls music.
 @export var language_setting:SettingInfo = preload(
-	"res://GodotBase/SettingsSystem/BaseSettings/language.tres")
+	"res://addons/GodotBase/SettingsSystem/BaseSettings/language.tres")
 	
 @export_group("Debug", "debug")
 ## Whether debug elements start visible instead of waiting for the

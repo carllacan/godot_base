@@ -149,14 +149,14 @@ func test_missing_fields_use_defaults():
 #region fixture json
 
 func test_fixture_json_returns_two_entries():
-	var path := "res://GodotBase/CrossPromotion/Tests/cross-promotion.json"
+	var path := "res://addons/GodotBase/CrossPromotion/Tests/cross-promotion.json"
 	var text := FileAccess.get_file_as_string(path)
 	var result := CrossPromotion._parse_json_body(text.to_utf8_buffer(), "mygame")
 	assert_eq(result.size(), 2)
 
 
 func test_fixture_json_excludes_caller_game():
-	var path := "res://GodotBase/CrossPromotion/Tests/cross-promotion.json"
+	var path := "res://addons/GodotBase/CrossPromotion/Tests/cross-promotion.json"
 	var text := FileAccess.get_file_as_string(path)
 	var result := CrossPromotion._parse_json_body(text.to_utf8_buffer(), "bingobingle")
 	assert_eq(result.size(), 1)

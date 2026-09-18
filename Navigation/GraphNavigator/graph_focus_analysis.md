@@ -201,7 +201,7 @@ exactly 0 would divide by zero. Keep it.
 Run with:
 
 ```
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://GodotBase/Navigation -ginclude_subdirs -gexit
+godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://addons/GodotBase/Navigation -ginclude_subdirs -gexit
 ```
 
 from the `bingomental/` directory. A newly added test file is not collected until

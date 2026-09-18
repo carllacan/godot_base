@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://baquoy1jtqued"]
 
-[ext_resource type="Script" uid="uid://cxlcasfkfeq2l" path="res://GodotBase/Scenes/WindowsLayer/base_window.gd" id="1_48o85"]
+[ext_resource type="Script" uid="uid://cxlcasfkfeq2l" path="res://addons/GodotBase/Scenes/WindowsLayer/base_window.gd" id="1_48o85"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t2jd4"]
 bg_color = Color(0.05, 0.05, 0.1, 0.882353)

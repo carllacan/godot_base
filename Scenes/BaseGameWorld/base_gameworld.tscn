@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cxmwacwawq1qj"]
 
-[ext_resource type="Script" uid="uid://dkwc0poiqvh3b" path="res://GodotBase/Scenes/BaseGameWorld/base_gameworld.gd" id="1_scwc4"]
-[ext_resource type="Shader" uid="uid://bm6m7ilohgohq" path="res://GodotBase/Scenes/BaseGameWorld/grid.gdshader" id="2_jmjth"]
+[ext_resource type="Script" uid="uid://dkwc0poiqvh3b" path="res://addons/GodotBase/Scenes/BaseGameWorld/base_gameworld.gd" id="1_scwc4"]
+[ext_resource type="Shader" uid="uid://bm6m7ilohgohq" path="res://addons/GodotBase/Scenes/BaseGameWorld/grid.gdshader" id="2_jmjth"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_4re87"]
 shader = ExtResource("2_jmjth")

@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://c4a7s083fcth7"]
 
-[ext_resource type="Script" uid="uid://s4aexkcs4q43" path="res://GodotBase/Components/TypewriterEffect/typewriter_effect.gd" id="1_g3sj5"]
-[ext_resource type="AudioStream" uid="uid://xwvgq6rjsf04" path="res://GodotBase/Components/TypewriterEffect/click_002.ogg" id="2_g3sj5"]
+[ext_resource type="Script" uid="uid://s4aexkcs4q43" path="res://addons/GodotBase/Components/TypewriterEffect/typewriter_effect.gd" id="1_g3sj5"]
+[ext_resource type="AudioStream" uid="uid://xwvgq6rjsf04" path="res://addons/GodotBase/Components/TypewriterEffect/click_002.ogg" id="2_g3sj5"]
 
 [node name="TypewriterEffect" type="Node" unique_id=360361715]
 script = ExtResource("1_g3sj5")

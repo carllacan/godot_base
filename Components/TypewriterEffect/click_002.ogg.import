@@ -3,12 +3,12 @@
 importer="oggvorbisstr"
 type="AudioStreamOggVorbis"
 uid="uid://xwvgq6rjsf04"
-path="res://.godot/imported/click_002.ogg-9b2cc6212b8e911b97642805647e2432.oggvorbisstr"
+path="res://.godot/imported/click_002.ogg-13d9eecb1d3e934494ebfadd2344ebc1.oggvorbisstr"
 
 [deps]
 
-source_file="res://GodotBase/Components/TypewriterEffect/click_002.ogg"
-dest_files=["res://.godot/imported/click_002.ogg-9b2cc6212b8e911b97642805647e2432.oggvorbisstr"]
+source_file="res://addons/GodotBase/Components/TypewriterEffect/click_002.ogg"
+dest_files=["res://.godot/imported/click_002.ogg-13d9eecb1d3e934494ebfadd2344ebc1.oggvorbisstr"]
 
 [params]
 

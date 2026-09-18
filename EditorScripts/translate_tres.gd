@@ -39,6 +39,10 @@
 ##       The three .pot paths described above.
 ##   excluded_dirs
 ##       Folder names never walked into, addons/ by default.
+##   included_folders
+##       Folder names always walked into, whatever excluded_dirs says. A library
+##       living inside addons/ is carried by this rather than by naming every
+##       other addon in excluded_dirs.
 ##   included_scripts
 ##       Script paths. While it is empty every .tres and every sub-resource in
 ##       it is read; otherwise only those whose script is one of them, or
@@ -110,6 +114,15 @@ static var SETTINGS := [
 		"default": PackedStringArray(["addons"]),
 	},
 	{
+		# Our own strings inside an excluded folder, such as a library shipped
+		# in addons/, are still ours to translate.
+		"key": "included_folders",
+		"type": TYPE_PACKED_STRING_ARRAY,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"default": PackedStringArray([]),
+	},
+	{
 		"key": "required_group_pattern",
 		"type": TYPE_STRING,
 		"hint": PROPERTY_HINT_NONE,
@@ -152,6 +165,7 @@ var godot_pot: String      # Godot-generated .pot
 var tres_pot: String       # Temp .pot for .tres strings
 var merged_pot: String     # Final merged .pot
 var excluded_dirs: PackedStringArray  # Folder names skipped while walking res://
+var included_folders: PackedStringArray  # Folder names walked into even when excluded
 var required_group_pattern: String    # Only groups/subgroups matching it are extracted
 var required_name_pattern: String     # Only properties matching it are extracted
 var excluded_name_pattern: String     # Properties matching it are never extracted
@@ -219,6 +233,7 @@ func load_settings() -> bool:
 	tres_pot = get_setting_value("tres_pot")
 	merged_pot = get_setting_value("merged_pot")
 	excluded_dirs = get_setting_value("excluded_dirs")
+	included_folders = get_setting_value("included_folders")
 	required_group_pattern = get_setting_value("required_group_pattern")
 	required_name_pattern = get_setting_value("required_name_pattern")
 	excluded_name_pattern = get_setting_value("excluded_name_pattern")
@@ -306,20 +321,29 @@ func extract_all_tres_strings(root_path: String) -> Dictionary:
 # "#:" comment lines within one entry follow this walk, so an unsorted one makes
 # each regenerated .pot differ from the last one wherever the filesystem
 # happened to reshuffle, for no change in the strings themselves.
-func _scan_dir(current_path: String, result: Dictionary) -> void:
+#
+# An excluded folder is still walked into, so that an included folder sitting
+# inside one is reached: "extracting" is what excluded_dirs turns off and
+# included_folders turns back on, not the walk itself.
+func _scan_dir(current_path: String, result: Dictionary, extracting: bool = true) -> void:
 	var dir = DirAccess.open(current_path)
 	if dir == null:
 		push_error("Cannot open folder: %s" % current_path)
 		return
-	for file_name in dir.get_files():
-		if file_name.ends_with(".tres"):
-			var path := current_path.path_join(file_name)
-			var res = ResourceLoader.load(path)
-			if res and _resource_is_included(res):
-				_extract_resource_strings(path, res, result)
+	if extracting:
+		for file_name in dir.get_files():
+			if file_name.ends_with(".tres"):
+				var path := current_path.path_join(file_name)
+				var res = ResourceLoader.load(path)
+				if res and _resource_is_included(res):
+					_extract_resource_strings(path, res, result)
 	for dir_name in dir.get_directories():
-		if not dir_name in excluded_dirs:
-			_scan_dir(current_path.path_join(dir_name), result)
+		var child_extracting := extracting
+		if dir_name in included_folders:
+			child_extracting = true
+		elif dir_name in excluded_dirs:
+			child_extracting = false
+		_scan_dir(current_path.path_join(dir_name), result, child_extracting)
 
 
 # --- Pull the translatable strings out of one loaded resource ---

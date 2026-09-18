@@ -165,7 +165,7 @@ set up.
 Run the tests with:
 
 ```
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://GodotBase/Navigation -ginclude_subdirs -gexit
+godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://addons/GodotBase/Navigation -ginclude_subdirs -gexit
 ```
 
 from the `bingomental/` directory.

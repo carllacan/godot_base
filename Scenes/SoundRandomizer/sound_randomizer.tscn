@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://l8klfjqsgjsr"]
 
-[ext_resource type="Script" uid="uid://benk7kmujloqq" path="res://GodotBase/Scenes/SoundRandomizer/sound_randomizer.gd" id="1_6uk7b"]
+[ext_resource type="Script" uid="uid://benk7kmujloqq" path="res://addons/GodotBase/Scenes/SoundRandomizer/sound_randomizer.gd" id="1_6uk7b"]
 
 [node name="SoundRandomizer" type="AudioStreamPlayer" unique_id=1525907396]
 script = ExtResource("1_6uk7b")

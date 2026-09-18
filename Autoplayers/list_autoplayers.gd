@@ -1,8 +1,8 @@
 extends SceneTree
 ## Prints every autoplayer on disk, one res:// path per line, and quits.
 ##
-##   godot --headless --path . --script res://GodotBase/Autoplayers/list_autoplayers.gd
-##   godot --headless --path . --script res://GodotBase/Autoplayers/list_autoplayers.gd -- res://Players
+##   godot --headless --path . --script res://addons/GodotBase/Autoplayers/list_autoplayers.gd
+##   godot --headless --path . --script res://addons/GodotBase/Autoplayers/list_autoplayers.gd -- res://Players
 ##
 ## Meant for a harness picking a cohort to run. Nothing is printed around the
 ## list: whoever asked for it knows what they asked for, and a caller reading

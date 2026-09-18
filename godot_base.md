@@ -22,7 +22,7 @@ GodotBase is a collection of reusable code, scenes, and resources designed to be
 
 ## Installation
 
-GodotBase is consumed as a **git submodule**. The repository lives at `git@github.com:carllacan/godot_base.git`, and each project checks it out as a `GodotBase/` folder inside its Godot project root, so everything resolves as `res://GodotBase/...`.
+GodotBase is consumed as a **git submodule**. The repository lives at `git@github.com:carllacan/godot_base.git`, and each project checks it out as a `GodotBase/` folder inside its Godot project root, so everything resolves as `res://addons/GodotBase/...`.
 
 ### How a submodule works
 
@@ -63,10 +63,10 @@ Cloning the folder is not sufficient — the project must also register what it 
 
    ```ini
    [autoload]
-   Log="*res://GodotBase/GameplayLogger/gameplay_logger.gd"
-   SaveManager="*res://GodotBase/Autoloads/save_manager.gd"
-   SignalManager="*res://GodotBase/Autoloads/signal_manager.gd"
-   Pause="*res://GodotBase/Scenes/PauseController/pause_controller.gd"
+   Log="*res://addons/GodotBase/GameplayLogger/gameplay_logger.gd"
+   SaveManager="*res://addons/GodotBase/Autoloads/save_manager.gd"
+   SignalManager="*res://addons/GodotBase/Autoloads/signal_manager.gd"
+   Pause="*res://addons/GodotBase/Scenes/PauseController/pause_controller.gd"
    ```
 
    See [Autoloads](#autoloads) for the full list of what is available.
@@ -780,7 +780,7 @@ happened into a GIF".
 **Setup**:
 
 1. Register the autoload in the project (it is not added automatically):
-   `MovieMaker="*res://GodotBase/Autoloads/movie_maker.gd"`
+   `MovieMaker="*res://addons/GodotBase/Autoloads/movie_maker.gd"`
 2. Define the three input actions listed below in the Input Map.
 3. Have `ffmpeg` on `PATH` (and `magick` if GIF optimization is enabled).
 

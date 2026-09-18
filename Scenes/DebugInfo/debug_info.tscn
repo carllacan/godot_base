@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dhn0pewgngeln"]
 
-[ext_resource type="Script" uid="uid://cebwjbgyubkhg" path="res://GodotBase/Scenes/DebugInfo/debug_info.gd" id="1_wb4s0"]
+[ext_resource type="Script" uid="uid://cebwjbgyubkhg" path="res://addons/GodotBase/Scenes/DebugInfo/debug_info.gd" id="1_wb4s0"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wb4s0"]
 content_margin_left = 4.0

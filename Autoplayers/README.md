@@ -64,8 +64,8 @@ measuring stops being true of the real one.
 To find out what there is to run, without running any of it:
 
 ```sh
-godot --headless --path . --script res://GodotBase/Autoplayers/list_autoplayers.gd
-godot --headless --path . --script res://GodotBase/Autoplayers/list_autoplayers.gd -- res://Players
+godot --headless --path . --script res://addons/GodotBase/Autoplayers/list_autoplayers.gd
+godot --headless --path . --script res://addons/GodotBase/Autoplayers/list_autoplayers.gd -- res://Players
 ```
 
 Prints one `res://` path per line and quits. Without a directory it scans

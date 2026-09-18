@@ -31,7 +31,7 @@ class_name BasePerformanceToggles
 signal toggles_changed
 
 const PANEL_SCENE:PackedScene = preload(
-	"res://GodotBase/Performance/PerfTogglesPanel/perf_toggles_panel.tscn")
+	"res://addons/GodotBase/Performance/PerfTogglesPanel/perf_toggles_panel.tscn")
 
 ## Command line switch, e.g. `-- --perf=lights_off,scale_50`.
 const PERF_ARG:String = "--perf"

@@ -1,7 +1,7 @@
 @tool
 class_name BaseWindow
 extends Control
-const BASE_SCENE = preload("res://GodotBase/Scenes/WindowsLayer/base_window.tscn")
+const BASE_SCENE = preload("res://addons/GodotBase/Scenes/WindowsLayer/base_window.tscn")
 
 signal started_opening
 signal started_closing

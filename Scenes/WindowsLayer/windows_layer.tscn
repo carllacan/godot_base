@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bsmbcxm5lhuj7"]
 
-[ext_resource type="Script" uid="uid://bajpe7j15ll8q" path="res://GodotBase/Scenes/WindowsLayer/windows_layer.gd" id="1_g14bo"]
+[ext_resource type="Script" uid="uid://bajpe7j15ll8q" path="res://addons/GodotBase/Scenes/WindowsLayer/windows_layer.gd" id="1_g14bo"]
 
 [node name="WindowsLayer" type="CanvasLayer" unique_id=1638601748]
 process_mode = 3

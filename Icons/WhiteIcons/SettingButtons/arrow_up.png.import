@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cocxwt3ir8657"
-path="res://.godot/imported/arrow_up.png-befc3202d605f38c7d0aad60d7c5c6a7.ctex"
+path="res://.godot/imported/arrow_up.png-8071374adf478c95a8a394dfe70eaa4c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://GodotBase/Icons/WhiteIcons/SettingButtons/arrow_up.png"
-dest_files=["res://.godot/imported/arrow_up.png-befc3202d605f38c7d0aad60d7c5c6a7.ctex"]
+source_file="res://addons/GodotBase/Icons/WhiteIcons/SettingButtons/arrow_up.png"
+dest_files=["res://.godot/imported/arrow_up.png-8071374adf478c95a8a394dfe70eaa4c.ctex"]
 
 [params]
 

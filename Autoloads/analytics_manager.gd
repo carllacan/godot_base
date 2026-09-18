@@ -56,7 +56,7 @@ static func generate_random_id() -> String:
 	
 func track_event(event_name: String, params: Dictionary = {}):
 	
-	var ans = preload("res://GodotBase/SettingsSystem/BaseSettings/analytics_enabled.tres")
+	var ans = preload("res://addons/GodotBase/SettingsSystem/BaseSettings/analytics_enabled.tres")
 	if not Settings.get_setting_value(ans):
 		return
 	

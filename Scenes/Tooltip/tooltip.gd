@@ -1,7 +1,7 @@
 @tool
 extends Control
 class_name Tooltip
-static var SCENE = load("res://GodotBase/Scenes/Tooltip/tooltip.tscn")
+static var SCENE = load("res://addons/GodotBase/Scenes/Tooltip/tooltip.tscn")
 
 @export var target_controls:Array[Control] = []
 @export var on_hover:bool = true
