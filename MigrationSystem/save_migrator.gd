@@ -17,7 +17,7 @@ const UNVERSIONED:String = "0.0.0"
 const BACKUP_SUFFIX:String = ".bak"
 
 static var _identifier:BaseMigrationIdentifier
-static var _version_regex:RegEx
+static var _property_regexes:Dictionary[String, RegEx] = {}
 
 
 ## The project's migration identifier. Every project using GodotBase declares a
@@ -201,16 +201,43 @@ static func read_save_version(filepath:String)-> String:
 	return read_version_from_text(_read_text(filepath))
 
 
-## The version stamp in a save's raw text. Anchored to the start of a line so
-## that it reads `version`, not `original_version`.
+## The version stamp in a save's raw text.
 static func read_version_from_text(content:String)-> String:
-	if _version_regex == null:
-		_version_regex = RegEx.new()
-		_version_regex.compile('(?m)^version\\s*=\\s*"([^"]*)"')
+	var version = read_property_from_text(content, "version")
 
-	var found := _version_regex.search(content)
+	return version if version is String else ""
 
-	return found.get_string(1) if found else ""
+
+## Reads one property straight out of a text resource, without loading it.
+##
+## A save whose format has moved on cannot be loaded at all, so anything that
+## has to know something about a file before migrating it has to read the text.
+## Only single-line values are readable this way, which covers the stamps
+## (`version`, `timestamp_unix`) and not dictionaries or arrays.
+##
+## Quoted values come back as String and bare numbers as float; a property that
+## is not there, or whose value spans lines, gives null.
+static func read_property_from_text(content:String, property_name:String)-> Variant:
+	# Anchored to the start of a line, so reading `version` does not match
+	# `original_version`.
+	if not _property_regexes.has(property_name):
+		var regex := RegEx.new()
+		regex.compile("(?m)^%s\\s*=\\s*(.*)$" % property_name)
+		_property_regexes[property_name] = regex
+
+	var found:RegExMatch = _property_regexes[property_name].search(content)
+	if found == null:
+		return null
+
+	var value:String = found.get_string(1).strip_edges()
+
+	if value.length() >= 2 and value.begins_with('"') and value.ends_with('"'):
+		return value.substr(1, value.length() - 2)
+
+	if value.is_valid_float():
+		return value.to_float()
+
+	return null
 
 
 ## The comparable part of a version stamp: "0.6.8_steam (a3f21c)" gives "0.6.8".

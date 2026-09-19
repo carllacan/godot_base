@@ -35,8 +35,13 @@ func get_current_language()-> String:
 
 
 class DefaultSyncCriterion:
-	## A default sync criterion that parses both files as Godot custom Resources
-	## and decides using a property both of them are assumed to have.
+	## A default sync criterion that reads a property both files are assumed to
+	## have straight out of their text, and decides using that.
+	##
+	## The property is read rather than loaded because the files being compared
+	## can predate the running build: a save naming a resource path that has
+	## moved does not load at all, and two files that both fail to load compare
+	## equal, which hands the decision to whichever side happens to be local.
 	static func criterion(file_a:PackedByteArray, file_b:PackedByteArray,
 		property_name:String)-> bool:
 		var a_value = _load_resource_property(file_a, property_name)
@@ -62,28 +67,19 @@ class DefaultSyncCriterion:
 		return false
 
 		
-	static func _load_resource_property(bytes:PackedByteArray,	property_name:String) -> Variant:
+	## Only text resources can be read this way. A binary save gives null, the
+	## same answer an unreadable file gave before.
+	static func _load_resource_property(bytes:PackedByteArray, property_name:String) -> Variant:
 		if bytes.is_empty():
 			return null
 
-		var tmp_path := "user://_cloud_sync_tmp.tres"
+		var value:Variant = SaveMigrator.read_property_from_text(
+			bytes.get_string_from_utf8(), property_name)
 
-		var f := FileAccess.open(tmp_path, FileAccess.WRITE)
-		if f == null:
-			return null
+		if value == null:
+			print("SYNC: Could not read '%s' for sync comparison" % property_name)
 
-		f.store_buffer(bytes)
-		f.close()
-
-		var res := ResourceLoader.load(tmp_path)
-		if res == null:
-			print("SYNC: Could not load file for sync comparison")
-			return null
-
-		if property_name not in res.get_property_list().map(func(p): return p["name"]):
-			return null
-
-		return res.get(property_name)
+		return value
 
 
 ## Downloads a file from the remote cloud and compares it with its local version.
