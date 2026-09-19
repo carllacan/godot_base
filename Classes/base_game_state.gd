@@ -52,6 +52,9 @@ const SAVE_FILE_ARG:String = "--save-file"
 @export_group("Others")
 @export var timestamp_unix:float = 0
 @export var version:String
+## In case a migration was applied, just in case there is any problem later on
+@export var original_version:String
+@export var applied_migrations:Array[String] = []
 @export_group("Tools")
 @export_tool_button("Set as testing") var sat = set_as_testing_savefile
 @export_tool_button("Overwrite user save") var ous = overwrite_user_save
@@ -106,6 +109,13 @@ func prepare_save(filename:String = "")-> Callable:
 
 	# Stamped here so the live run and the snapshot agree on when it was saved.
 	timestamp_unix = Time.get_unix_time_from_system()
+
+	# Taken from the stamp this state still carries, so a save written by an
+	# older build keeps that build as its origin rather than the one rewriting
+	# it. A state that has never been saved has no stamp and starts here.
+	if original_version.is_empty():
+		original_version = version if not version.is_empty() else Dist.get_version()
+
 	version = Dist.get_version()
 
 	return actually_save.bind(
@@ -230,15 +240,29 @@ static func load_from_file(filepath:String)-> BaseGameState:
 	# (e.g. UpgradeModel.requirements) and Dictionary equality for Resources is
 	# identity-based, so forcing them to reload as new instances orphans the
 	# values stored under the old key.
+	# Before the load: a save naming a resource path that no longer exists never
+	# becomes an object at all, so the text stage has to run first.
+	var plan:MigrationPlan = SaveMigrator.get_plan(filepath)
+	if plan.refused:
+		push_error("SaveMigrator refused '%s': %s" % [filepath, plan.reason])
+	elif plan.is_needed():
+		SaveMigrator.migrate_file(filepath, plan)
+
 	var r:BaseGameState = ResourceLoader.load(filepath,
 		"", ResourceLoader.CACHE_MODE_IGNORE)
-	
+
 	if r != null:
 		print("Game loaded from '%s'" % filepath)
 	else:
 		print("Game loaded failed.")
-		
-		
+		return r
+
+	if plan.is_needed():
+		SaveMigrator.migrate_state(r, plan)
+		# The version stamp only advances once the migrated state is written, so
+		# an interrupted migration starts over rather than being half recorded.
+		r.save()
+
 	return r
 	
 	
